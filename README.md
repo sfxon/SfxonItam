@@ -3,12 +3,16 @@
 Das Akronym ITAM steht für IT Asset Management. Dieses Werkzeug hilft dabei, das IT-Inventar eines Unternehmens zu führen.
 Vergiss Excel Tabellen und Word-Dokumente, nutze stattdessen ein strukturiertes System, dass sich flexibel an deine Anforderungen anpasst.
 
+
 ## Features
 
 1. Hardware Inventar
 2. Lizenz Management
+3. Reporte und Exporte
+
 
 ### Features: 1. Hardware Inventar
+
 Inventarisierung und Verwaltung von Hardware, bspw. Computer, Monitore, Notebooks, Laptops, Telefone, Headsets, Tastaturen, Mäuse, ...
 
 Ein Datensatz im Inventar besteht unter anderem aus diesen Feldern:
@@ -22,6 +26,12 @@ Ein Datensatz im Inventar besteht unter anderem aus diesen Feldern:
 
 und weitere. Die Felder sind neben Standard-Feldern flexibel erweiterbar.
 
-### Features 2. Lizenz Management
+
+### Features: 2. Lizenz Management
 
 Manage deine Software-Lizenzen.
+
+
+### Features: 3. Reporte und Exporte
+
+ITAM unterstützt dich dabei, wenn du häufig Berichte anfertigen oder Daten in bestimmten Formaten für Dritte Dienste oder Mitarbeiter erstellen möchtest. Jeder Report umfasst eine flexible Auswahl an Datensätzen und Feldern in konfigurierbarer Reihenfolge und verschiedenen Formaten.
