@@ -1,0 +1,44 @@
+<?xml version="1.0"?>
+<info xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	  xsi:noNamespaceSchemaLocation="https://apps.nextcloud.com/schema/apps/info.xsd">
+	<id>sfxonitam</id>
+	<name>Sfxon Itam</name>
+	<summary>Manage das IT-Inventar deines Unternehmens mit ITAM, dem IT Asset Management.</summary>
+	<description><![CDATA[Das Akronym ITAM steht für IT Asset Management. Dieses Werkzeug hilft dabei, das IT-Inventar eines Unternehmens zu führen.
+Vergiss Excel Tabellen und Word-Dokumente, nutze stattdessen ein strukturiertes System, dass sich flexibel an deine Anforderungen anpasst.
+
+1. **Inventar**
+Inventarisierung und Verwaltung von Hardware, bspw. Computer, Monitore, Notebooks, Laptops, Telefone, Headsets, Tastaturen, Mäuse, ...
+
+Das Inventar kann sich zusammensetzen aus bspw.:
+- Geräte-Name
+- Standort (Physisch, also bspw. "Filiale Allgäu" oder "Campus 1, Block A"
+- Position
+- Kauf-Datum
+- Verkäufer
+- Inventarnummer (kaufmännisches Inventar)
+
+und weitere. Die Felder sind neben Standard-Feldern flexibel erweiterbar.
+
+2. **Lizenz-Management**
+Manage deine Software-Lizenzen.]]></description>
+	<version>1.0.0</version>
+	<licence>AGPL-3.0-or-later</licence>
+	<author mail="steve@mindfav.com" homepage="https://github.com/sfxon">Steve Krämer</author>
+	<namespace>SfxonItam</namespace>
+	<category>organization</category>
+	<category>tools</category>
+	<bugs>https://github.com/sfxon/SfxonItam/issues</bugs>
+	<dependencies>
+		<nextcloud min-version="31" max-version="32"/>
+	</dependencies>
+	<navigations>
+		<navigation>
+			<id>sfxonitam</id>
+			<name>Sfxon Itam</name>
+			<route>sfxonitam.page.index</route>
+			<icon>app.svg</icon>
+			<type>link</type>
+		</navigation>
+	</navigations>
+</info>
