@@ -1,20 +1,25 @@
 # ITAM
 
-Das Akronym ITAM steht für IT Asset Management. Dieses Werkzeug hilft dabei, das IT-Inventar eines Unternehmens zu führen.
-Vergiss Excel Tabellen und Word-Dokumente, nutze stattdessen ein strukturiertes System, dass sich flexibel an deine Anforderungen anpasst.
+ITAM (IT Asset Management) ist eine Nextcloud Erweiterung zur Verwaltung von Hardwaregeräten und Softwarelizenzen.
+Das Programm richtet sich an kleine und mittelständische Unternehmen (KMU) sowie Privatpersonen.
 
-## Aktuelle Features
+* MIT-Lizenz
+* kostenfreie Nutzung
+* Release im Nextcloud Appstore zur einfacheren Installation ist geplant.
 
-None
 
-## Kommende Features
+## Aktuelle Funktionen
+
+Keine
+
+## Kommende Funktionen
 
 1. Hardware Inventar
 2. Lizenz Management
 3. Reporte und Exporte
 
 
-### Kommende Features: 1. Hardware Inventar
+### Kommende Funktionen: 1. Hardware Inventar
 
 Inventarisierung und Verwaltung von Hardware, bspw. Computer, Monitore, Notebooks, Laptops, Telefone, Headsets, Tastaturen, Mäuse, ...
 
@@ -30,14 +35,16 @@ Ein Datensatz im Inventar besteht unter anderem aus diesen Feldern:
 und weitere. Die Felder sind neben Standard-Feldern flexibel erweiterbar.
 
 
-### Kommende Features: 2. Lizenz Management
+### Kommende Funktionen: 2. Lizenz Management
 
 Manage deine Software-Lizenzen.
 
 
-### Kommende Features: 3. Reporte und Exporte
+### Kommende Funktionen: 3. Reporte und Exporte
 
-ITAM unterstützt dich dabei, wenn du häufig Berichte anfertigen oder Daten in bestimmten Formaten für Dritte Dienste oder Mitarbeiter erstellen möchtest. Jeder Report umfasst eine flexible Auswahl an Datensätzen und Feldern in konfigurierbarer Reihenfolge und verschiedenen Formaten.
+ITAM unterstützt bei der Erstellung von Berichten und Exporten.
+Jeder Report umfasst eine flexible Auswahl an Datensätzen und Feldern in auswählbarer Reihenfolge.
+Es werden 2 Export-Formate unterstützt: druckbare HTML-Seiten und CSV-Dateien.
 
 ## Systemvoraussetzungen
 
@@ -49,7 +56,7 @@ ITAM unterstützt dich dabei, wenn du häufig Berichte anfertigen oder Daten in 
 
 2. Nextcloud Admin > Benutzer Icon (oben rechts) > Apps > Links im Menü "Deine Apps" > IT Asset Management<br>a) Custom App installieren<br>Aktivieren
 
-<br><br><br><br><br><br>
+<br><br>
 ---
 
 # Entwickler Dokumentation
@@ -230,42 +237,63 @@ erDiagram
     Device }o--o| Position : has
     Device }o--o| DeviceType : has
     Device }o--o| User : has
+    Device }o--o| Merchant : has
+    Device }o--o| DeviceStatus : has
     Position }o--o| Location : has
     DeviceType }o--o| Manufacturer : has
 
     Device {
         uuid id PK
         string name UK
+        uuid deviceStatusId FK "DEFAULT NULL"
         uuid positionId FK "DEFAULT NULL;<br>Im Sinn von Position"
         uuid deviceTypeId FK "DEFAULT NULL;"
         uuid userId FK
         string serialNumber
         string serialNumber2
         string assetNumber "Anlagennummer"
+        uuid merchantId "DEFAULT NULL"
+        string invoiceNumber
         DATETIME purchaseDate "DEFAULT NULL"
         string customFields "LONGTEXT; Contains a JSON string"
+        string comment
+    }
 
+    DeviceStatus {
+        uuid id PK
+        string name
+        string comment
     }
 
     Location {
         uuid id PK
         string name
+        string comment
     }
 
     Position {
         uuid id PK
         uuid locationId "DEFAULT NULL<br>Im Sinn von Standort"
         string name
+        string comment
     }
 
     DeviceType {
         uuid id PK
         string name UK
         uuid manufacturerId FK "DEFAULT NULL"
+        string comment
     }
 
     Manufacturer {
         uuid id PK
         string name UK
+        string comment
+    }
+
+    Merchant {
+        uuid id PK
+        string name
+        string comment
     }
 ```
