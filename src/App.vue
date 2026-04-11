@@ -62,7 +62,7 @@ function renameItem(item: Item) {
         <NcAppNavigation>
             <template #list>
                 <NcAppNavigationNew
-                :text="t('sfxonitam', 'Neues Element')"
+                :text="t('sfxonitam', 'Neues Gerät')"
                 @click="addItem"
                 >
                 <template #icon>
