@@ -8,6 +8,26 @@ Das Programm richtet sich an kleine und mittelständische Unternehmen (KMU) sowi
 * Release im Nextcloud Appstore zur einfacheren Installation ist geplant.
 
 
+## Timeline
+
+* Device Entität umsetzen:
+  - Entität in Datenbank erstellen
+  - Button "Neu" hinzufügen
+  - Detail-Seite erstellen zum Anlegen und Bearbeiten
+  - Liste darstellen
+  - Einträge bearbeiten
+  - Einträge löschen
+
+* DeviceStatus Entität umsetzen
+  - Entität in Datenbank erstellen
+  - Menüpunkt zum Verwalten von DeviceStati hinzufügen (verlinkt auf die Liste)
+  - Liste darstellen
+  - Button "Neu" hinzufügen
+  - Einträge verwalten (CRUD)
+    - nur Löschen, wenn ein Status nicht mehr in Device verwendet wird.
+  - DeviceStatus in den Menüpunkten zum Verwalten von Geräten (Device) hinzufügen.
+
+
 ## Aktuelle Funktionen
 
 Keine
@@ -243,16 +263,16 @@ erDiagram
     DeviceType }o--o| Manufacturer : has
 
     Device {
-        uuid id PK
+        BIGINT id PK
         string name UK
-        uuid deviceStatusId FK "DEFAULT NULL"
-        uuid positionId FK "DEFAULT NULL;<br>Im Sinn von Position"
-        uuid deviceTypeId FK "DEFAULT NULL;"
-        uuid userId FK
+        BIGINT deviceStatusId FK "DEFAULT NULL"
+        BIGINT positionId FK "DEFAULT NULL;<br>Im Sinn von Position"
+        BIGINT deviceTypeId FK "DEFAULT NULL;"
+        BIGINT userId FK
         string serialNumber
         string serialNumber2
         string assetNumber "Anlagennummer"
-        uuid merchantId "DEFAULT NULL"
+        BIGINT merchantId FK "DEFAULT NULL"
         string invoiceNumber
         DATETIME purchaseDate "DEFAULT NULL"
         string customFields "LONGTEXT; Contains a JSON string"
@@ -260,39 +280,39 @@ erDiagram
     }
 
     DeviceStatus {
-        uuid id PK
+        BIGINT id PK
         string name
         string comment
     }
 
     Location {
-        uuid id PK
+        BIGINT id PK
         string name
         string comment
     }
 
     Position {
-        uuid id PK
-        uuid locationId "DEFAULT NULL<br>Im Sinn von Standort"
+        BIGINT id PK
+        BIGINT locationId FK "DEFAULT NULL<br>Im Sinn von Standort"
         string name
         string comment
     }
 
     DeviceType {
-        uuid id PK
+        BIGINT id PK
         string name UK
-        uuid manufacturerId FK "DEFAULT NULL"
+        BIGINT manufacturerId FK "DEFAULT NULL"
         string comment
     }
 
     Manufacturer {
-        uuid id PK
+        BIGINT id PK
         string name UK
         string comment
     }
 
     Merchant {
-        uuid id PK
+        BIGINT id PK
         string name
         string comment
     }
