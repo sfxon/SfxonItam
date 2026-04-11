@@ -11,12 +11,13 @@ Das Programm richtet sich an kleine und mittelständische Unternehmen (KMU) sowi
 ## Timeline
 
 * Device Entität umsetzen:
-  - Entität in Datenbank erstellen
-  - Button "Neu" hinzufügen
+  
   - Detail-Seite erstellen zum Anlegen und Bearbeiten
   - Liste darstellen
   - Einträge bearbeiten
   - Einträge löschen
+  ✅ Entität in Datenbank erstellen
+  ✅ Button "Neu" hinzufügen
 
 * DeviceStatus Entität umsetzen
   - Entität in Datenbank erstellen
@@ -248,6 +249,21 @@ cd /var/www/html/custom_apps/sfxonitam
 npm run dev
 
 # 4. Alternatively compile prod environment: npm run prod
+```
+
+## Datenbank Migration ausführen
+
+# 2. Go to root directory.
+
+```shell
+# Go to nextcloud root directory.
+cd /var/www/html
+
+# Run upgrade.
+php -d memory_limit=512M occ upgrade
+
+# Disable Maintenance Mode.
+php -d memory_limit=512M occ maintenance:mode --off
 ```
 
 ## Datenmodell
