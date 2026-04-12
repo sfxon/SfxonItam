@@ -16,8 +16,8 @@ Das Programm richtet sich an kleine und mittelständische Unternehmen (KMU) sowi
   - Liste darstellen
   - Einträge bearbeiten
   - Einträge löschen
-  ✅ Entität in Datenbank erstellen
-  ✅ Button "Neu" hinzufügen
+  - ✅ Entität in Datenbank erstellen
+  - ✅ Button "Neu" hinzufügen
 
 * DeviceStatus Entität umsetzen
   - Entität in Datenbank erstellen
@@ -332,4 +332,54 @@ erDiagram
         string name
         string comment
     }
+```
+
+## Fragen während der Entwicklung
+
+Nachfolgend habe ich Fragen zusammengestellt, die ich mir während der Entwicklung gestellt habe.
+
+1. Was ist OCA für ein Namespace?
+
+2. Welche Datenbank-Wrapper werden verwendet?<br>
+Offenbar läuft im Hintergrund DOCTRINE.
+
+3. Kann ich im Ordner Controller einfach neue Controller hinzufügen,
+oder läuft alles über ApiController und PageController?
+  * Ich konnte es nur mit einem einmaligen CamelCase Dateinamen zum Laufen bekommen.
+  * Ansonsten funktioniert es zuverlässig. Das Caching macht ggf. Probleme aktivieren und deaktivieren der App soll helfen -> das habe ich noch nicht gestetet. Ansonsten hilft das Anheben der Version und das Ausführen des App Update Mechanismus.
+
+4. Wie funktioniert das Senden von Formularen inkl. CSRF Token?
+
+Eine von Nextcloud bereitgestellte Version von axios fügt automatisch den benötigten CSRF-Token hinzu:
+
+```js
+// Axios importieren.
+import axios from '@nextcloud/axios'
+
+// Beispiel-Methode, welche Formulardaten sendet. name, invoiceDate und selectedUser sind jeweils Variablen im vue script -
+// hier nicht definiert - sie würden weiter oben - also globaler definiert werden und an Eingabeelemente gebunden werden (v-model="name").
+async function submitForm() {
+    console.log('submitForm');
+
+    if (!name.value) {
+        // Fehlerbehandlung
+        return
+    }
+
+    try {
+        const response = await axios.post(
+            generateUrl('/apps/sfxonitam/device/save'),
+            {
+                name:        name.value,
+                invoiceDate: invoiceDate.value?.toISOString().split('T')[0] ?? null,
+                userId:      selectedUser.value?.id ?? null,
+            }
+            // Kein manueller CSRF-Header nötig –
+            // @nextcloud/axios ergänzt ihn automatisch!
+        )
+        console.log('Gespeichert:', response.data)
+    } catch (error) {
+        console.error('Fehler beim Speichern:', error)
+    }
+}
 ```
