@@ -4,6 +4,7 @@ import { join, resolve } from 'path'
 export default createAppConfig(
 	{
 		main: resolve(join('src', 'main.js')),
+		deviceEditor: resolve(join('src', 'device-editor.js')),
 	},
 	{
 		createEmptyCSSEntryPoints: true,

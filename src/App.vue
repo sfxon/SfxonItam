@@ -11,37 +11,43 @@ import { mdiPlus, mdiPencil, mdiTrashCan } from '@mdi/js'
 import NcIconSvgWrapper from '@nextcloud/vue/components/NcIconSvgWrapper'
 import { ref } from 'vue'
 import { translate as t } from '@nextcloud/l10n'
+import { generateUrl } from '@nextcloud/router'
+
 
 interface Item {
-  id: number
-  name: string
-  subname: string
-  active: boolean
+    id: number
+    name: string
+    subname: string
+    active: boolean
 }
 
 const items = ref<Item[]>([
-  { id: 1, name: 'Erstes Element',   subname: 'Zuletzt geändert vor 2 Min.',  active: false },
-  { id: 2, name: 'Zweites Element',  subname: 'Zuletzt geändert vor 1 Std.',  active: false },
-  { id: 3, name: 'Drittes Element',  subname: 'Zuletzt geändert gestern',     active: false },
-  { id: 4, name: 'Viertes Element',  subname: 'Zuletzt geändert letzte Woche', active: false },
+    { id: 1, name: 'Erstes Element',   subname: 'Zuletzt geändert vor 2 Min.',  active: false },
+    { id: 2, name: 'Zweites Element',  subname: 'Zuletzt geändert vor 1 Std.',  active: false },
+    { id: 3, name: 'Drittes Element',  subname: 'Zuletzt geändert gestern',     active: false },
+    { id: 4, name: 'Viertes Element',  subname: 'Zuletzt geändert letzte Woche', active: false },
 ])
 
 const selectedItem = ref<Item | null>(null)
 
 function selectItem(item: Item) {
-  items.value.forEach(i => (i.active = false))
-  item.active = true
-  selectedItem.value = item
+    items.value.forEach(i => (i.active = false))
+    item.active = true
+    selectedItem.value = item
 }
 
 function addItem() {
-  const id = items.value.length + 1
-  items.value.push({
-    id,
-    name: `Neues Element ${id}`,
-    subname: 'Gerade erstellt',
-    active: false,
-  })
+    window.location.href = generateUrl('/apps/sfxonitam/device/detail')
+
+    /*
+    const id = items.value.length + 1
+    items.value.push({
+        id,
+        name: `Neues Element ${id}`,
+        subname: 'Gerade erstellt',
+        active: false,
+    })
+    */
 }
 
 function deleteItem(item: Item) {
@@ -65,9 +71,9 @@ function renameItem(item: Item) {
                 :text="t('sfxonitam', 'Neues Gerät')"
                 @click="addItem"
                 >
-                <template #icon>
-                    <NcIconSvgWrapper :path="mdiPlus" :size="20" />
-                </template>
+                    <template #icon>
+                        <NcIconSvgWrapper :path="mdiPlus" :size="20" />
+                    </template>
                 </NcAppNavigationNew>
 
                 <NcAppNavigationItem
