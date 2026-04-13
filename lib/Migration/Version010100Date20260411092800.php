@@ -35,6 +35,8 @@ class Version010100Date20260411092800 extends SimpleMigrationStep {
             $table->addColumn('id', Types::BIGINT, [
                 'autoincrement' => true,
                 'notnull' => true,
+                'length' => 20,
+                'unsigned' => true,
             ]);
 
             $table->addColumn('name', Types::STRING, [
