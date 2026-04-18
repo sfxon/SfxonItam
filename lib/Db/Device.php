@@ -34,7 +34,7 @@ use OCP\AppFramework\Db\Entity;
  * @method string|null getComment()
  * @method void setComment(string|null $comment)
  */
-class Device extends Entity {
+class Device extends Entity implements \JsonSerializable {
     protected ?string $name           = null;
     protected ?int    $deviceStatusId = null;
     protected ?int    $positionId     = null;
@@ -56,5 +56,24 @@ class Device extends Entity {
         $this->addType('positionId',     'integer');
         $this->addType('deviceTypeId',   'integer');
         $this->addType('merchantId',     'integer');
+    }
+
+    public function jsonSerialize(): array {
+        return [
+            'id'    => $this->getId(),
+            'name' => $this->getName(),
+            'deviceStatusId' => $this->getDeviceStatusId(),
+            'positionId' => $this->getPositionId(),
+            'userId' => $this->getUserId(),
+            'serialNumber' => $this->getSerialNumber(),
+            'serialNumber2' => $this->getSerialNumber2(),
+            'assetNumber' => $this->getAssetNumber(),
+            'macAddress' => $this->getMacAddress(),
+            'merchantId' => $this->getMerchantId(),
+            'invoiceNumber' => $this->getInvoiceNumber(),
+            'purchaseDate' => $this->getPurchaseDate(),
+            'customFields' => $this->getCustomFields(),
+            'comment' => $this->getComment()
+        ];
     }
 }

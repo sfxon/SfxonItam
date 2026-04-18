@@ -29,4 +29,33 @@ class DeviceMapper extends QBMapper {
         $qb->select('*')->from($this->getTableName());
         return $this->findEntities($qb);
     }
+
+    /** @return Device[] */
+    public function findAllPaged(
+        string $orderBy = 'name',
+        string $direction = 'ASC',
+        int $limit = 20,
+        int $offset = 0
+    ): array {
+        $allowedColumns = ['name', 'serial_number', 'asset_number', 'purchase_date'];
+        $col = in_array($orderBy, $allowedColumns, true) ? $orderBy : 'name';
+        $dir = strtoupper($direction) === 'DESC' ? 'DESC' : 'ASC';
+
+        $qb = $this->db->getQueryBuilder();
+        $qb->select('*')
+            ->from($this->getTableName())
+            ->orderBy($col, $dir)
+            ->setMaxResults($limit)
+            ->setFirstResult($offset);
+
+        return $this->findEntities($qb);
+    }
+
+    public function countAll(): int {
+        $qb = $this->db->getQueryBuilder();
+        $qb->select($qb->func()->count('*', 'count'));
+        $qb->from($this->getTableName());
+        $result = $qb->executeQuery();
+        return (int) $result->fetchOne();
+    }
 }

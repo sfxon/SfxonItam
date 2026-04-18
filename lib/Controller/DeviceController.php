@@ -15,6 +15,7 @@ use OCP\AppFramework\Http\Attribute\NoCSRFRequired;
 use OCP\AppFramework\Http\Attribute\OpenAPI;
 use OCP\AppFramework\Http\TemplateResponse;
 use OCP\IRequest;
+use OCP\AppFramework\Http\JSONResponse;
 
 /**
  * @psalm-suppress UnusedClass
@@ -46,6 +47,27 @@ class DeviceController extends Controller {
             Application::APP_ID,
             'device/editor',
         );
+    }
+
+    #[NoCSRFRequired]
+    #[OpenAPI(OpenAPI::SCOPE_IGNORE)]
+    #[FrontpageRoute(verb: 'GET', url: '/device/list')]    
+    public function list(
+        string $orderBy = 'name',
+        string $direction = 'ASC',
+        int $page = 1,
+        int $limit = 20
+    ): JSONResponse {
+        $offset = ($page - 1) * $limit;
+        $devices = $this->deviceMapper->findAllPaged($orderBy, $direction, $limit, $offset);
+        $total   = $this->deviceMapper->countAll();
+
+        return new JSONResponse([
+            'devices' => array_map(fn($d) => $d->jsonSerialize(), $devices),
+            'total'   => $total,
+            'page'    => $page,
+            'limit'   => $limit,
+        ]);
     }
 
     #[OpenAPI(OpenAPI::SCOPE_IGNORE)]
