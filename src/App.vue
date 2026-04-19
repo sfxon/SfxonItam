@@ -8,7 +8,7 @@ import NcContent from '@nextcloud/vue/components/NcContent'
 import NcListItem from '@nextcloud/vue/components/NcListItem'
 import NcActions from '@nextcloud/vue/components/NcActions'
 import NcActionButton from '@nextcloud/vue/components/NcActionButton'
-import { mdiPlus, mdiPencil, mdiTrashCan, mdiChevronUp, mdiChevronDown } from '@mdi/js'
+import { mdiPlus, mdiPencil, mdiTrashCan, mdiChevronUp, mdiChevronDown, mdiDotsHorizontal } from '@mdi/js'
 import NcIconSvgWrapper from '@nextcloud/vue/components/NcIconSvgWrapper'
 import { translate as t } from '@nextcloud/l10n'
 import { generateUrl } from '@nextcloud/router'
@@ -47,7 +47,7 @@ const columns = [
     { key: 'merchantId', label: t('sfxonitam', 'Verkäufer'), sortable: true },
     { key: 'invoiceNumber', label: t('sfxonitam', 'Rechnungs-Nummer'), sortable: true },
     { key: 'purchase_date', label: t('sfxonitam', 'Kaufdatum'), sortable: true },
-    { key: 'actions', label: t('sfxonitam', 'Aktion'), sortable: false },
+    { type: 'actions', label: t('sfxonitam', 'Aktion'), sortable: false },
 ];
 
 function addItem() {
@@ -114,7 +114,7 @@ onMounted(loadDevices)
             </NcAppNavigation>
 
         <!-- Inhaltsbereich -->
-        <NcAppContent :class="$style.content">
+        <NcAppContent>
             <!-- Sortier-Header -->
             <div class="device-list__header" role="row">
                 <button
@@ -160,17 +160,54 @@ onMounted(loadDevices)
                     @click="editDevice(device)"
                 >
                     <template #actions>
-                    <NcActionButton @click.stop="editDevice(device)">
-                        <template #icon><NcIconSvgWrapper :path="mdiPencil" :size="20" /></template>
-                        {{ t('sfxonitam', 'Bearbeiten') }}
-                    </NcActionButton>
-                    <NcActionButton @click.stop="deleteDevice(device)">
-                        <template #icon><NcIconSvgWrapper :path="mdiTrashCan" :size="20" /></template>
-                        {{ t('sfxonitam', 'Löschen') }}
-                    </NcActionButton>
+                        <NcActionButton @click.stop="editDevice(device)">
+                            <template #icon><NcIconSvgWrapper :path="mdiPencil" :size="20" /></template>
+                            {{ t('sfxonitam', 'Bearbeiten') }}
+                        </NcActionButton>
+                        <NcActionButton @click.stop="deleteDevice(device)">
+                            <template #icon><NcIconSvgWrapper :path="mdiTrashCan" :size="20" /></template>
+                            {{ t('sfxonitam', 'Löschen') }}
+                        </NcActionButton>
                     </template>
                 </NcListItem>
             </ul>
+
+            <table :class="$style.sfxonTable">
+                <thead>
+                    <tr>
+                        <th
+                            v-for="col in columns"
+                            :key="col.key"
+                            :class="{ active: orderBy === col.key }"
+                            :disabled="!col.sortable"
+                            :aria-sort="orderBy === col.key ? (direction === 'ASC' ? 'ascending' : 'descending') : undefined"
+                            @click="col.sortable && sortBy(col.key)"
+                        >
+                            {{ col.label }}
+                            <NcIconSvgWrapper
+                                v-if="col.sortable && orderBy === col.key"
+                                :path="direction === 'ASC' ? mdiChevronUp : mdiChevronDown"
+                                :size="16"
+                            />
+                        </th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr v-for="device in devices" :key="device.id">
+                        <td
+                            v-for="col in columns"
+                            :key="col.key"
+                        >
+                            <span v-if="col.type == null">
+                                {{ device[col.key] }}
+                            </span>
+                            <span v-else-if="col.type === 'actions'">
+                                <NcIconSvgWrapper :path="mdiDotsHorizontal" :size="20" />
+                            </span>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
 
             <!-- Paginierung -->
             <div v-if="totalPages > 1" class="device-list__pagination">
@@ -196,85 +233,41 @@ onMounted(loadDevices)
 </template>
 
 <style module>
-.content {
-    display: flex;
-    justify-content: center;
-    margin: 16px;
-}
+    .sfxonTable {
+        border-collapse: collapse;
+    }
 
-.detail {
-    padding: 16px 24px;
-    max-width: 800px;
-}
+    .sfxonTable th span:global(.icon-vue) {
+        display: inline;
+    }
 
-.list {
-    margin-top: 16px;
-    list-style: none;
-    padding: 0;
-}
+    .sfxonTable th, .sfxonTable td {
+        border: 1px solid var(--color-main-background);
+        padding: 0px 6px;
+    }
 
-.empty {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    height: 100%;
-    opacity: 0.6;
-}
+    .sfxonTable th {
+        background-color: var(--color-primary-element-light);
+        color: var(--color-primary-element-light-text);
+        cursor: pointer;
+        font-size: var(--default-font-size);
+        font-weight: bold;
+        margin: 3px;
+        min-height: var(--default-clickable-area);
+        padding: calc((var(--default-clickable-area) - 1lh)/2) calc(3*var(--default-grid-baseline));
+        width: auto;
+    }
 
-.device-list__toolbar {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 8px 0 16px;
-}
-.device-list__header {
-  display: grid;
-  grid-template-columns: 2fr 1fr 1fr 1fr 80px;
-  padding: 4px 8px;
-  font-weight: 600;
-  border-bottom: 1px solid var(--color-border);
-}
-.device-list__col {
-  background: none;
-  border: none;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  padding: 4px;
-  color: var(--color-text-maxcontrast);
-}
-.device-list__col.active { color: var(--color-main-text); }
-.device-list__col:disabled { cursor: default; }
-.device-list__loading,
-.device-list__empty,
-.device-list__error {
-  display: flex;
-  justify-content: center;
-  padding: 32px;
-  opacity: 0.6;
-}
-.device-list__error { color: var(--color-error); opacity: 1; }
-.device-list__pagination {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  padding: 12px 0;
-  justify-content: center;
-}
-.device-list__pagination button {
-  min-width: 32px;
-  padding: 4px 8px;
-  border: 1px solid var(--color-border);
-  border-radius: var(--border-radius);
-  background: var(--color-main-background);
-  cursor: pointer;
-}
-.device-list__pagination button.active {
-  background: var(--color-primary-element);
-  color: var(--color-primary-element-text);
-  border-color: var(--color-primary-element);
-}
-.device-list__pagination button:disabled { opacity: 0.4; cursor: default; }
-.device-list__info { margin-left: 8px; color: var(--color-text-maxcontrast); }
+    .sfxonTable th[disabled="true"] {
+        background-color: var(--color-background-dark);
+        color: var(--color-main-text);
+        cursor: default;
+        opacity: .5;
+    }
+
+    .sfxonTable td:empty,
+    .sfxonTable td span:empty {
+        display: inline-block;
+        min-width: 2rem;
+    }
 </style>
