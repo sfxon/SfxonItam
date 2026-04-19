@@ -11,9 +11,16 @@ Das Programm richtet sich an kleine und mittelständische Unternehmen (KMU) sowi
 ## Timeline
 
 * Device Entität umsetzen:
-  
-  - Detail-Seite erstellen zum Anlegen und Bearbeiten
   - Liste darstellen
+    - Action-Bereich hinzufügen (wie im Beispiel obendrüber)
+    - Tabelle Element für Element in einzelne wiederverwendbare Module aufteilen.
+  - Detail-Seite erstellen zum Anlegen und Bearbeiten
+    - Eingaben prüfen
+    - Ausgaben escapen?
+    - Alle Werte hinzufügen (Entitäten, "normale" Felder)
+    - ✅ Controller
+    - ✅ View
+    - ✅ Speicher Aktion
   - Einträge bearbeiten
   - Einträge löschen
   - ✅ Entität in Datenbank erstellen
