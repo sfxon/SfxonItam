@@ -8,7 +8,7 @@ import NcContent from '@nextcloud/vue/components/NcContent'
 import NcListItem from '@nextcloud/vue/components/NcListItem'
 import NcActions from '@nextcloud/vue/components/NcActions'
 import NcActionButton from '@nextcloud/vue/components/NcActionButton'
-import { mdiPlus, mdiPencil, mdiTrashCan, mdiChevronUp, mdiChevronDown, mdiDotsHorizontal } from '@mdi/js'
+import { mdiPlus, mdiPencil, mdiTrashCan, mdiChevronUp, mdiChevronDown, mdiDelete } from '@mdi/js'
 import NcIconSvgWrapper from '@nextcloud/vue/components/NcIconSvgWrapper'
 import { translate as t } from '@nextcloud/l10n'
 import { generateUrl } from '@nextcloud/router'
@@ -54,7 +54,7 @@ function addItem() {
     window.location.href = generateUrl('/apps/sfxonitam/device/detail')
 }
 
-async function deleteDevice(device: Device) {
+async function onDeleteDevice(device: Device) {
     alert('Löschen');
     /*
     if (!confirm(t('sfxonitam', `Gerät „${device.name}" wirklich löschen?`))) return
@@ -63,7 +63,7 @@ async function deleteDevice(device: Device) {
     */
 }
 
-function editDevice(device: Device) {
+function onEditDevice(device: Device) {
     window.location.href = generateUrl(`/apps/sfxonitam/device/detail?id=${device.id}`);
 }
 
@@ -202,7 +202,20 @@ onMounted(loadDevices)
                                 {{ device[col.key] }}
                             </span>
                             <span v-else-if="col.type === 'actions'">
-                                <NcIconSvgWrapper :path="mdiDotsHorizontal" :size="20" />
+                                <NcActions>
+                                    <NcActionButton @click="onEditDevice(device)">
+                                        <template #icon>
+                                            <NcIconSvgWrapper :path="mdiPencil" :size="20" />
+                                        </template>
+                                        Bearbeiten
+                                    </NcActionButton>
+                                    <NcActionButton @click="onDeleteDevice(device)">
+                                        <template #icon>
+                                            <NcIconSvgWrapper :path="mdiDelete" :size="20" />
+                                        </template>
+                                        Löschen
+                                    </NcActionButton>
+                                </NcActions>
                             </span>
                         </td>
                     </tr>
