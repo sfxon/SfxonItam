@@ -347,13 +347,32 @@ Nachfolgend habe ich Fragen zusammengestellt, die ich mir während der Entwicklu
 
 1. Was ist OCA für ein Namespace?
 
+* OCA steht für „Owncloud Apps" – ein historisch gewachsener Name aus der Zeit, bevor Nextcloud aus ownCloud hervorgegangen ist. In Nextcloud hat er sich als Konvention erhalten. OCA taucht in zwei Kontexten auf:
+
+a) PHP-Namespace (serverseitig)
+\OCA\ ist der Top-Level-PHP-Namespace für alle Nextcloud-Apps. Nextcloud verwendet einen PSR-4-Autoloader, bei dem \OCA\MyApp auf das Verzeichnis /apps/myapp/lib/ gemappt wird. Nextcloud
+Jede App bekommt also ihren eigenen Unter-Namespace darunter, z. B.:
+
+\OCA\Files\Controller\...
+\OCA\MyApp\Service\...
+
+Dabei gilt: OCA ist für Apps reserviert, während der Kern von Nextcloud unter OC\Core liegt.
+
+
+b) 2. JavaScript-Namespace (clientseitig)
+Das globale window.OCA-Objekt stellt Namespaces für app-spezifisches JavaScript bereit. Apps registrieren sich unter diesem Objekt, um ihre APIs und ihren Zustand zugänglich zu machen.
+Klassisches Beispiel wäre OCA.Files.fileActions. Dieser Ansatz gilt mittlerweile als weitgehend veraltet – moderne Apps sollen stattdessen das separate NPM-Paket @nextcloud/files verwenden.
+
+
 2. Welche Datenbank-Wrapper werden verwendet?<br>
 Offenbar läuft im Hintergrund DOCTRINE.
+
 
 3. Kann ich im Ordner Controller einfach neue Controller hinzufügen,
 oder läuft alles über ApiController und PageController?
   * Ich konnte es nur mit einem einmaligen CamelCase Dateinamen zum Laufen bekommen.
   * Ansonsten funktioniert es zuverlässig. Das Caching macht ggf. Probleme aktivieren und deaktivieren der App soll helfen -> das habe ich noch nicht gestetet. Ansonsten hilft das Anheben der Version und das Ausführen des App Update Mechanismus.
+
 
 4. Wie funktioniert das Senden von Formularen inkl. CSRF Token?
 
@@ -390,3 +409,42 @@ async function submitForm() {
     }
 }
 ```
+
+5. Woher kommt NcListItem, dass im VueJs Code von Nextcloud immer wieder verwendet wird?
+
+NcListItem kommt aus dem offiziellen @nextcloud/vue-Paket – der zentralen Vue-Komponentenbibliothek von Nextcloud.
+
+https://github.com/nextcloud-libraries/nextcloud-vue/blob/e5d5bd6e8abed8ef4670be69cd69beae237013c5/src/components/NcListItem/NcListItem.vue#L41
+
+
+6. Wie kann man die Actions verwenden, wie es NcListItem macht?
+
+NcListItem verwendet hierzu NcActions.
+Da es sich hierbei ebenfalls um eine Component aus nextcloud-vue handelt, kann diese weiterverwendet werden.
+
+NcActions und NcAction Button einbinden:
+```
+import NcActions from '@nextcloud/vue/components/NcActions'
+import NcActionButton from '@nextcloud/vue/components/NcActionButton'
+```
+
+
+Im HTML-Teil definieren:
+```
+<NcActions>
+    <NcActionButton @click="onEditDevice(device)">
+        <template #icon>
+            <NcIconSvgWrapper :path="mdiPencil" :size="20" />
+        </template>
+        Bearbeiten
+    </NcActionButton>
+    <NcActionButton @click="onDeleteDevice(device)">
+        <template #icon>
+            <NcIconSvgWrapper :path="mdiDelete" :size="20" />
+        </template>
+        Löschen
+    </NcActionButton>
+</NcActions>
+```
+
+Die Methoden müssen noch ausdefiniert werden, also hier bspw. onEdit und onDelete. Die übergebenen Parameter sind ein Daten-Objekt aus unserem Projekt.
