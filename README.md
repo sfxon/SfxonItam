@@ -12,8 +12,9 @@ Das Programm richtet sich an kleine und mittelständische Unternehmen (KMU) sowi
 
 * Device Entität umsetzen:
   - Liste darstellen
-    - Action-Bereich hinzufügen (wie im Beispiel obendrüber)
     - Tabelle Element für Element in einzelne wiederverwendbare Module aufteilen.
+    - Alte Elemente in VueJs entfernen, die aktuell noch als Referenz enthalten sind.
+    - ✅ Action-Bereich hinzufügen (wie im Beispiel obendrüber)
   - Detail-Seite erstellen zum Anlegen und Bearbeiten
     - Eingaben prüfen
     - Ausgaben escapen?
