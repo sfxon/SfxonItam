@@ -13,7 +13,7 @@ import NcIconSvgWrapper from '@nextcloud/vue/components/NcIconSvgWrapper'
 import { translate as t } from '@nextcloud/l10n'
 import { generateUrl } from '@nextcloud/router'
 import axios from '@nextcloud/axios'
-
+import SfxonTable from '@/components/SfxonTable'
 
 interface Device {
     id: number
@@ -115,172 +115,75 @@ onMounted(loadDevices)
 
         <!-- Inhaltsbereich -->
         <NcAppContent>
-            <!-- Sortier-Header -->
-            <div class="device-list__header" role="row">
-                <button
-                    v-for="col in columns"
-                    :key="col.key"
-                    class="device-list__col"
-                    :class="{ active: orderBy === col.key }"
-                    :disabled="!col.sortable"
-                    :aria-sort="orderBy === col.key
-                    ? (direction === 'ASC' ? 'ascending' : 'descending')
-                    : undefined"
-                    @click="col.sortable && sortBy(col.key)"
-                >
-                    {{ col.label }}
-                    <NcIconSvgWrapper
-                    v-if="col.sortable && orderBy === col.key"
-                    :path="direction === 'ASC' ? mdiChevronUp : mdiChevronDown"
-                    :size="16"
+            <div :class="$style.sfxonItamHeader">
+                Geräte-Verwaltung
+            </div>
+            <div :class="$style.sfxonItamContent">
+                <!-- Fehler -->
+                <div v-if="error" class="device-list__error">{{ error }}</div>
+
+                <!-- Ladeindikator -->
+                <div v-else-if="loading" class="device-list__loading">
+                    <NcLoadingIcon :size="32" />
+                </div>
+
+                <!-- Leerer Zustand -->
+                <div v-else-if="devices.length === 0" class="device-list__empty">
+                    {{ t('sfxonitam', 'Keine Geräte gefunden.') }}
+                </div>
+
+                
+
+                <SfxonTable
+                    :columns="columns"
+                    :dataArray="devices"
+                    :dataArrayKey="'id'"
+                    :deleteCallback="onDeleteDevice"
+                    :editCallback="onEditDevice"
+                    :orderBy="orderBy"
+                    :orderByCallback="sortBy"
+                    :orderDirection="direction"
                     />
-                </button>
-            </div>
 
-            <!-- Fehler -->
-            <div v-if="error" class="device-list__error">{{ error }}</div>
+                <!-- Paginierung -->
+                <div v-if="totalPages > 1" class="device-list__pagination">
+                    <button :disabled="page === 1" @click="page--">‹</button>
 
-            <!-- Ladeindikator -->
-            <div v-else-if="loading" class="device-list__loading">
-                <NcLoadingIcon :size="32" />
-            </div>
-
-            <!-- Leerer Zustand -->
-            <div v-else-if="devices.length === 0" class="device-list__empty">
-                {{ t('sfxonitam', 'Keine Geräte gefunden.') }}
-            </div>
-
-            <!-- Liste -->
-            <ul v-else class="device-list__items">
-                <NcListItem
-                    v-for="device in devices"
-                    :key="device.id"
-                    :name="device.name ?? t('sfxonitam', '(kein Name)')"
-                    :subname="[device.serialNumber, device.assetNumber].filter(Boolean).join(' · ')"
-                    @click="editDevice(device)"
-                >
-                    <template #actions>
-                        <NcActionButton @click.stop="editDevice(device)">
-                            <template #icon><NcIconSvgWrapper :path="mdiPencil" :size="20" /></template>
-                            {{ t('sfxonitam', 'Bearbeiten') }}
-                        </NcActionButton>
-                        <NcActionButton @click.stop="deleteDevice(device)">
-                            <template #icon><NcIconSvgWrapper :path="mdiTrashCan" :size="20" /></template>
-                            {{ t('sfxonitam', 'Löschen') }}
-                        </NcActionButton>
+                    <template v-for="p in totalPages" :key="p">
+                        <!-- Fenster: erste, letzte, und ±2 um aktuelle Seite -->
+                        <template v-if="p === 1 || p === totalPages || (p >= page - 2 && p <= page + 2)">
+                            <button :class="{ active: p === page }" @click="page = p">{{ p }}</button>
+                        </template>
+                        <span v-else-if="p === page - 3 || p === page + 3">…</span>
                     </template>
-                </NcListItem>
-            </ul>
 
-            <table :class="$style.sfxonTable">
-                <thead>
-                    <tr>
-                        <th
-                            v-for="col in columns"
-                            :key="col.key"
-                            :class="{ active: orderBy === col.key }"
-                            :disabled="!col.sortable"
-                            :aria-sort="orderBy === col.key ? (direction === 'ASC' ? 'ascending' : 'descending') : undefined"
-                            @click="col.sortable && sortBy(col.key)"
-                        >
-                            {{ col.label }}
-                            <NcIconSvgWrapper
-                                v-if="col.sortable && orderBy === col.key"
-                                :path="direction === 'ASC' ? mdiChevronUp : mdiChevronDown"
-                                :size="16"
-                            />
-                        </th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr v-for="device in devices" :key="device.id">
-                        <td
-                            v-for="col in columns"
-                            :key="col.key"
-                        >
-                            <span v-if="col.type == null">
-                                {{ device[col.key] }}
-                            </span>
-                            <span v-else-if="col.type === 'actions'">
-                                <NcActions>
-                                    <NcActionButton @click="onEditDevice(device)">
-                                        <template #icon>
-                                            <NcIconSvgWrapper :path="mdiPencil" :size="20" />
-                                        </template>
-                                        Bearbeiten
-                                    </NcActionButton>
-                                    <NcActionButton @click="onDeleteDevice(device)">
-                                        <template #icon>
-                                            <NcIconSvgWrapper :path="mdiDelete" :size="20" />
-                                        </template>
-                                        Löschen
-                                    </NcActionButton>
-                                </NcActions>
-                            </span>
-                        </td>
-                    </tr>
-                </tbody>
-            </table>
+                    <button :disabled="page === totalPages" @click="page++">›</button>
 
-            <!-- Paginierung -->
-            <div v-if="totalPages > 1" class="device-list__pagination">
-                <button :disabled="page === 1" @click="page--">‹</button>
-
-                <template v-for="p in totalPages" :key="p">
-                    <!-- Fenster: erste, letzte, und ±2 um aktuelle Seite -->
-                    <template v-if="p === 1 || p === totalPages || (p >= page - 2 && p <= page + 2)">
-                        <button :class="{ active: p === page }" @click="page = p">{{ p }}</button>
-                    </template>
-                    <span v-else-if="p === page - 3 || p === page + 3">…</span>
-                </template>
-
-                <button :disabled="page === totalPages" @click="page++">›</button>
-
-                <span class="device-list__info">
-                    {{ (page - 1) * limit + 1 }}–{{ Math.min(page * limit, total) }}
-                    {{ t('sfxonitam', 'von') }} {{ total }}
-                </span>
+                    <span class="device-list__info">
+                        {{ (page - 1) * limit + 1 }}–{{ Math.min(page * limit, total) }}
+                        {{ t('sfxonitam', 'von') }} {{ total }}
+                    </span>
+                </div>
             </div>
         </NcAppContent>
     </NcContent>
 </template>
 
 <style module>
-    .sfxonTable {
-        border-collapse: collapse;
-    }
-
-    .sfxonTable th span:global(.icon-vue) {
-        display: inline;
-    }
-
-    .sfxonTable th, .sfxonTable td {
-        border: 1px solid var(--color-main-background);
-        padding: 0px 6px;
-    }
-
-    .sfxonTable th {
-        background-color: var(--color-primary-element-light);
-        color: var(--color-primary-element-light-text);
-        cursor: pointer;
-        font-size: var(--default-font-size);
+    .sfxonItamHeader {
+        align-items: center;
+        display: flex;
+        flex: 0 0;
         font-weight: bold;
-        margin: 3px;
-        min-height: var(--default-clickable-area);
-        padding: calc((var(--default-clickable-area) - 1lh)/2) calc(3*var(--default-grid-baseline));
-        width: auto;
+        gap: var(--default-grid-baseline);
+        margin-block: var(--app-navigation-padding, 4px);
+        margin-inline: calc(var(--default-clickable-area) + 2*var(--app-navigation-padding, 4px)) var(--app-navigation-padding, 4px);
+        max-width: 100%;
+        min-height: 32px;
     }
 
-    .sfxonTable th[disabled="true"] {
-        background-color: var(--color-background-dark);
-        color: var(--color-main-text);
-        cursor: default;
-        opacity: .5;
-    }
-
-    .sfxonTable td:empty,
-    .sfxonTable td span:empty {
-        display: inline-block;
-        min-width: 2rem;
+    .sfxonItamContent {
+        padding-left: 12px;
+        padding-right: 12px;
     }
 </style>

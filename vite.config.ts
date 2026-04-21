@@ -10,5 +10,12 @@ export default createAppConfig(
 		createEmptyCSSEntryPoints: true,
 		extractLicenseInformation: true,
 		thirdPartyLicense: false,
+		config: {
+			resolve: {
+				alias: {
+					'@': resolve('src'),
+				},
+			},
+		},
 	},
 )
