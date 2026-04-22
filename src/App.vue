@@ -143,7 +143,7 @@ onMounted(loadDevices)
                     :orderBy="orderBy"
                     :orderByCallback="sortBy"
                     :orderDirection="direction"
-                    />
+                />
 
                 <!-- Paginierung -->
                 <div v-if="totalPages > 1" class="device-list__pagination">
