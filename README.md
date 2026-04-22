@@ -14,7 +14,7 @@ Das Programm richtet sich an kleine und mittelständische Unternehmen (KMU) sowi
   - Übersichts-Seite für die Geräte umsetzen:
     - Tabelle Element für Element in einzelne wiederverwendbare Module aufteilen.
         - ✅ Tabelle insgesamt in neues Modul auslagern.
-        - Tabellenkopf in eigene Komponente auslagern.
+        - ✅ Tabellenkopf in eigene Komponente auslagern.
         - Tabellenzeile in eigene Komponente auslagern.
         - Tabellenspalte (Zelle) in eigene Komponente auslagern.
     - Pagination in eigene Komponente auslagern
