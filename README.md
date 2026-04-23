@@ -12,13 +12,13 @@ Das Programm richtet sich an kleine und mittelständische Unternehmen (KMU) sowi
 
 * Device Entität umsetzen:
   - Übersichts-Seite für die Geräte umsetzen:
-    - Tabelle Element für Element in einzelne wiederverwendbare Module aufteilen.
+    - ✅ Tabelle Element für Element in einzelne wiederverwendbare Module aufteilen.
         - ✅ Tabelle insgesamt in neues Modul auslagern.
         - ✅ Tabellenkopf in eigene Komponente auslagern.
-        - Tabellenzeile in eigene Komponente auslagern.
-        - Tabellenspalte (Zelle) in eigene Komponente auslagern.
+        - ✅ Tabellen-Body in eigene Komponente auslagern.
+        - ✅ Tabellenspalte (Zelle) in eigene Komponente auslagern.
     - Pagination in eigene Komponente auslagern
-    - Alte Elemente in VueJs entfernen, die aktuell noch als Referenz enthalten sind.
+    - ✅ Alte Elemente in VueJs entfernen, die aktuell noch als Referenz enthalten sind.
     - ✅ Action-Spalte hinzufügen.
   - Detail-Seite erstellen zum Anlegen und Bearbeiten
     - Eingaben prüfen
@@ -253,7 +253,8 @@ module.exports = {
 ## Kompilieren von Vue.js
 
 ```bash
-# 1. ssh into container
+# 1. ssh into container or docker exec in container:
+```docker exec -it itam bash```
 
 # 2. Go to app directory.
 cd /var/www/html/custom_apps/sfxonitam

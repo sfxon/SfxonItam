@@ -38,11 +38,6 @@ const props = defineProps<{
 </template>
 
 <style module>
-    .sfxonTableHeader th, .sfxonTable td {
-        border: 1px solid var(--color-main-background);
-        padding: 0px 6px;
-    }
-
     .sfxonTableHeader th {
         background-color: var(--color-primary-element-light);
         color: var(--color-primary-element-light-text);

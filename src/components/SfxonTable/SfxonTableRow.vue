@@ -1,0 +1,46 @@
+<script setup lang="ts" generic="T">
+
+import { mdiDelete, mdiPencil } from '@mdi/js'
+import NcActions from '@nextcloud/vue/components/NcActions'
+import NcActionButton from '@nextcloud/vue/components/NcActionButton'
+import NcIconSvgWrapper from '@nextcloud/vue/components/NcIconSvgWrapper'
+
+const props = defineProps<{
+    columns: T[],
+    dataArray: T[],
+    dataArrayKey: "id", // This is a column in the given data, that tells, which key to use.
+    dataRow: T[],
+    deleteCallback: null,
+    editCallback: null,
+    orderBy: "",
+    orderByCallback: null
+    orderDirection: "ASC",
+}>()
+
+</script>
+<template>
+    <td
+        v-for="col in columns"
+        :key="col.key"
+    >
+        <span v-if="col.type == null">
+            {{ props.dataRow[col.key] }}
+        </span>
+        <span v-else-if="col.type === 'actions'">
+            <NcActions>
+                <NcActionButton @click="props.editCallback && props.editCallback(props.dataRow)">
+                    <template #icon>
+                        <NcIconSvgWrapper :path="mdiPencil" :size="20" />
+                    </template>
+                    Bearbeiten
+                </NcActionButton>
+                <NcActionButton @click="props.deleteCallback && props.deleteCallback(props.dataRow)">
+                    <template #icon>
+                        <NcIconSvgWrapper :path="mdiDelete" :size="20" />
+                    </template>
+                    Löschen
+                </NcActionButton>
+            </NcActions>
+        </span>
+    </td>
+</template>

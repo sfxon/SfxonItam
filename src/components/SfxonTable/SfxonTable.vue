@@ -1,10 +1,7 @@
 <script setup lang="ts" generic="T">
 
-import { mdiPencil, mdiDelete } from '@mdi/js'
-import NcActions from '@nextcloud/vue/components/NcActions'
-import NcActionButton from '@nextcloud/vue/components/NcActionButton'
-import NcIconSvgWrapper from '@nextcloud/vue/components/NcIconSvgWrapper'
 import SfxonTableHeader from './SfxonTableHeader.vue';
+import SfxonTableBody from './SfxonTableBody.vue';
 
 const props = defineProps<{
     columns: T[],
@@ -19,52 +16,59 @@ const props = defineProps<{
 
 </script>
 <template>
-    <table :class="$style.sfxonTable">
-        <SfxonTableHeader
-            :columns="props.columns"
-            :dataArray="props.dataArray"
-            :dataArrayKey="props.dataArrayKey"
-            :deleteCallback="props.deleteCallback"
-            :editCallback="props.editCallback"
-            :orderBy="props.orderBy"
-            :orderByCallback="props.orderByCallback"
-            :orderDirection="props.orderDirection"
-        />
-        <tbody>
-            <tr v-for="dataRow in props.dataArray" :key="dataRow[props.dataArrayKey]">
-                <td
-                    v-for="col in columns"
-                    :key="col.key"
-                >
-                    <span v-if="col.type == null">
-                        {{ dataRow[col.key] }}
-                    </span>
-                    <span v-else-if="col.type === 'actions'">
-                        <NcActions>
-                            <NcActionButton @click="props.editCallback && props.editCallback(dataRow)">
-                                <template #icon>
-                                    <NcIconSvgWrapper :path="mdiPencil" :size="20" />
-                                </template>
-                                Bearbeiten
-                            </NcActionButton>
-                            <NcActionButton @click="props.deleteCallback && props.deleteCallback(dataRow)">
-                                <template #icon>
-                                    <NcIconSvgWrapper :path="mdiDelete" :size="20" />
-                                </template>
-                                Löschen
-                            </NcActionButton>
-                        </NcActions>
-                    </span>
-                </td>
-            </tr>
-        </tbody>
-    </table>
+    <div :class="$style.sfxonTableWrapper">
+        <table :class="$style.sfxonTable">
+            <SfxonTableHeader
+                :columns="props.columns"
+                :dataArray="props.dataArray"
+                :dataArrayKey="props.dataArrayKey"
+                :deleteCallback="props.deleteCallback"
+                :editCallback="props.editCallback"
+                :orderBy="props.orderBy"
+                :orderByCallback="props.orderByCallback"
+                :orderDirection="props.orderDirection"
+            />
+            <SfxonTableBody
+                :columns="props.columns"
+                :dataArray="props.dataArray"
+                :dataArrayKey="props.dataArrayKey"
+                :deleteCallback="props.deleteCallback"
+                :editCallback="props.editCallback"
+                :orderBy="props.orderBy"
+                :orderByCallback="props.orderByCallback"
+                :orderDirection="props.orderDirection"
+            />
+        </table>
+    </div>
 </template>
 
 <style module>
+    .sfxonTableWrapper {
+        min-width: 100%;
+        overflow-x: scroll;
+        padding-bottom: 6px; /* Fix Firefox Scrollbar that is hanging over the content, when scroll is activated. */
+    }
+
     .sfxonTable {
         border-collapse: collapse;
-        min-width: 100%;
+        width: 100%;
+    }
+
+    .sfxonTable th, .sfxonTable td {
+        border: 1px solid var(--color-main-background);
+    }
+
+    .sfxonTable td {
+        background-color: var(--color-main-background);
+        padding: 0 calc(3*var(--default-grid-baseline));
+    }
+
+    .sfxonTable tr:nth-child(2n) td {
+        background-color: var(--color-background-assistant);
+    }
+
+    .sfxonTable tr:hover td, .sfxonTable tr:nth-child(2n):hover td {
+        background-color: var(--color-info-hover);
     }
 
     .sfxonTable td:empty,
