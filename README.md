@@ -455,3 +455,42 @@ Im HTML-Teil definieren:
 ```
 
 Die Methoden müssen noch ausdefiniert werden, also hier bspw. onEdit und onDelete. Die übergebenen Parameter sind ein Daten-Objekt aus unserem Projekt.
+
+
+7. Caching
+
+Änderungen an Controllern werden nicht immer sofort übernommen.
+Das Problem ist vermutlich der aktivierte opcache im Nextcloud Image.
+Ich habe ihn folgendermaßen deaktiviert:
+
+```cli
+# Ordner angelegt:
+[nextcloud-ordner]/php/
+
+# Datei angelegt
+nano ./php/zzz-opcache.ini
+
+# Inhalt der Datei gespeichert:
+opcache.enable=0
+opcache.enable_cli=0
+```
+
+Anschließend in Docker-Compose unter Volumes folgendes eintragen:
+
+```yml
+- "./php/zzz-opcache.ini:/usr/local/etc/php/conf.d/zzz-opcache.ini"
+```
+
+Das sieht dann darin also in etwa so aus:
+```
+services:
+  [...]
+  itam:
+    [...]
+    volumes:
+      - "./:/var/www/html"
+      - "itam_db:/var/lib/mysql"
+      - "./php/zzz-opcache.ini:/usr/local/etc/php/conf.d/zzz-opcache.ini"
+```
+
+Eine Anzeige der PHP-Ini sollte danach für den Wert ```opcache.enable``` den Wert ```Off``` ergeben.
