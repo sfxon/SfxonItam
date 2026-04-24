@@ -108,7 +108,7 @@ onMounted(loadDevices)
                     </template>
                 </NcAppNavigationNew>
             </template>
-            </NcAppNavigation>
+        </NcAppNavigation>
 
         <!-- Inhaltsbereich -->
         <NcAppContent>
