@@ -11,6 +11,13 @@ class DeviceService {
     ) {
     }
 
+    public function getDataFromRequest($requestArray, $expectedFields) {
+        return array_intersect_key(
+            $requestArray,
+            array_flip($expectedFields)
+        );
+    }
+
     public function validateDeviceData(array $data) {
         return $this->deviceValidator->validate($data);
     }

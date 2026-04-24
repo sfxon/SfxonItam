@@ -51,7 +51,7 @@ class DeviceController extends Controller {
 
     #[NoCSRFRequired]
     #[OpenAPI(OpenAPI::SCOPE_IGNORE)]
-    #[FrontpageRoute(verb: 'GET', url: '/device/list')]    
+    #[FrontpageRoute(verb: 'GET', url: '/device/list')]
     public function list(
         string $orderBy = 'name',
         string $direction = 'ASC',
@@ -72,7 +72,19 @@ class DeviceController extends Controller {
 
     #[OpenAPI(OpenAPI::SCOPE_IGNORE)]
     #[FrontpageRoute(verb: 'POST', url: '/device/save')]
-    public function save(): DataResponse  {
+    public function save(): DataResponse {
+        $expectedFields = ['name', 'invoiceDate', 'userId'];
+
+        $data = $this->deviceService->getDataFromRequest($this->request->getParams(), $expectedFields);
+        $result = $this->deviceService->validateDeviceData($data);
+
+        if($result['valid'] === false) {
+            return new DataResponse([
+                'status' => 'error',
+                'errors' => $result['errors']
+            ]);
+        }
+
         $device = new Device();
         $device->setName($this->request->getParam('name'));
         $device->setUserId($this->request->getParam('userId') ?? '');
@@ -86,8 +98,7 @@ class DeviceController extends Controller {
 
         return new DataResponse([
             'status' => 'ok',
-            'id'     => $saved->getId(),
-            'deviceServiceReturn' => $this->deviceService->validateDeviceData([])
+            'id' => $saved->getId(),
         ]);
     }
 }
