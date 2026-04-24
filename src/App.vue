@@ -3,16 +3,13 @@ import { ref, computed, watch, onMounted } from 'vue'
 import NcAppContent from '@nextcloud/vue/components/NcAppContent'
 import NcAppNavigation from '@nextcloud/vue/components/NcAppNavigation'
 import NcAppNavigationNew from '@nextcloud/vue/components/NcAppNavigationNew'
-import NcAppNavigationItem from '@nextcloud/vue/components/NcAppNavigationItem'
 import NcContent from '@nextcloud/vue/components/NcContent'
-import NcListItem from '@nextcloud/vue/components/NcListItem'
-import NcActions from '@nextcloud/vue/components/NcActions'
-import NcActionButton from '@nextcloud/vue/components/NcActionButton'
-import { mdiPlus, mdiPencil, mdiTrashCan, mdiChevronUp, mdiChevronDown, mdiDelete } from '@mdi/js'
+import { mdiPlus } from '@mdi/js'
 import NcIconSvgWrapper from '@nextcloud/vue/components/NcIconSvgWrapper'
 import { translate as t } from '@nextcloud/l10n'
 import { generateUrl } from '@nextcloud/router'
 import axios from '@nextcloud/axios'
+import SfxonPagination from '@/components/SfxonPagination'
 import SfxonTable from '@/components/SfxonTable'
 
 interface Device {
@@ -132,8 +129,6 @@ onMounted(loadDevices)
                     {{ t('sfxonitam', 'Keine Geräte gefunden.') }}
                 </div>
 
-                
-
                 <SfxonTable
                     :columns="columns"
                     :dataArray="devices"
@@ -145,25 +140,12 @@ onMounted(loadDevices)
                     :orderDirection="direction"
                 />
 
-                <!-- Paginierung -->
-                <div v-if="totalPages > 1" class="device-list__pagination">
-                    <button :disabled="page === 1" @click="page--">‹</button>
-
-                    <template v-for="p in totalPages" :key="p">
-                        <!-- Fenster: erste, letzte, und ±2 um aktuelle Seite -->
-                        <template v-if="p === 1 || p === totalPages || (p >= page - 2 && p <= page + 2)">
-                            <button :class="{ active: p === page }" @click="page = p">{{ p }}</button>
-                        </template>
-                        <span v-else-if="p === page - 3 || p === page + 3">…</span>
-                    </template>
-
-                    <button :disabled="page === totalPages" @click="page++">›</button>
-
-                    <span class="device-list__info">
-                        {{ (page - 1) * limit + 1 }}–{{ Math.min(page * limit, total) }}
-                        {{ t('sfxonitam', 'von') }} {{ total }}
-                    </span>
-                </div>
+                <SfxonPagination
+                    :limit="limit"
+                    :page="page"
+                    :total="total"
+                    :totalPages="totalPages"
+                />
             </div>
         </NcAppContent>
     </NcContent>
