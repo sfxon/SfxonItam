@@ -63,6 +63,20 @@ const props = defineProps<{
         padding: 0 calc(3*var(--default-grid-baseline));
     }
 
+    .sfxonTable td:global(.action-col) {
+        padding-left: 0;
+        padding-right: 0;
+    }
+
+    /* Give the button of the action column a width of 100%. */
+    .sfxonTable td:global(.action-col) button,
+    .sfxonTable td:global(.action-col) button:global(.button-vue[data-v-09093702]):has(:global(.button-vue__text):empty),
+    .sfxonTable td:global(.action-col) button :global(.button-vue__icon),
+    .sfxonTable td:global(.action-col) :global(.action-item) {
+        border-radius: 0;
+        width: 100%!important;
+    }
+
     .sfxonTable tr:nth-child(2n) td {
         background-color: var(--color-background-assistant);
     }

@@ -22,6 +22,7 @@ const props = defineProps<{
     <td
         v-for="col in columns"
         :key="col.key"
+        :class="col.type === 'actions' ? 'action-col' : ''"
     >
         <span v-if="col.type == null">
             {{ props.dataRow[col.key] }}
