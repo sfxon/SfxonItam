@@ -21,7 +21,9 @@ Das Programm richtet sich an kleine und mittelständische Unternehmen (KMU) sowi
     - ✅ Alte Elemente in VueJs entfernen, die aktuell noch als Referenz enthalten sind.
     - ✅ Action-Spalte hinzufügen.
   - Detail-Seite erstellen zum Anlegen und Bearbeiten
-    - Eingaben prüfen
+    - ✅ Eingaben prüfen
+        - Erste Version der Eingabeprüfung umsetzen.
+        - Frontend-Ausgabe von Fehlern beim Speichern umsetzen.
     - Ausgaben escapen?
     - Alle Werte hinzufügen (Entitäten, "normale" Felder)
     - ✅ Controller
@@ -40,6 +42,9 @@ Das Programm richtet sich an kleine und mittelständische Unternehmen (KMU) sowi
   - Einträge verwalten (CRUD)
     - nur Löschen, wenn ein Status nicht mehr in Device verwendet wird.
   - DeviceStatus in den Menüpunkten zum Verwalten von Geräten (Device) hinzufügen.
+
+* Alle weiteren Entitäten umsetzen.
+  - Benutzer werden erstmal "normale" Entität. Wir verwenden also nicht weiterhin die Benutzer von Nextcloud. Diese sollten dem Login vorbehalten bleiben (Design-Entscheidung).
 
 
 ## Aktuelle Funktionen
