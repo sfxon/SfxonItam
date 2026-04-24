@@ -1,16 +1,15 @@
 <?php
-
 declare(strict_types=1);
 
 namespace OCA\SfxonItam\Controller;
 
 use OCA\SfxonItam\Db\Device;
 use OCA\SfxonItam\Db\DeviceMapper;
+use OCA\SfxonItam\Service\DeviceService;
 use OCP\AppFramework\Http\DataResponse;
 use OCA\SfxonItam\AppInfo\Application;
 use OCP\AppFramework\Controller;
 use OCP\AppFramework\Http\Attribute\FrontpageRoute;
-use OCP\AppFramework\Http\Attribute\NoAdminRequired;
 use OCP\AppFramework\Http\Attribute\NoCSRFRequired;
 use OCP\AppFramework\Http\Attribute\OpenAPI;
 use OCP\AppFramework\Http\TemplateResponse;
@@ -25,6 +24,7 @@ class DeviceController extends Controller {
         string        $appName,
         IRequest      $request,
         private DeviceMapper $deviceMapper,
+        private readonly DeviceService $deviceService
     ) {
         parent::__construct($appName, $request);
     }
@@ -76,8 +76,8 @@ class DeviceController extends Controller {
         $device = new Device();
         $device->setName($this->request->getParam('name'));
         $device->setUserId($this->request->getParam('userId') ?? '');
-
         $purchaseDateRaw = $this->request->getParam('invoiceDate');
+
         if ($purchaseDateRaw !== null) {
             $device->setPurchaseDate($purchaseDateRaw); // Format: 'YYYY-MM-DD'
         }
@@ -87,6 +87,7 @@ class DeviceController extends Controller {
         return new DataResponse([
             'status' => 'ok',
             'id'     => $saved->getId(),
+            'deviceServiceReturn' => $this->deviceService->validateDeviceData([])
         ]);
     }
 }
