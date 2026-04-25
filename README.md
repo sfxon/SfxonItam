@@ -11,40 +11,44 @@ Das Programm richtet sich an kleine und mittelständische Unternehmen (KMU) sowi
 ## Timeline
 
 * Device Entität umsetzen:
-  - ✅ Übersichts-Seite für die Geräte umsetzen:
-    - ✅ Tabelle Element für Element in einzelne wiederverwendbare Module aufteilen.
-        - ✅ Tabelle insgesamt in neues Modul auslagern.
-        - ✅ Tabellenkopf in eigene Komponente auslagern.
-        - ✅ Tabellen-Body in eigene Komponente auslagern.
-        - ✅ Tabellenspalte (Zelle) in eigene Komponente auslagern.
-    - ✅ Pagination in eigene Komponente auslagern
-    - ✅ Alte Elemente in VueJs entfernen, die aktuell noch als Referenz enthalten sind.
-    - ✅ Action-Spalte hinzufügen.
-  - Detail-Seite erstellen zum Anlegen und Bearbeiten
-    - ✅ Eingaben prüfen
-        - Erste Version der Eingabeprüfung umsetzen.
-        - Frontend-Ausgabe von Fehlern beim Speichern umsetzen.
-    - Ausgaben escapen?
-    - Alle Werte hinzufügen (Entitäten, "normale" Felder)
+    - ✅ Übersichts-Seite für die Geräte umsetzen:
+        - ✅ Tabelle Element für Element in einzelne wiederverwendbare Module aufteilen.
+            - ✅ Tabelle insgesamt in neues Modul auslagern.
+            - ✅ Tabellenkopf in eigene Komponente auslagern.
+            - ✅ Tabellen-Body in eigene Komponente auslagern.
+            - ✅ Tabellenspalte (Zelle) in eigene Komponente auslagern.
+        - ✅ Pagination in eigene Komponente auslagern
+        - ✅ Alte Elemente in VueJs entfernen, die aktuell noch als Referenz enthalten sind.
+        - ✅ Action-Spalte hinzufügen.
+    - Detail-Seite erstellen zum Anlegen und Bearbeiten
+        - ✅ Eingaben prüfen
+            - ✅ Erste Version der Eingabeprüfung umsetzen.
+            - ✅ Frontend-Ausgabe von Fehlern beim Speichern umsetzen.
+        - ✅ Ausgaben escapen -> ist nicht notwendig, so lange wir nicht mit v-html binden. Vue escaped die anderen Werte automatisch.
+        - Alle Werte hinzufügen (Entitäten, "normale" Felder)
     - ✅ Controller
     - ✅ View
-    - ✅ Speicher Aktion
-  - Einträge bearbeiten
-  - Einträge löschen
-  - ✅ Entität in Datenbank erstellen
-  - ✅ Button "Neu" hinzufügen
+    - ✅ Speicher Aktion hinzufügen.
+    - Einträge bearbeiten.
+    - Einträge löschen.
+    - ✅ Entität in Datenbank erstellen.
+    - ✅ Button "Neu" hinzufügen.
+    - Vue.app umbenennen in DeviceList.vue.
+    - ✅ Paginierung funktioniert noch nicht.
+    - ✅ Spaltensortierung funktioniert außer der des Namens noch nicht.
 
 * DeviceStatus Entität umsetzen
-  - Entität in Datenbank erstellen
-  - Menüpunkt zum Verwalten von DeviceStati hinzufügen (verlinkt auf die Liste)
-  - Liste darstellen
-  - Button "Neu" hinzufügen
-  - Einträge verwalten (CRUD)
+    - Entität in Datenbank erstellen
+    - Menüpunkt zum Verwalten von DeviceStati hinzufügen (verlinkt auf die Liste)
+    - Liste darstellen
+    - Button "Neu" hinzufügen
+    - Einträge verwalten (CRUD)
     - nur Löschen, wenn ein Status nicht mehr in Device verwendet wird.
-  - DeviceStatus in den Menüpunkten zum Verwalten von Geräten (Device) hinzufügen.
+    - DeviceStatus in den Menüpunkten zum Verwalten von Geräten (Device) hinzufügen.
 
 * Alle weiteren Entitäten umsetzen.
-  - Benutzer werden erstmal "normale" Entität. Wir verwenden also nicht weiterhin die Benutzer von Nextcloud. Diese sollten dem Login vorbehalten bleiben (Design-Entscheidung).
+    - Das Feld userId soll Optional sein.
+    - Benutzer werden erstmal "normale" Entität. Wir verwenden also nicht weiterhin die Benutzer von Nextcloud. Diese sollten dem Login vorbehalten bleiben (Design-Entscheidung).
 
 
 ## Aktuelle Funktionen
@@ -176,40 +180,21 @@ volumes:
 docker compose up -d
 ```
 
-### 5. SSH im Docker Container installieren
+### 5. NVM und NPM installieren
 
 ```bash
 # In den Container wechseln
 docker exec -it itam bash
 
-# Dann im Container:
-apt-get update
-apt-get install -y openssh-server
-mkdir -p /var/run/sshd
-echo 'root:root' | chpasswd
-sed -i 's/#PermitRootLogin prohibit-password/PermitRootLogin yes/' /etc/ssh/sshd_config
-service ssh start
-```
+curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.7/install.sh | bash
 
-Benutzername und Passwort lauten für den Zugriff auf den Docker-Container dann:
-User: root
-Pass: root
+export NVM_DIR="$HOME/.nvm"
+[ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
 
-ssh -p 22 root@localhost
-
-Das ist keine dauerhafte Lösung. Killt man den Container bspw. mit docker-compose down, ist der SSH-Server weg.
-Langfristig wäre eine Implementierung mittels Dockerfile besser geeignet.
-
-### 6. NPM installieren
-
-```bash
-ssh -p 22 root@localhost
-
-cd /var/www/html/custom_apps/sfxonitam
-
+nvm install --lts
 nvm use --lts
 
-node -v
+node --version
 ```
 
 Die Versionsnummer sollte ausgegeben werden. Es ist in der Regel nur notwendig, dass man über der benötigten Version liegt.
@@ -242,15 +227,17 @@ module.exports = {
     parserOptions: {
         requireConfigFile: false
     },
-	extends: [
-		'@nextcloud',
-	],
-	rules: {
-		'jsdoc/require-jsdoc': 'off',
-        'jsdoc/tag-lines': 'off',
-		'vue/first-attribute-linebreak': 'off',
+    extends: [
+        '@nextcloud',
+    ],
+    rules: {
         'import/extensions': 'off'
-	},
+        'jsdoc/require-jsdoc': 'off',
+        'jsdoc/tag-lines': 'off',
+        'vue/first-attribute-linebreak': 'off',
+        'vue/html-indent': ['error', 4],
+        'indent': ['error', 4],
+    },
 }
 
 ```
@@ -259,7 +246,7 @@ module.exports = {
 
 ```bash
 # 1. ssh into container or docker exec in container:
-```docker exec -it itam bash```
+docker exec -it itam bash
 
 # 2. Go to app directory.
 cd /var/www/html/custom_apps/sfxonitam
