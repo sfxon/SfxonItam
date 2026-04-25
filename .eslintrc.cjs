@@ -14,5 +14,6 @@ module.exports = {
         'jsdoc/tag-lines': 'off',
         'vue/first-attribute-linebreak': 'off',
         'vue/html-indent': ['error', 4],
+        'indent': ['error', 4],
     },
 }
