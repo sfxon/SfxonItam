@@ -17,6 +17,8 @@ import NcTextField from '@nextcloud/vue/components/NcTextField'
 import NcDateTimePicker from '@nextcloud/vue/components/NcDateTimePicker'
 import NcSelect from '@nextcloud/vue/components/NcSelect'
 import axios from '@nextcloud/axios'
+import NcNoteCard from '@nextcloud/vue/components/NcNoteCard'
+import { useApiErrors } from '@/composables/useApiErrors'
 
 // Formulardaten
 const name = ref('')
@@ -26,6 +28,9 @@ const selectedUser = ref<{ id: string; label: string } | null>(null)
 // User-Liste
 const users = ref<{ id: string; label: string }[]>([])
 const usersLoading = ref(false)
+
+// Fehlerbehandlung
+const { fieldErrors, generalError, handleApiError, clearErrors, clearFieldError } = useApiErrors()
 
 // User per Nextcloud-API laden
 onMounted(async () => {
@@ -48,12 +53,7 @@ onMounted(async () => {
 })
 
 async function submitForm() {
-    console.log('submitForm');
-
-    if (!name.value) {
-        // Fehlerbehandlung
-        return
-    }
+    clearErrors()
 
     try {
         const response = await axios.post(
@@ -63,12 +63,25 @@ async function submitForm() {
                 invoiceDate: invoiceDate.value?.toISOString().split('T')[0] ?? null,
                 userId:      selectedUser.value?.id ?? null,
             }
-            // Kein manueller CSRF-Header nötig –
-            // @nextcloud/axios ergänzt ihn automatisch!
+            // Es ist kein manueller CSRF-Header nötig, denn @nextcloud/axios ergänzt ihn automatisch.
         )
+
+        // Backend gibt status: 'error' mit HTTP 200 zurück
+        if (response.data?.status === 'error') {
+            handleApiError(response.data, t('sfxonitam', 'Bitte korrigiere die markierten Felder.'))
+            return
+        }
+
         console.log('Gespeichert:', response.data)
-    } catch (error) {
-        console.error('Fehler beim Speichern:', error)
+        // Ggf. weiterleiten: window.location.href = generateUrl('/apps/sfxonitam')
+    } catch (error: any) {
+        // HTTP-Fehler (4xx/5xx) – Backend gibt evtl. trotzdem JSON zurück
+        const data = error?.response?.data
+        if (data?.status === 'error') {
+            handleApiError(data, t('sfxonitam', 'Bitte korrigiere die markierten Felder.'))
+        } else {
+            generalError.value = t('sfxonitam', 'Unbekannter Fehler beim Speichern.')
+        }
     }
 }
 </script>
@@ -80,6 +93,14 @@ async function submitForm() {
             <div :class="$style.form">
                 <h2>{{ t('sfxonitam', 'Gerät erfassen') }}</h2>
 
+                <!-- Allgemeine Fehlermeldung -->
+                <NcNoteCard
+                    v-if="generalError"
+                    type="error"
+                >
+                    {{ generalError }}
+                </NcNoteCard>
+
                 <!-- Geräte-ID -->
                 <div :class="$style.field">
                     <NcTextField
@@ -87,7 +108,12 @@ async function submitForm() {
                         v-model="name"
                         :label="t('sfxonitam', 'Name / Geräte-ID')"
                         :placeholder="t('sfxonitam', 'z.B. JP001')"
+                        :class="fieldErrors.name ? $style.fieldError : ''"
+                        @input="clearFieldError('name')"
                     />
+                    <span v-if="fieldErrors.name" :class="$style.errorText">
+                        {{ fieldErrors.name }}
+                    </span>
                 </div>
 
                 <!-- Rechnungsdatum -->
@@ -100,7 +126,12 @@ async function submitForm() {
                         v-model="invoiceDate"
                         type="date"
                         :placeholder="t('sfxonitam', 'Datum wählen')"
+                        :class="fieldErrors.invoiceDate ? $style.fieldError : ''"
+                        @input="clearFieldError('invoiceDate')"
                     />
+                    <span v-if="fieldErrors.invoiceDate" :class="$style.errorText">
+                        {{ fieldErrors.invoiceDate }}
+                    </span>
                 </div>
 
                 <!-- User-Auswahl -->
@@ -116,7 +147,12 @@ async function submitForm() {
                         :placeholder="t('sfxonitam', 'Benutzer auswählen')"
                         :label="'label'"
                         track-by="id"
+                        :class="fieldErrors.userId ? $style.fieldError : ''"
+                        @input="clearFieldError('userId')"
                     />
+                    <span v-if="fieldErrors.userId" :class="$style.errorText">
+                        {{ fieldErrors.userId }}
+                    </span>
                 </div>
 
                 <!-- Absenden -->
@@ -161,5 +197,16 @@ async function submitForm() {
     display: flex;
     justify-content: flex-end;
     margin-top: 8px;
+}
+
+.fieldError :deep(input),
+.fieldError :deep(.v-select) {
+    border-color: var(--color-error) !important;
+    box-shadow: 0 0 0 2px var(--color-error-hover) !important;
+}
+
+.errorText {
+    color: var(--color-element-error);
+    margin-top: 2px;
 }
 </style>

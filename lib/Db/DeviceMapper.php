@@ -37,8 +37,9 @@ class DeviceMapper extends QBMapper {
         int $limit = 20,
         int $offset = 0
     ): array {
-        $allowedColumns = ['name', 'serial_number', 'asset_number', 'purchase_date'];
+        $allowedColumns = ['name', 'serialNumber', 'assetNumber', 'purchaseDate', 'userId', ];
         $col = in_array($orderBy, $allowedColumns, true) ? $orderBy : 'name';
+        $col = strtolower(preg_replace('/[A-Z]/', '_$0', $col)); // CamelCase to SnakeCase umwandeln.
         $dir = strtoupper($direction) === 'DESC' ? 'DESC' : 'ASC';
 
         $qb = $this->db->getQueryBuilder();

@@ -141,8 +141,8 @@ onMounted(loadDevices)
                 />
 
                 <SfxonPagination
+                    v-model:page="page"
                     :limit="limit"
-                    :page="page"
                     :total="total"
                     :totalPages="totalPages"
                 />

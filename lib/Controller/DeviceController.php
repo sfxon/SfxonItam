@@ -3,18 +3,19 @@ declare(strict_types=1);
 
 namespace OCA\SfxonItam\Controller;
 
-use OCA\SfxonItam\Db\Device;
-use OCA\SfxonItam\Db\DeviceMapper;
-use OCA\SfxonItam\Service\DeviceService;
-use OCP\AppFramework\Http\DataResponse;
-use OCA\SfxonItam\AppInfo\Application;
 use OCP\AppFramework\Controller;
+use OCP\AppFramework\Http;
 use OCP\AppFramework\Http\Attribute\FrontpageRoute;
 use OCP\AppFramework\Http\Attribute\NoCSRFRequired;
 use OCP\AppFramework\Http\Attribute\OpenAPI;
+use OCP\AppFramework\Http\DataResponse;
 use OCP\AppFramework\Http\TemplateResponse;
-use OCP\IRequest;
 use OCP\AppFramework\Http\JSONResponse;
+use OCP\IRequest;
+use OCA\SfxonItam\AppInfo\Application;
+use OCA\SfxonItam\Db\Device;
+use OCA\SfxonItam\Db\DeviceMapper;
+use OCA\SfxonItam\Service\DeviceService;
 
 /**
  * @psalm-suppress UnusedClass
@@ -82,7 +83,7 @@ class DeviceController extends Controller {
             return new DataResponse([
                 'status' => 'error',
                 'errors' => $result['errors']
-            ]);
+            ], Http::STATUS_UNPROCESSABLE_ENTITY); // Returns error 422
         }
 
         $device = new Device();
