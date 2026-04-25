@@ -61,7 +61,7 @@ async function onDeleteDevice(device: Device) {
 }
 
 function onEditDevice(device: Device) {
-    window.location.href = generateUrl(`/apps/sfxonitam/device/detail?id=${device.id}`);
+    window.location.href = generateUrl(`/apps/sfxonitam/device/detail?deviceId=${device.id}`);
 }
 
 async function loadDevices() {

@@ -1,15 +1,7 @@
 <script setup lang="ts">
 import NcAppContent from '@nextcloud/vue/components/NcAppContent'
-import NcAppNavigation from '@nextcloud/vue/components/NcAppNavigation'
-import NcAppNavigationNew from '@nextcloud/vue/components/NcAppNavigationNew'
-import NcAppNavigationItem from '@nextcloud/vue/components/NcAppNavigationItem'
 import NcContent from '@nextcloud/vue/components/NcContent'
-import NcListItem from '@nextcloud/vue/components/NcListItem'
-import NcActions from '@nextcloud/vue/components/NcActions'
-import NcActionButton from '@nextcloud/vue/components/NcActionButton'
-import { mdiPlus, mdiPencil, mdiTrashCan } from '@mdi/js'
-import NcIconSvgWrapper from '@nextcloud/vue/components/NcIconSvgWrapper'
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { translate as t } from '@nextcloud/l10n'
 import { generateUrl } from '@nextcloud/router'
 import NcButton from '@nextcloud/vue/components/NcButton'
@@ -22,19 +14,54 @@ import { useApiErrors } from '@/composables/useApiErrors'
 
 // Formulardaten
 const name = ref('')
-const invoiceDate = ref<Date | null>(null)
+const purchaseDate = ref<Date | null>(null)
 const selectedUser = ref<{ id: string; label: string } | null>(null)
 
-// User-Liste
-const users = ref<{ id: string; label: string }[]>([])
+// Ladezustände
 const usersLoading = ref(false)
+const deviceLoading = ref(false)
+const isSaving = ref(false)
 
 // Fehlerbehandlung
 const { fieldErrors, generalError, handleApiError, clearErrors, clearFieldError } = useApiErrors()
 
+// Id und Modus laden.
+const deviceId = computed(() => {
+
+    const param = new URLSearchParams(window.location.search).get('deviceId')
+    return param ? parseInt(param, 10) : undefined
+})
+const isEditMode = computed(() => !!deviceId.value)
+
 // User per Nextcloud-API laden
-onMounted(async () => {
+const users = ref<{ id: string; label: string }[]>([])
+
+// Funktionen definieren.
+async function loadDevice(id: number): Promise<void> {
+    deviceLoading.value = true
+
+    try {
+        const response = await axios.get(
+            generateUrl(`/apps/sfxonitam/device/${id}`),
+        )
+        const d = response.data
+ 
+        name.value = d.name ?? ''
+        purchaseDate.value = d.purchaseDate ? new Date(d.purchaseDate) : null
+ 
+        // Passenden User aus der bereits geladenen Liste suchen
+        selectedUser.value = users.value.find(u => u.id === d.userId) ?? null
+    } catch (e: any) {
+        generalError.value = t('sfxonitam', 'Gerät konnte nicht geladen werden.')
+        console.error('Fehler beim Laden des Geräts:', e)
+    } finally {
+        deviceLoading.value = false
+    }
+}
+
+async function loadUsers() {
     usersLoading.value = true
+
     try {
         const response = await axios.get(
             generateUrl('/ocs/v2.php/cloud/users/details?format=json'),
@@ -50,33 +77,37 @@ onMounted(async () => {
     } finally {
         usersLoading.value = false
     }
-})
+}
 
 async function submitForm() {
     clearErrors()
 
+    isSaving.value = true
+
+    const payload = {
+        name: name.value,
+        purchaseDate: purchaseDate.value?.toISOString().split('T')[0] ?? null,
+        userId: selectedUser.value?.id ?? null,
+    }
+
     try {
-        const response = await axios.post(
-            generateUrl('/apps/sfxonitam/device/save'),
-            {
-                name:        name.value,
-                invoiceDate: invoiceDate.value?.toISOString().split('T')[0] ?? null,
-                userId:      selectedUser.value?.id ?? null,
-            }
-            // Es ist kein manueller CSRF-Header nötig, denn @nextcloud/axios ergänzt ihn automatisch.
-        )
+        const url = isEditMode.value
+            ? generateUrl(`/apps/sfxonitam/device/${deviceId.value}`)
+            : generateUrl('/apps/sfxonitam/device/save')
+
+        const response = isEditMode.value
+            ? await axios.put(url, payload)
+            : await axios.post(url, payload)
 
         // Backend gibt status: 'error' mit HTTP 200 zurück
         if (response.data?.status === 'error') {
             handleApiError(response.data, t('sfxonitam', 'Bitte korrigiere die markierten Felder.'))
             return
         }
-
-        console.log('Gespeichert:', response.data)
-        // Ggf. weiterleiten: window.location.href = generateUrl('/apps/sfxonitam')
     } catch (error: any) {
         // HTTP-Fehler (4xx/5xx) – Backend gibt evtl. trotzdem JSON zurück
         const data = error?.response?.data
+
         if (data?.status === 'error') {
             handleApiError(data, t('sfxonitam', 'Bitte korrigiere die markierten Felder.'))
         } else {
@@ -84,6 +115,14 @@ async function submitForm() {
         }
     }
 }
+
+onMounted(async () => {
+    await loadUsers()
+
+    if (deviceId.value) {
+        await loadDevice(deviceId.value)
+    }
+})
 </script>
 
 <template>
@@ -91,7 +130,11 @@ async function submitForm() {
         <!-- Inhaltsbereich -->
         <NcAppContent :class="$style.content">
             <div :class="$style.form">
-                <h2>{{ t('sfxonitam', 'Gerät erfassen') }}</h2>
+                <h2>
+                    {{ isEditMode
+                        ? t('sfxonitam', 'Gerät bearbeiten')
+                        : t('sfxonitam', 'Gerät erfassen') }}
+                </h2>
 
                 <!-- Allgemeine Fehlermeldung -->
                 <NcNoteCard
@@ -123,14 +166,14 @@ async function submitForm() {
                     </label>
                     <NcDateTimePicker
                         id="invoice-date"
-                        v-model="invoiceDate"
+                        v-model="purchaseDate"
                         type="date"
                         :placeholder="t('sfxonitam', 'Datum wählen')"
-                        :class="fieldErrors.invoiceDate ? $style.fieldError : ''"
-                        @input="clearFieldError('invoiceDate')"
+                        :class="fieldErrors.purchaseDate ? $style.fieldError : ''"
+                        @input="clearFieldError('purchaseDate')"
                     />
-                    <span v-if="fieldErrors.invoiceDate" :class="$style.errorText">
-                        {{ fieldErrors.invoiceDate }}
+                    <span v-if="fieldErrors.purchaseDate" :class="$style.errorText">
+                        {{ fieldErrors.purchaseDate }}
                     </span>
                 </div>
 

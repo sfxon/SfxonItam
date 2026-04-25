@@ -4,6 +4,7 @@ declare(strict_types=1);
 namespace OCA\SfxonItam\Controller;
 
 use OCP\AppFramework\Controller;
+use OCP\AppFramework\Db\DoesNotExistException;
 use OCP\AppFramework\Http;
 use OCP\AppFramework\Http\Attribute\FrontpageRoute;
 use OCP\AppFramework\Http\Attribute\NoCSRFRequired;
@@ -22,8 +23,8 @@ use OCA\SfxonItam\Service\DeviceService;
  */
 class DeviceController extends Controller {
     public function __construct(
-        string        $appName,
-        IRequest      $request,
+        string $appName,
+        IRequest $request,
         private DeviceMapper $deviceMapper,
         private readonly DeviceService $deviceService
     ) {
@@ -100,6 +101,63 @@ class DeviceController extends Controller {
         return new DataResponse([
             'status' => 'ok',
             'id' => $saved->getId(),
+        ]);
+    }
+
+    #[NoCSRFRequired]
+    #[OpenAPI(OpenAPI::SCOPE_IGNORE)]
+    #[FrontpageRoute(verb: 'GET', url: '/device/{id}')]
+    public function show(int $id): JSONResponse {
+        try {
+            $device = $this->deviceMapper->findById($id);
+        } catch (DoesNotExistException) {
+            return new JSONResponse(
+                ['status' => 'error', 'message' => 'Device not found'],
+                Http::STATUS_NOT_FOUND
+            );
+        }
+
+        return new JSONResponse($device->jsonSerialize());
+    }
+
+    #[OpenAPI(OpenAPI::SCOPE_IGNORE)]
+    #[FrontpageRoute(verb: 'PUT', url: '/device/{id}')]
+    public function update(int $id): DataResponse {
+        // Gerät laden – 404 wenn nicht vorhanden
+        try {
+            $device = $this->deviceMapper->findById($id);
+        } catch (\OCP\AppFramework\Db\DoesNotExistException) {
+            return new DataResponse(
+                ['status' => 'error', 'message' => 'Device not found'],
+                Http::STATUS_NOT_FOUND
+            );
+        }
+
+        $expectedFields = ['name', 'invoiceDate', 'userId'];
+        $data = $this->deviceService->getDataFromRequest($this->request->getParams(), $expectedFields);
+        $result = $this->deviceService->validateDeviceData($data);
+
+        if ($result['valid'] === false) {
+            return new DataResponse([
+                'status' => 'error',
+                'errors' => $result['errors'],
+            ], Http::STATUS_UNPROCESSABLE_ENTITY);
+        }
+
+        // Felder aktualisieren
+        $device->setName($this->request->getParam('name'));
+        $device->setUserId($this->request->getParam('userId') ?? '');
+        $purchaseDateRaw = $this->request->getParam('invoiceDate');
+        
+        if ($purchaseDateRaw !== null) {
+            $device->setPurchaseDate($purchaseDateRaw);
+        }
+
+        $updated = $this->deviceMapper->update($device);
+
+        return new DataResponse([
+            'status' => 'ok',
+            'id'     => $updated->getId(),
         ]);
     }
 }

@@ -29,7 +29,9 @@ Das Programm richtet sich an kleine und mittelständische Unternehmen (KMU) sowi
     - ✅ Controller
     - ✅ View
     - ✅ Speicher Aktion hinzufügen.
-    - Einträge bearbeiten.
+    - ✅ Einträge bearbeiten.
+        - Füge Erfolgsmeldung hinzu, die angezeigt wird, wenn das Speichern erfolgreich war.
+        - Es gibt offenbar einen Fehler mit dem Purchase Date. Es wird entweder nicht richtig gespeichert oder geladen.
     - Einträge löschen.
     - ✅ Entität in Datenbank erstellen.
     - ✅ Button "Neu" hinzufügen.
@@ -49,6 +51,8 @@ Das Programm richtet sich an kleine und mittelständische Unternehmen (KMU) sowi
 * Alle weiteren Entitäten umsetzen.
     - Das Feld userId soll Optional sein.
     - Benutzer werden erstmal "normale" Entität. Wir verwenden also nicht weiterhin die Benutzer von Nextcloud. Diese sollten dem Login vorbehalten bleiben (Design-Entscheidung).
+
+* Rechte-Verwaltung integrieren. Die Bestandteile dürfen nur mit der notwendigen Berechtigung verwendet werden dürfen.
 
 
 ## Aktuelle Funktionen
