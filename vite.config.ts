@@ -3,8 +3,8 @@ import { join, resolve } from 'path'
 
 export default createAppConfig(
 	{
-		main: resolve(join('src', 'main.js')),
-		deviceEditor: resolve(join('src', 'device-editor.js')),
+		deviceList: resolve(join('src', 'views', 'DeviceList', 'index.ts')),
+		deviceEditor: resolve(join('src', 'views', 'DeviceEditor', 'index.ts')),
 	},
 	{
 		createEmptyCSSEntryPoints: true,

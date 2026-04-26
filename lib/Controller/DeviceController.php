@@ -31,14 +31,18 @@ class DeviceController extends Controller {
         parent::__construct($appName, $request);
     }
 
-    #[NoCSRFRequired]
     #[OpenAPI(OpenAPI::SCOPE_IGNORE)]
-    #[FrontpageRoute(verb: 'GET', url: '/')]
-    public function index(): TemplateResponse {
-        return new TemplateResponse(
-            Application::APP_ID,
-            'device/index',
-        );
+    #[FrontpageRoute(verb: 'DELETE', url: '/device/{id}')]
+    public function delete(int $id): JsonResponse {
+        $device = $this->deviceMapper->findById($id);
+
+        if($device !== null) {
+            $this->deviceMapper->delete($device);
+        }
+
+        return new JSONResponse([
+            'status' => 'ok',
+        ]);
     }
 
     #[NoCSRFRequired]
@@ -48,6 +52,16 @@ class DeviceController extends Controller {
         return new TemplateResponse(
             Application::APP_ID,
             'device/editor',
+        );
+    }
+
+    #[NoCSRFRequired]
+    #[OpenAPI(OpenAPI::SCOPE_IGNORE)]
+    #[FrontpageRoute(verb: 'GET', url: '/')]
+    public function index(): TemplateResponse {
+        return new TemplateResponse(
+            Application::APP_ID,
+            'device/list',
         );
     }
 

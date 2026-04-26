@@ -52,12 +52,12 @@ function addItem() {
 }
 
 async function onDeleteDevice(device: Device) {
-    alert('Löschen');
-    /*
-    if (!confirm(t('sfxonitam', `Gerät „${device.name}" wirklich löschen?`))) return
+    if (!confirm(t('sfxonitam', `Gerät „${device.name}" wirklich löschen?`))){
+        return
+    }
+
     await axios.delete(generateUrl(`/apps/sfxonitam/device/${device.id}`))
     await loadDevices()
-    */
 }
 
 function onEditDevice(device: Device) {

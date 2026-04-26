@@ -32,7 +32,7 @@ Das Programm richtet sich an kleine und mittelständische Unternehmen (KMU) sowi
     - ✅ Einträge bearbeiten.
         - ✅ Füge Erfolgsmeldung hinzu, die angezeigt wird, wenn das Speichern erfolgreich war.
         - ✅ Es gibt offenbar einen Fehler mit dem Purchase Date. Es wurde weder geladen, noch richtig gespeichert.
-    - Einträge löschen.
+    - ✅ Einträge löschen.
     - ✅ Entität in Datenbank erstellen.
     - ✅ Button "Neu" hinzufügen.
     - ✅ Paginierung funktioniert noch nicht.
