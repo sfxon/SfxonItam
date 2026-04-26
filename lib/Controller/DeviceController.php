@@ -75,7 +75,7 @@ class DeviceController extends Controller {
     #[OpenAPI(OpenAPI::SCOPE_IGNORE)]
     #[FrontpageRoute(verb: 'POST', url: '/device/save')]
     public function save(): DataResponse {
-        $expectedFields = ['name', 'invoiceDate', 'userId'];
+        $expectedFields = ['name', 'purchaseDate', 'userId'];
 
         $data = $this->deviceService->getDataFromRequest($this->request->getParams(), $expectedFields);
         $result = $this->deviceService->validateDeviceData($data);
@@ -90,7 +90,7 @@ class DeviceController extends Controller {
         $device = new Device();
         $device->setName($this->request->getParam('name'));
         $device->setUserId($this->request->getParam('userId') ?? '');
-        $purchaseDateRaw = $this->request->getParam('invoiceDate');
+        $purchaseDateRaw = $this->request->getParam('purchaseDate');
 
         if ($purchaseDateRaw !== null) {
             $device->setPurchaseDate($purchaseDateRaw); // Format: 'YYYY-MM-DD'
@@ -133,7 +133,7 @@ class DeviceController extends Controller {
             );
         }
 
-        $expectedFields = ['name', 'invoiceDate', 'userId'];
+        $expectedFields = ['name', 'purchaseDate', 'userId'];
         $data = $this->deviceService->getDataFromRequest($this->request->getParams(), $expectedFields);
         $result = $this->deviceService->validateDeviceData($data);
 
@@ -147,11 +147,8 @@ class DeviceController extends Controller {
         // Felder aktualisieren
         $device->setName($this->request->getParam('name'));
         $device->setUserId($this->request->getParam('userId') ?? '');
-        $purchaseDateRaw = $this->request->getParam('invoiceDate');
-        
-        if ($purchaseDateRaw !== null) {
-            $device->setPurchaseDate($purchaseDateRaw);
-        }
+        $purchaseDateRaw = $this->request->getParam('purchaseDate');
+        $device->setPurchaseDate($purchaseDateRaw);
 
         $updated = $this->deviceMapper->update($device);
 

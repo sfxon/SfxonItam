@@ -30,14 +30,15 @@ Das Programm richtet sich an kleine und mittelständische Unternehmen (KMU) sowi
     - ✅ View
     - ✅ Speicher Aktion hinzufügen.
     - ✅ Einträge bearbeiten.
-        - Füge Erfolgsmeldung hinzu, die angezeigt wird, wenn das Speichern erfolgreich war.
-        - Es gibt offenbar einen Fehler mit dem Purchase Date. Es wird entweder nicht richtig gespeichert oder geladen.
+        - ✅ Füge Erfolgsmeldung hinzu, die angezeigt wird, wenn das Speichern erfolgreich war.
+        - ✅ Es gibt offenbar einen Fehler mit dem Purchase Date. Es wurde weder geladen, noch richtig gespeichert.
     - Einträge löschen.
     - ✅ Entität in Datenbank erstellen.
     - ✅ Button "Neu" hinzufügen.
-    - Vue.app umbenennen in DeviceList.vue.
     - ✅ Paginierung funktioniert noch nicht.
     - ✅ Spaltensortierung funktioniert außer der des Namens noch nicht.
+    - Vue.app umbenennen in DeviceList.vue.
+    - Code für die nächsten Entitäten besser abstrahieren.
 
 * DeviceStatus Entität umsetzen
     - Entität in Datenbank erstellen
@@ -490,3 +491,32 @@ services:
 ```
 
 Eine Anzeige der PHP-Ini sollte danach für den Wert ```opcache.enable``` den Wert ```Off``` ergeben.
+
+
+8. Adminer
+
+Wenn ich eine adminer.php in das Root-Verzeichnis lege, wird diese nicht angezeigt.
+
+-> Grund: htaccess-Datei verhindert dies.
+
+Einfach diese Zeile hinzufügen:
+
+```
+RewriteCond %{REQUEST_FILENAME} !/adminer\.php$
+```
+
+Sie muss kurz vor das Ende der Datei hier:
+
+```
+  RewriteCond %{REQUEST_FILENAME} !/richdocumentscode(_arm64)?/proxy.php$
+  RewriteCond %{REQUEST_FILENAME} !/adminer\.php$
+  RewriteRule . index.php [PT,E=PATH_INFO:$1]
+  RewriteBase /
+  <IfModule mod_env.c>
+    SetEnv front_controller_active true
+    <IfModule mod_dir.c>
+      DirectorySlash off
+    </IfModule>
+  </IfModule>
+</IfModule>
+```

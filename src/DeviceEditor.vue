@@ -6,16 +6,19 @@ import { translate as t } from '@nextcloud/l10n'
 import { generateUrl } from '@nextcloud/router'
 import NcButton from '@nextcloud/vue/components/NcButton'
 import NcTextField from '@nextcloud/vue/components/NcTextField'
-import NcDateTimePicker from '@nextcloud/vue/components/NcDateTimePicker'
+import NcDateTimePickerNative from '@nextcloud/vue/components/NcDateTimePickerNative'
 import NcSelect from '@nextcloud/vue/components/NcSelect'
 import axios from '@nextcloud/axios'
 import NcNoteCard from '@nextcloud/vue/components/NcNoteCard'
 import { useApiErrors } from '@/composables/useApiErrors'
+import { mdiClose } from '@mdi/js'
+import NcIconSvgWrapper from '@nextcloud/vue/components/NcIconSvgWrapper'
 
 // Formulardaten
 const name = ref('')
 const purchaseDate = ref<Date | null>(null)
 const selectedUser = ref<{ id: string; label: string } | null>(null)
+const savedSuccessfully = ref(false);
 
 // Ladezustände
 const usersLoading = ref(false)
@@ -36,6 +39,13 @@ const isEditMode = computed(() => !!deviceId.value)
 // User per Nextcloud-API laden
 const users = ref<{ id: string; label: string }[]>([])
 
+const toLocalDateString = (date: Date): string => {
+    const y = date.getFullYear()
+    const m = String(date.getMonth() + 1).padStart(2, '0')
+    const d = String(date.getDate()).padStart(2, '0')
+    return `${y}-${m}-${d}`
+}
+
 // Funktionen definieren.
 async function loadDevice(id: number): Promise<void> {
     deviceLoading.value = true
@@ -45,10 +55,10 @@ async function loadDevice(id: number): Promise<void> {
             generateUrl(`/apps/sfxonitam/device/${id}`),
         )
         const d = response.data
- 
+
         name.value = d.name ?? ''
-        purchaseDate.value = d.purchaseDate ? new Date(d.purchaseDate) : null
- 
+        purchaseDate.value = d.purchaseDate ? new Date(d.purchaseDate + 'T00:00:00') : null
+
         // Passenden User aus der bereits geladenen Liste suchen
         selectedUser.value = users.value.find(u => u.id === d.userId) ?? null
     } catch (e: any) {
@@ -82,11 +92,12 @@ async function loadUsers() {
 async function submitForm() {
     clearErrors()
 
+    savedSuccessfully.value = false;
     isSaving.value = true
 
     const payload = {
         name: name.value,
-        purchaseDate: purchaseDate.value?.toISOString().split('T')[0] ?? null,
+        purchaseDate: purchaseDate.value ? toLocalDateString(purchaseDate.value) : null,
         userId: selectedUser.value?.id ?? null,
     }
 
@@ -104,6 +115,8 @@ async function submitForm() {
             handleApiError(response.data, t('sfxonitam', 'Bitte korrigiere die markierten Felder.'))
             return
         }
+
+        savedSuccessfully.value = true;
     } catch (error: any) {
         // HTTP-Fehler (4xx/5xx) – Backend gibt evtl. trotzdem JSON zurück
         const data = error?.response?.data
@@ -144,6 +157,14 @@ onMounted(async () => {
                     {{ generalError }}
                 </NcNoteCard>
 
+                <!-- Erfolgsmeldung -->
+                <NcNoteCard
+                    v-if="savedSuccessfully"
+                    type="success"
+                >
+                    {{ t('sfxonitam', 'Die Änderungen wurden gespeichert.') }}
+                </NcNoteCard>
+
                 <!-- Geräte-ID -->
                 <div :class="$style.field">
                     <NcTextField
@@ -161,17 +182,31 @@ onMounted(async () => {
 
                 <!-- Rechnungsdatum -->
                 <div :class="$style.field">
-                    <label for="invoice-date" :class="$style.label">
-                        {{ t('sfxonitam', 'Rechnungsdatum') }}
+                    <label for="purchaseDate" :class="$style.label">
+                        {{ t('sfxonitam', 'Kaufdatum') }}
                     </label>
-                    <NcDateTimePicker
-                        id="invoice-date"
-                        v-model="purchaseDate"
-                        type="date"
-                        :placeholder="t('sfxonitam', 'Datum wählen')"
-                        :class="fieldErrors.purchaseDate ? $style.fieldError : ''"
-                        @input="clearFieldError('purchaseDate')"
-                    />
+                    <div :class="$style.dateRow">
+                        <NcDateTimePickerNative
+                            id="purchase-date"
+                            v-model="purchaseDate"
+                            type="date"
+                            :class="fieldErrors.purchaseDate ? $style.fieldError : ''"
+                            :label="''"
+                            @input="clearFieldError('purchaseDate')"
+                        />
+                        <NcButton
+                            :disabled="purchaseDate === null"
+                            type="button"
+                            :aria-label="t('sfxonitam', 'Datum entfernen')"
+                            @click="purchaseDate = null"
+                            >
+                            <NcIconSvgWrapper
+                                :path="mdiClose"
+                                :size="16"
+                            />
+                        </NcButton>
+                    </div>
+
                     <span v-if="fieldErrors.purchaseDate" :class="$style.errorText">
                         {{ fieldErrors.purchaseDate }}
                     </span>
@@ -251,5 +286,20 @@ onMounted(async () => {
 .errorText {
     color: var(--color-element-error);
     margin-top: 2px;
+}
+
+.dateRow {
+    align-items: center;
+    display: flex;
+}
+
+.dateRow button {
+    max-height: 1rem;
+    margin-left: 6px;
+    margin-top: 1px;
+}
+
+.dateRow :global(.native-datetime-picker) {
+    flex-grow: 1;
 }
 </style>

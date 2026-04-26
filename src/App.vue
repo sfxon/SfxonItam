@@ -43,7 +43,7 @@ const columns = [
     { key: 'macAddress', label: t('sfxonitam', 'MAC-Adresse'), sortable: true },
     { key: 'merchantId', label: t('sfxonitam', 'Verkäufer'), sortable: true },
     { key: 'invoiceNumber', label: t('sfxonitam', 'Rechnungs-Nummer'), sortable: true },
-    { key: 'purchase_date', label: t('sfxonitam', 'Kaufdatum'), sortable: true },
+    { type: 'date', key: 'purchaseDate', label: t('sfxonitam', 'Kaufdatum'), sortable: true },
     { type: 'actions', label: t('sfxonitam', 'Aktion'), sortable: false },
 ];
 

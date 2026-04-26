@@ -27,6 +27,12 @@ const props = defineProps<{
         <span v-if="col.type == null">
             {{ props.dataRow[col.key] }}
         </span>
+        <span v-else-if="col.type == 'date'">
+            {{ props.dataRow[col.key]
+                ? new Intl.DateTimeFormat(undefined, { dateStyle: 'medium' }).format(new Date(props.dataRow[col.key]))
+                : '&nbsp;'
+            }}
+        </span>
         <span v-else-if="col.type === 'actions'">
             <NcActions>
                 <NcActionButton @click="props.editCallback && props.editCallback(props.dataRow)">
