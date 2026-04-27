@@ -24,9 +24,9 @@ class DeviceValidator {
         }
 
         // b) purchaseDate
-        if (empty($data['invoiceDate']) && null !== $data['invoiceDate'] ) {
-            $errors['invoiceDate'] = $this->l->t('The field invoiceDate is required.');
-        } else if(null !== $data['invoiceDate']) {
+        if (empty($data['purchaseDate']) && null !== $data['purchaseDate'] ) {
+            $errors['purchaseDate'] = $this->l->t('The field purchaseDate is required.');
+        } else if(null !== $data['purchaseDate']) {
             $date = \DateTimeImmutable::createFromFormat('Y-m-d', $data['purchaseDate']);
             $isValidFormat = $date && $date->format('Y-m-d') === $data['purchaseDate'];
 

@@ -34,10 +34,12 @@ class DeviceController extends Controller {
     #[OpenAPI(OpenAPI::SCOPE_IGNORE)]
     #[FrontpageRoute(verb: 'DELETE', url: '/device/{id}')]
     public function delete(int $id): JsonResponse {
-        $device = $this->deviceMapper->findById($id);
-
-        if($device !== null) {
+        // Put this in a try-catch block, since findById will throw an error,
+        // if it does not find an element with the given id.
+        try {
+            $device = $this->deviceMapper->findById($id);
             $this->deviceMapper->delete($device);
+        } catch(\Error $error) {
         }
 
         return new JSONResponse([
@@ -105,10 +107,7 @@ class DeviceController extends Controller {
         $device->setName($this->request->getParam('name'));
         $device->setUserId($this->request->getParam('userId') ?? '');
         $purchaseDateRaw = $this->request->getParam('purchaseDate');
-
-        if ($purchaseDateRaw !== null) {
-            $device->setPurchaseDate($purchaseDateRaw); // Format: 'YYYY-MM-DD'
-        }
+        $device->setPurchaseDate($purchaseDateRaw);
 
         $saved = $this->deviceMapper->insert($device);
 
