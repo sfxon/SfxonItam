@@ -14,11 +14,14 @@ import SfxonTable from '@/components/SfxonTable'
 import { useListState } from '@/composables/useListState'
 import { fetchDevices, deleteDevice} from '@/services/DeviceService'
 import type { Device } from '@/services/DeviceService'
+import NcDialog from '@nextcloud/vue/components/NcDialog'
+import NcButton from '@nextcloud/vue/components/NcButton'
 
 const loading   = ref(false)
 const error     = ref<string | null>(null)
 const devices   = ref<Device[]>([])
 const listState = useListState()
+const deviceToDelete = ref<Device | null>(null)
 
 const columns = [
     { key: 'name', label: t('sfxonitam', 'Name'), sortable: true },
@@ -40,17 +43,15 @@ function addItem() {
     window.location.href = generateUrl('/apps/sfxonitam/device/detail')
 }
 
-async function onDeleteDevice(device: Device) {
-    if (!confirm(t('sfxonitam', `Gerät „${device.name}" wirklich löschen?`))){
-        return
-    }
-
-    await deleteDevice(device.id);
-    await loadDevices()
+function cancelDelete() {
+    deviceToDelete.value = null
 }
 
-function onEditDevice(device: Device) {
-    window.location.href = generateUrl(`/apps/sfxonitam/device/detail?deviceId=${device.id}`);
+async function confirmDelete() {
+    if (!deviceToDelete.value) return
+    await deleteDevice(deviceToDelete.value.id)
+    deviceToDelete.value = null
+    await loadDevices()
 }
 
 async function loadDevices() {
@@ -71,6 +72,14 @@ async function loadDevices() {
     } finally {
         loading.value = false
     }
+}
+
+function onEditDevice(device: Device) {
+    window.location.href = generateUrl(`/apps/sfxonitam/device/detail?deviceId=${device.id}`);
+}
+
+async function onDeleteDevice(device: Device) {
+    deviceToDelete.value = device
 }
 
 watch(() => listState, loadDevices, { deep: true })
@@ -128,6 +137,30 @@ onMounted(loadDevices)
             </div>
         </NcAppContent>
     </NcContent>
+
+    <NcDialog
+        v-if="deviceToDelete"
+        :name="t('sfxonitam', 'Gerät löschen')"
+        :open="!!deviceToDelete"
+        @closing="cancelDelete"
+    >
+        <p>
+            {{ t('sfxonitam', `Gerät „${deviceToDelete.name}" wirklich löschen?`) }}
+        </p>
+
+        <template #actions>
+            <NcButton 
+                variant="tertiary" 
+                @click="cancelDelete">
+                {{ t('sfxonitam', 'Abbrechen') }}
+            </NcButton>
+            <NcButton
+                variant="error"
+                @click="confirmDelete">
+                {{ t('sfxonitam', 'Löschen') }}
+            </NcButton>
+        </template>
+    </NcDialog>
 </template>
 
 <style module>
