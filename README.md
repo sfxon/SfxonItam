@@ -37,8 +37,12 @@ Das Programm richtet sich an kleine und mittelständische Unternehmen (KMU) sowi
     - ✅ Button "Neu" hinzufügen.
     - ✅ Paginierung funktioniert noch nicht.
     - ✅ Spaltensortierung funktioniert außer der des Namens noch nicht.
-    - Vue.app umbenennen in DeviceList.vue.
+    - ✅ Vue.app umbenennen in DeviceList.vue.
     - Code für die nächsten Entitäten besser abstrahieren.
+        - Beim Löschen eines Eintrages keinen nativen Dialog anzeigen, sondern stattdessen ein Overlay. Sonst kann man das umgehen - was kritische Ergebnisse haben kann.
+        - Logik aus der DeviceList auslagern in eine Klasse Device, die dynamisch auf den Daten arbeitet.
+        - Logik aus DeviceEditor ebenfalls auslagern in die Klasse Device. Das sollte die zentrale Klasse dafür werden.+
+        - Denkbar ist jetzt noch eine Klasse DeviceApi oder ähnliches, welche die API-Logik noch etwas herauszieht, damit man schönen sauberen Code hat. Dann sollte es erstmal genug sein.
 
 * DeviceStatus Entität umsetzen
     - Entität in Datenbank erstellen
