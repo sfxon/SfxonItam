@@ -9,9 +9,8 @@ const props = defineProps<{
     dataArrayKey: "id", // This is a column in the given data, that tells, which key to use.
     deleteCallback: null,
     editCallback: null,
-    orderBy: "",
+    listState: null,
     orderByCallback: null
-    orderDirection: "ASC",
 }>()
 
 </script>
@@ -21,15 +20,15 @@ const props = defineProps<{
             <th
                 v-for="col in columns"
                 :key="col.key"
-                :class="{ active: props.orderBy === col.key }"
+                :class="{ active: props.listState.orderBy === col.key }"
                 :disabled="!col.sortable"
-                :aria-sort="props.orderBy === col.key ? (props.orderDirection === 'ASC' ? 'ascending' : 'descending') : undefined"
+                :aria-sort="props.listState.orderBy === col.key ? (props.listState.orderDirection === 'ASC' ? 'ascending' : 'descending') : undefined"
                 @click="col.sortable && props.orderByCallback !== null && props.orderByCallback(col.key)"
             >
                 {{ col.label }}
                 <NcIconSvgWrapper
-                    v-if="col.sortable && props.orderBy === col.key"
-                    :path="props.orderDirection === 'ASC' ? mdiChevronUp : mdiChevronDown"
+                    v-if="col.sortable && props.listState.orderBy === col.key"
+                    :path="props.listState.orderDirection === 'ASC' ? mdiChevronUp : mdiChevronDown"
                     :size="16"
                 />
             </th>

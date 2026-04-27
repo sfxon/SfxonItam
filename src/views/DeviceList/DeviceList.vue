@@ -11,6 +11,7 @@ import { generateUrl } from '@nextcloud/router'
 import axios from '@nextcloud/axios'
 import SfxonPagination from '@/components/SfxonPagination'
 import SfxonTable from '@/components/SfxonTable'
+import { useListState } from '@/composables/useListState'
 
 interface Device {
     id: number
@@ -22,15 +23,11 @@ interface Device {
     deviceStatusId: number | null
 }
 
-const devices   = ref<Device[]>([]);
-const total     = ref(0);
-const page      = ref(1);
-const limit     = ref(20);
-const orderBy   = ref('name');
-const direction = ref<'ASC' | 'DESC'>('ASC');
-const loading   = ref(false);
-const error     = ref<string | null>(null);
-const totalPages = computed(() => Math.max(1, Math.ceil(total.value / limit.value)));
+const loading   = ref(false)
+const error     = ref<string | null>(null)
+const devices   = ref<Device[]>([])
+const listState = useListState()
+
 const columns = [
     { key: 'name', label: t('sfxonitam', 'Name'), sortable: true },
     { key: 'deviceStatusId', label: t('sfxonitam', 'DeviceStatus'), sortable: true },
@@ -69,11 +66,15 @@ async function loadDevices() {
     error.value   = null
     try {
         const { data } = await axios.get(generateUrl('/apps/sfxonitam/device/list'), {
-        params: { orderBy: orderBy.value, direction: direction.value,
-                    page: page.value, limit: limit.value },
+            params: {
+                orderBy: listState.orderBy,
+                direction: listState.orderDirection,
+                page: listState.page,
+                limit: listState.limit
+            },
         })
         devices.value = data.devices
-        total.value   = data.total
+        listState.total   = data.total
     } catch (e) {
         error.value = t('sfxonitam', 'Fehler beim Laden der Geräte.')
     } finally {
@@ -81,17 +82,7 @@ async function loadDevices() {
     }
 }
 
-function sortBy(col: string) {
-    if (orderBy.value === col) {
-        direction.value = direction.value === 'ASC' ? 'DESC' : 'ASC'
-    } else {
-        orderBy.value   = col
-        direction.value = 'ASC'
-    }
-    page.value = 1
-}
-
-watch([orderBy, direction, page], loadDevices)
+watch([listState], loadDevices)
 onMounted(loadDevices)
 </script>
 
@@ -135,16 +126,13 @@ onMounted(loadDevices)
                     :dataArrayKey="'id'"
                     :deleteCallback="onDeleteDevice"
                     :editCallback="onEditDevice"
-                    :orderBy="orderBy"
-                    :orderByCallback="sortBy"
-                    :orderDirection="direction"
+                    :listState="listState"
+                    :orderByCallback="listState.sortBy"
                 />
 
                 <SfxonPagination
-                    v-model:page="page"
-                    :limit="limit"
-                    :total="total"
-                    :totalPages="totalPages"
+                    v-model:page="listState.page"
+                    :listState="listState"
                 />
             </div>
         </NcAppContent>

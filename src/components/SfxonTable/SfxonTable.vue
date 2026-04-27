@@ -9,9 +9,8 @@ const props = defineProps<{
     dataArrayKey: "id", // This is a column in the given data, that tells, which key to use.
     deleteCallback: null,
     editCallback: null,
-    orderBy: "",
+    listState: null
     orderByCallback: null
-    orderDirection: "ASC",
 }>()
 
 </script>
@@ -24,9 +23,8 @@ const props = defineProps<{
                 :dataArrayKey="props.dataArrayKey"
                 :deleteCallback="props.deleteCallback"
                 :editCallback="props.editCallback"
-                :orderBy="props.orderBy"
+                :listState="props.listState"
                 :orderByCallback="props.orderByCallback"
-                :orderDirection="props.orderDirection"
             />
             <SfxonTableBody
                 :columns="props.columns"
@@ -34,9 +32,8 @@ const props = defineProps<{
                 :dataArrayKey="props.dataArrayKey"
                 :deleteCallback="props.deleteCallback"
                 :editCallback="props.editCallback"
-                :orderBy="props.orderBy"
+                :listState="props.listState"
                 :orderByCallback="props.orderByCallback"
-                :orderDirection="props.orderDirection"
             />
         </table>
     </div>
