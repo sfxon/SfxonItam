@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, watch, onMounted } from 'vue'
+import { ref, watch, onMounted } from 'vue'
 import NcAppContent from '@nextcloud/vue/components/NcAppContent'
 import NcAppNavigation from '@nextcloud/vue/components/NcAppNavigation'
 import NcAppNavigationNew from '@nextcloud/vue/components/NcAppNavigationNew'
@@ -9,20 +9,11 @@ import NcIconSvgWrapper from '@nextcloud/vue/components/NcIconSvgWrapper'
 import NcLoadingIcon from '@nextcloud/vue/components/NcLoadingIcon'
 import { translate as t } from '@nextcloud/l10n'
 import { generateUrl } from '@nextcloud/router'
-import axios from '@nextcloud/axios'
 import SfxonPagination from '@/components/SfxonPagination'
 import SfxonTable from '@/components/SfxonTable'
 import { useListState } from '@/composables/useListState'
-
-interface Device {
-    id: number
-    name: string | null
-    serialNumber: string | null
-    assetNumber: string | null
-    macAddress: string | null
-    purchaseDate: string | null
-    deviceStatusId: number | null
-}
+import { fetchDevices, deleteDevice} from '@/services/DeviceService'
+import type { Device } from '@/services/DeviceService'
 
 const loading   = ref(false)
 const error     = ref<string | null>(null)
@@ -54,7 +45,7 @@ async function onDeleteDevice(device: Device) {
         return
     }
 
-    await axios.delete(generateUrl(`/apps/sfxonitam/device/${device.id}`))
+    await deleteDevice(device.id);
     await loadDevices()
 }
 
@@ -64,18 +55,17 @@ function onEditDevice(device: Device) {
 
 async function loadDevices() {
     loading.value = true
-    error.value   = null
+    error.value = null
+
     try {
-        const { data } = await axios.get(generateUrl('/apps/sfxonitam/device/list'), {
-            params: {
-                orderBy: listState.orderBy,
-                direction: listState.orderDirection,
-                page: listState.page,
-                limit: listState.limit
-            },
+        const data = await fetchDevices({
+            orderBy: listState.orderBy,
+            direction: listState.orderDirection,
+            page: listState.page,
+            limit: listState.limit
         })
         devices.value = data.devices
-        listState.total   = data.total
+        listState.total = data.total
     } catch (e) {
         error.value = t('sfxonitam', 'Fehler beim Laden der Geräte.')
     } finally {

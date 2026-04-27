@@ -13,6 +13,7 @@ import NcNoteCard from '@nextcloud/vue/components/NcNoteCard'
 import { useApiErrors } from '@/composables/useApiErrors'
 import { mdiClose } from '@mdi/js'
 import NcIconSvgWrapper from '@nextcloud/vue/components/NcIconSvgWrapper'
+import { fetchDevice, createDevice, updateDevice } from '@/services/DeviceService'
 
 // Formulardaten
 const name = ref('')
@@ -30,7 +31,6 @@ const { fieldErrors, generalError, handleApiError, clearErrors, clearFieldError 
 
 // Id und Modus laden.
 const deviceId = computed(() => {
-
     const param = new URLSearchParams(window.location.search).get('deviceId')
     return param ? parseInt(param, 10) : undefined
 })
@@ -51,15 +51,9 @@ async function loadDevice(id: number): Promise<void> {
     deviceLoading.value = true
 
     try {
-        const response = await axios.get(
-            generateUrl(`/apps/sfxonitam/device/${id}`),
-        )
-        const d = response.data
-
+        const d = await fetchDevice(id)
         name.value = d.name ?? ''
         purchaseDate.value = d.purchaseDate ? new Date(d.purchaseDate + 'T00:00:00') : null
-
-        // Passenden User aus der bereits geladenen Liste suchen
         selectedUser.value = users.value.find(u => u.id === d.userId) ?? null
     } catch (e: any) {
         generalError.value = t('sfxonitam', 'Gerät konnte nicht geladen werden.')
@@ -91,7 +85,6 @@ async function loadUsers() {
 
 async function submitForm() {
     clearErrors()
-
     savedSuccessfully.value = false;
     isSaving.value = true
 
@@ -102,17 +95,13 @@ async function submitForm() {
     }
 
     try {
-        const url = isEditMode.value
-            ? generateUrl(`/apps/sfxonitam/device/${deviceId.value}`)
-            : generateUrl('/apps/sfxonitam/device/save')
-
-        const response = isEditMode.value
-            ? await axios.put(url, payload)
-            : await axios.post(url, payload)
+        const data = isEditMode.value
+            ? await updateDevice(deviceId.value!, payload)
+            : await createDevice(payload)
 
         // Backend gibt status: 'error' mit HTTP 200 zurück
-        if (response.data?.status === 'error') {
-            handleApiError(response.data, t('sfxonitam', 'Bitte korrigiere die markierten Felder.'))
+        if (data?.status === 'error') {
+            handleApiError(data, t('sfxonitam', 'Bitte korrigiere die markierten Felder.'))
             return
         }
 
