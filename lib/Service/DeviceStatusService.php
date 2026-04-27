@@ -3,11 +3,11 @@ declare(strict_types=1);
 
 namespace OCA\SfxonItam\Service;
 
-use OCA\SfxonItam\Validator\DeviceValidator;
+use OCA\SfxonItam\Validator\DeviceStatusValidator;
 
-class DeviceService {
+class DeviceStatusService {
     public function __construct(
-        private readonly DeviceValidator $deviceValidator
+        private readonly DeviceStatusValidator $deviceStatusValidator
     ) {
     }
 
@@ -19,6 +19,6 @@ class DeviceService {
     }
 
     public function validateData(array $data) {
-        return $this->deviceValidator->validate($data);
+        return $this->deviceStatusValidator->validate($data);
     }
 }

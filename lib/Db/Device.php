@@ -35,32 +35,32 @@ use OCP\AppFramework\Db\Entity;
  * @method void setComment(string|null $comment)
  */
 class Device extends Entity implements \JsonSerializable {
-    protected ?string $name           = null;
-    protected ?int    $deviceStatusId = null;
-    protected ?int    $positionId     = null;
-    protected ?int    $deviceTypeId   = null;
-    protected string  $userId         = '';
-    protected ?string $serialNumber   = null;
-    protected ?string $serialNumber2  = null;
-    protected ?string $assetNumber    = null;
-    protected ?string $macAddress     = null;
-    protected ?int    $merchantId     = null;
-    protected ?string $invoiceNumber  = null;
-    protected ?string $purchaseDate   = null;
-    protected ?string $customFields   = null;
-    protected ?string $comment        = null;
+    protected ?string $name = null;
+    protected ?int $deviceStatusId = null;
+    protected ?int $positionId = null;
+    protected ?int $deviceTypeId = null;
+    protected string  $userId = '';
+    protected ?string $serialNumber = null;
+    protected ?string $serialNumber2 = null;
+    protected ?string $assetNumber = null;
+    protected ?string $macAddress = null;
+    protected ?int $merchantId = null;
+    protected ?string $invoiceNumber = null;
+    protected ?string $purchaseDate = null;
+    protected ?string $customFields = null;
+    protected ?string $comment = null;
 
     public function __construct() {
-        $this->addType('id',             'integer');
+        $this->addType('id', 'integer');
         $this->addType('deviceStatusId', 'integer');
-        $this->addType('positionId',     'integer');
-        $this->addType('deviceTypeId',   'integer');
-        $this->addType('merchantId',     'integer');
+        $this->addType('positionId', 'integer');
+        $this->addType('deviceTypeId', 'integer');
+        $this->addType('merchantId', 'integer');
     }
 
     public function jsonSerialize(): array {
         return [
-            'id'    => $this->getId(),
+            'id' => $this->getId(),
             'name' => $this->getName(),
             'deviceStatusId' => $this->getDeviceStatusId(),
             'positionId' => $this->getPositionId(),

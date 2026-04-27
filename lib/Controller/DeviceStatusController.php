@@ -14,31 +14,31 @@ use OCP\AppFramework\Http\TemplateResponse;
 use OCP\AppFramework\Http\JSONResponse;
 use OCP\IRequest;
 use OCA\SfxonItam\AppInfo\Application;
-use OCA\SfxonItam\Db\Device;
-use OCA\SfxonItam\Db\DeviceMapper;
-use OCA\SfxonItam\Service\DeviceService;
+use OCA\SfxonItam\Db\DeviceStatus;
+use OCA\SfxonItam\Db\DeviceStatusMapper;
+use OCA\SfxonItam\Service\DeviceStatusService;
 
 /**
  * @psalm-suppress UnusedClass
  */
-class DeviceController extends Controller {
+class DeviceStatusController extends Controller {
     public function __construct(
         string $appName,
         IRequest $request,
-        private DeviceMapper $deviceMapper,
-        private readonly DeviceService $deviceService
+        private DeviceStatusMapper $deviceStatusMapper,
+        private readonly DeviceStatusService $deviceStatusService
     ) {
         parent::__construct($appName, $request);
     }
 
     #[OpenAPI(OpenAPI::SCOPE_IGNORE)]
-    #[FrontpageRoute(verb: 'DELETE', url: '/device/{id}')]
+    #[FrontpageRoute(verb: 'DELETE', url: '/device-status/{id}')]
     public function delete(int $id): JsonResponse {
         // Put this in a try-catch block, since findById will throw an error,
         // if it does not find an element with the given id.
         try {
-            $device = $this->deviceMapper->findById($id);
-            $this->deviceMapper->delete($device);
+            $deviceStatus = $this->deviceStatusMapper->findById($id);
+            $this->deviceStatusMapper->delete($deviceStatus);
         } catch(\Error $error) {
         }
 
@@ -49,27 +49,27 @@ class DeviceController extends Controller {
 
     #[NoCSRFRequired]
     #[OpenAPI(OpenAPI::SCOPE_IGNORE)]
-    #[FrontpageRoute(verb: 'GET', url: '/device/detail')]
+    #[FrontpageRoute(verb: 'GET', url: '/device-status/detail')]
     public function deviceDetail(): TemplateResponse {
         return new TemplateResponse(
             Application::APP_ID,
-            'device/editor',
+            'device-status/editor',
         );
     }
 
     #[NoCSRFRequired]
     #[OpenAPI(OpenAPI::SCOPE_IGNORE)]
-    #[FrontpageRoute(verb: 'GET', url: '/')]
+    #[FrontpageRoute(verb: 'GET', url: '/device-status/')]
     public function index(): TemplateResponse {
         return new TemplateResponse(
             Application::APP_ID,
-            'device/list',
+            'device-status/list',
         );
     }
 
     #[NoCSRFRequired]
     #[OpenAPI(OpenAPI::SCOPE_IGNORE)]
-    #[FrontpageRoute(verb: 'GET', url: '/device/list')]
+    #[FrontpageRoute(verb: 'GET', url: '/device-status/list')]
     public function list(
         string $orderBy = 'name',
         string $direction = 'ASC',
@@ -77,11 +77,11 @@ class DeviceController extends Controller {
         int $limit = 20
     ): JSONResponse {
         $offset = ($page - 1) * $limit;
-        $devices = $this->deviceMapper->findAllPaged($orderBy, $direction, $limit, $offset);
-        $total   = $this->deviceMapper->countAll();
+        $deviceStatis = $this->deviceStatusMapper->findAllPaged($orderBy, $direction, $limit, $offset);
+        $total   = $this->deviceStatusMapper->countAll();
 
         return new JSONResponse([
-            'devices' => array_map(fn($d) => $d->jsonSerialize(), $devices),
+            'deviceStatis' => array_map(fn($d) => $d->jsonSerialize(), $deviceStatis),
             'total'   => $total,
             'page'    => $page,
             'limit'   => $limit,
@@ -89,12 +89,11 @@ class DeviceController extends Controller {
     }
 
     #[OpenAPI(OpenAPI::SCOPE_IGNORE)]
-    #[FrontpageRoute(verb: 'POST', url: '/device/save')]
+    #[FrontpageRoute(verb: 'POST', url: '/device-status/save')]
     public function save(): DataResponse {
-        $expectedFields = ['name', 'purchaseDate', 'userId'];
-
-        $data = $this->deviceService->getDataFromRequest($this->request->getParams(), $expectedFields);
-        $result = $this->deviceService->validateData($data);
+        $expectedFields = ['name', 'comment'];
+        $data = $this->deviceStatusService->getDataFromRequest($this->request->getParams(), $expectedFields);
+        $result = $this->deviceStatusService->validateData($data);
 
         if($result['valid'] === false) {
             return new DataResponse([
@@ -103,13 +102,10 @@ class DeviceController extends Controller {
             ], Http::STATUS_UNPROCESSABLE_ENTITY); // Returns error 422
         }
 
-        $device = new Device();
-        $device->setName($this->request->getParam('name'));
-        $device->setUserId($this->request->getParam('userId') ?? '');
-        $purchaseDateRaw = $this->request->getParam('purchaseDate');
-        $device->setPurchaseDate($purchaseDateRaw);
-
-        $saved = $this->deviceMapper->insert($device);
+        $deviceStatus = new DeviceStatus();
+        $deviceStatus->setName($this->request->getParam('name'));
+        $deviceStatus->setComment($this->request->getParam('comment') ?? '');
+        $saved = $this->deviceStatusMapper->insert($deviceStatus);
 
         return new DataResponse([
             'status' => 'ok',
@@ -119,10 +115,10 @@ class DeviceController extends Controller {
 
     #[NoCSRFRequired]
     #[OpenAPI(OpenAPI::SCOPE_IGNORE)]
-    #[FrontpageRoute(verb: 'GET', url: '/device/{id}')]
+    #[FrontpageRoute(verb: 'GET', url: '/device-status/{id}')]
     public function show(int $id): JSONResponse {
         try {
-            $device = $this->deviceMapper->findById($id);
+            $deviceStatus = $this->deviceStatusMapper->findById($id);
         } catch (DoesNotExistException) {
             return new JSONResponse(
                 ['status' => 'error', 'message' => 'Device not found'],
@@ -130,15 +126,15 @@ class DeviceController extends Controller {
             );
         }
 
-        return new JSONResponse($device->jsonSerialize());
+        return new JSONResponse($deviceStatus->jsonSerialize());
     }
 
     #[OpenAPI(OpenAPI::SCOPE_IGNORE)]
-    #[FrontpageRoute(verb: 'PUT', url: '/device/{id}')]
+    #[FrontpageRoute(verb: 'PUT', url: '/device-status/{id}')]
     public function update(int $id): DataResponse {
         // Gerät laden – 404 wenn nicht vorhanden
         try {
-            $device = $this->deviceMapper->findById($id);
+            $deviceStatus = $this->deviceStatusMapper->findById($id);
         } catch (\OCP\AppFramework\Db\DoesNotExistException) {
             return new DataResponse(
                 ['status' => 'error', 'message' => 'Device not found'],
@@ -146,9 +142,11 @@ class DeviceController extends Controller {
             );
         }
 
-        $expectedFields = ['name', 'purchaseDate', 'userId'];
-        $data = $this->deviceService->getDataFromRequest($this->request->getParams(), $expectedFields);
-        $result = $this->deviceService->validateData($data);
+        $expectedFields = ['name', 'comment'];
+
+        $data = $this->deviceStatusService->getDataFromRequest($this->request->getParams(), $expectedFields);
+
+        $result = $this->deviceStatusService->validateData($data);
 
         if ($result['valid'] === false) {
             return new DataResponse([
@@ -158,12 +156,10 @@ class DeviceController extends Controller {
         }
 
         // Felder aktualisieren
-        $device->setName($this->request->getParam('name'));
-        $device->setUserId($this->request->getParam('userId') ?? '');
-        $purchaseDateRaw = $this->request->getParam('purchaseDate');
-        $device->setPurchaseDate($purchaseDateRaw);
+        $deviceStatus->setName($this->request->getParam('name'));
+        $deviceStatus->setComment($this->request->getParam('comment') ?? '');
 
-        $updated = $this->deviceMapper->update($device);
+        $updated = $this->deviceStatusMapper->update($deviceStatus);
 
         return new DataResponse([
             'status' => 'ok',

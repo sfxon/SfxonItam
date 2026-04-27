@@ -224,7 +224,7 @@ onMounted(async () => {
 
                 <!-- Absenden -->
                 <div :class="$style.actions">
-                    <NcButton type="primary" @click="submitForm">
+                    <NcButton variant="primary" @click="submitForm">
                         {{ t('sfxonitam', 'Speichern') }}
                     </NcButton>
                 </div>

@@ -9,9 +9,9 @@ use OCP\IDBConnection;
 /**
  * @template-extends QBMapper<Device>
  */
-class DeviceMapper extends QBMapper {
+class DeviceStatusMapper extends QBMapper {
     public function __construct(IDBConnection $db) {
-        parent::__construct($db, 'sfxon_device', Device::class);
+        parent::__construct($db, 'sfxon_device_status', Device::class);
     }
 
     public function findById(int $id): Device {
@@ -37,7 +37,7 @@ class DeviceMapper extends QBMapper {
         int $limit = 20,
         int $offset = 0
     ): array {
-        $allowedColumns = [ 'name', 'serialNumber', 'assetNumber', 'purchaseDate', 'userId', ];
+        $allowedColumns = [ 'name', ];
         $col = in_array($orderBy, $allowedColumns, true) ? $orderBy : 'name';
         $col = strtolower(preg_replace('/[A-Z]/', '_$0', $col)); // CamelCase to SnakeCase umwandeln.
         $dir = strtoupper($direction) === 'DESC' ? 'DESC' : 'ASC';
