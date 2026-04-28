@@ -91,7 +91,7 @@ class DeviceController extends Controller {
     #[OpenAPI(OpenAPI::SCOPE_IGNORE)]
     #[FrontpageRoute(verb: 'POST', url: '/device/save')]
     public function save(): DataResponse {
-        $expectedFields = ['name', 'purchaseDate', 'userId'];
+        $expectedFields = ['name', 'deviceStatusId', 'purchaseDate', 'userId'];
 
         $data = $this->deviceService->getDataFromRequest($this->request->getParams(), $expectedFields);
         $result = $this->deviceService->validateData($data);
@@ -106,6 +106,7 @@ class DeviceController extends Controller {
         $device = new Device();
         $device->setName($this->request->getParam('name'));
         $device->setUserId($this->request->getParam('userId') ?? '');
+        $device->setDeviceStatusId($this->request->getParam('deviceStatusId') ?? '');
         $purchaseDateRaw = $this->request->getParam('purchaseDate');
         $device->setPurchaseDate($purchaseDateRaw);
 
@@ -146,7 +147,7 @@ class DeviceController extends Controller {
             );
         }
 
-        $expectedFields = ['name', 'purchaseDate', 'userId'];
+        $expectedFields = ['name', 'deviceStatusId', 'purchaseDate', 'userId'];
         $data = $this->deviceService->getDataFromRequest($this->request->getParams(), $expectedFields);
         $result = $this->deviceService->validateData($data);
 
@@ -159,6 +160,7 @@ class DeviceController extends Controller {
 
         // Felder aktualisieren
         $device->setName($this->request->getParam('name'));
+        $device->setDeviceStatusId($this->request->getParam('deviceStatusId') ?? '');
         $device->setUserId($this->request->getParam('userId') ?? '');
         $purchaseDateRaw = $this->request->getParam('purchaseDate');
         $device->setPurchaseDate($purchaseDateRaw);

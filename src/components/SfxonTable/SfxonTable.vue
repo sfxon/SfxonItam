@@ -10,7 +10,8 @@ const props = defineProps<{
     deleteCallback: null,
     editCallback: null,
     listState: null
-    orderByCallback: null
+    orderByCallback: null,
+    relatedEntityData: T[]
 }>()
 
 </script>
@@ -34,6 +35,7 @@ const props = defineProps<{
                 :editCallback="props.editCallback"
                 :listState="props.listState"
                 :orderByCallback="props.orderByCallback"
+                :relatedEntityData="props.relatedEntityData"
             />
         </table>
     </div>

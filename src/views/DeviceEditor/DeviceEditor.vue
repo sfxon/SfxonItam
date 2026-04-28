@@ -18,16 +18,19 @@ import { mdiClose } from '@mdi/js'
 import NcIconSvgWrapper from '@nextcloud/vue/components/NcIconSvgWrapper'
 import { fetchDevice, createDevice, updateDevice } from '@/services/DeviceService'
 import SfxonMainNavigation from '@/components/SfxonMainNavigation'
+import { fetchAllDeviceStatis } from '@/services/DeviceStatusService'
 
 // Formulardaten
 const name = ref('')
 const purchaseDate = ref<Date | null>(null)
+const selectedDeviceStatus = ref<{ id: string; label: string } | null>(null)
 const selectedUser = ref<{ id: string; label: string } | null>(null)
 const savedSuccessfully = ref(false);
 
 // Ladezustände
 const usersLoading = ref(false)
 const deviceLoading = ref(false)
+const deviceStatisLoading = ref(false)
 const isSaving = ref(false)
 
 // Fehlerbehandlung
@@ -44,8 +47,9 @@ const deviceId = computed(() => {
 })
 const isEditMode = computed(() => !!deviceId.value)
 
-// User per Nextcloud-API laden
+// Abhängige Entitäten definieren.
 const users = ref<{ id: string; label: string }[]>([])
+const deviceStatis = ref<{ id: string; label: string}[]>([])
 
 const toLocalDateString = (date: Date): string => {
     const y = date.getFullYear()
@@ -61,6 +65,7 @@ async function loadDevice(id: number): Promise<void> {
     try {
         const d = await fetchDevice(id)
         name.value = d.name ?? ''
+        selectedDeviceStatus.value = deviceStatis.value.find(s => s.id === d.deviceStatusId) ?? null
         purchaseDate.value = d.purchaseDate ? new Date(d.purchaseDate + 'T00:00:00') : null
         selectedUser.value = users.value.find(u => u.id === d.userId) ?? null
     } catch (e: any) {
@@ -91,6 +96,23 @@ async function loadUsers() {
     }
 }
 
+async function loadDeviceStatis() {
+    deviceStatisLoading.value = true;
+
+    try {
+        const data = await fetchAllDeviceStatis({})
+
+        deviceStatis.value = Object.values(data.deviceStatis).map((deviceStatus: any) => ({
+            id: deviceStatus.id,
+            label: deviceStatus.name
+        }))
+    } catch(e) {
+        console.error('Fehler beim Laden der Device-Stati', e)
+    } finally {
+        deviceStatisLoading.value = false
+    }
+}
+
 async function submitForm() {
     clearErrors()
     savedSuccessfully.value = false;
@@ -98,6 +120,7 @@ async function submitForm() {
 
     const payload = {
         name: name.value,
+        deviceStatusId: selectedDeviceStatus.value?.id ?? null,
         purchaseDate: purchaseDate.value ? toLocalDateString(purchaseDate.value) : null,
         userId: selectedUser.value?.id ?? null,
     }
@@ -128,6 +151,7 @@ async function submitForm() {
 
 onMounted(async () => {
     await loadUsers()
+    await loadDeviceStatis()
 
     if (deviceId.value) {
         await loadDevice(deviceId.value)
@@ -176,7 +200,7 @@ onMounted(async () => {
                     {{ t('sfxonitam', 'Die Änderungen wurden gespeichert.') }}
                 </NcNoteCard>
 
-                <!-- Geräte-ID -->
+                <!-- Geräte-Name -->
                 <div :class="$style.field">
                     <NcTextField
                         id="name"
@@ -188,6 +212,27 @@ onMounted(async () => {
                     />
                     <span v-if="fieldErrors.name" :class="$style.errorText">
                         {{ fieldErrors.name }}
+                    </span>
+                </div>
+
+                <!-- Geräte-Status -->
+                <div :class="$style.field">
+                    <label for="device-status-select" :class="$style.label">
+                        {{ t('sfxonitam', 'Geräte-Status') }}
+                    </label>
+                    <NcSelect
+                        id="device-status-select"
+                        v-model="selectedDeviceStatus"
+                        :options="deviceStatis"
+                        :loading="deviceStatisLoading"
+                        :placeholder="t('sfxonitam', 'Geräte-Status auswählen')"
+                        :label="'label'"
+                        track-by="id"
+                        :class="fieldErrors.deviceStatusId ? $style.fieldError : ''"
+                        @input="clearFieldError('deviceStatusId')"
+                    />
+                    <span v-if="fieldErrors.deviceStatusId" :class="$style.errorText">
+                        {{ fieldErrors.deviceStatusId }}
                     </span>
                 </div>
 

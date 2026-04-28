@@ -33,6 +33,11 @@ export async function createDeviceStatus(payload: DeviceStatusPayload) {
     return data
 }
 
+export async function fetchAllDeviceStatis(params: ListParams): Promise<DeviceStatusListResponse> {
+    const { data } = await axios.get(generateUrl('/apps/sfxonitam/device-status/listall'), { params })
+    return data
+}
+
 export async function fetchDeviceStatus(id: number): Promise<DeviceStatus> {
     const { data } = await axios.get(generateUrl(`/apps/sfxonitam/device-status/${id}`))
     return data

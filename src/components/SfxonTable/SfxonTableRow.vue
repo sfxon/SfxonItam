@@ -15,6 +15,7 @@ const props = defineProps<{
     orderBy: "",
     orderByCallback: null
     orderDirection: "ASC",
+    relatedEntityData: T[]
 }>()
 
 </script>
@@ -32,6 +33,11 @@ const props = defineProps<{
                 ? new Intl.DateTimeFormat(undefined, { dateStyle: 'medium' }).format(new Date(props.dataRow[col.key]))
                 : '&nbsp;'
             }}
+        </span>
+        <span
+            v-else-if="col.type === 'relatedEntity'"
+        >
+            {{ relatedEntityData[col.relatedEntityName]?.find(item => item.id === props.dataRow[col.key])?.label ?? props.dataRow[col.key] }}
         </span>
         <span v-else-if="col.type === 'actions'">
             <NcActions>

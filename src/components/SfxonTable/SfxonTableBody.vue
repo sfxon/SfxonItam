@@ -11,6 +11,7 @@ const props = defineProps<{
     orderBy: "",
     orderByCallback: null
     orderDirection: "ASC",
+    relatedEntityData: T[],
 }>()
 
 </script>
@@ -27,6 +28,7 @@ const props = defineProps<{
                 :orderBy="props.orderBy"
                 :orderByCallback="props.orderByCallback"
                 :orderDirection="props.orderDirection"
+                :relatedEntityData="props.relatedEntityData"
             />
         </tr>
     </tbody>

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, watch, onMounted } from 'vue'
+import { reactive, ref, watch, onMounted } from 'vue'
 import NcAppContent from '@nextcloud/vue/components/NcAppContent'
 import NcAppNavigation from '@nextcloud/vue/components/NcAppNavigation'
 import NcAppNavigationNew from '@nextcloud/vue/components/NcAppNavigationNew'
@@ -17,16 +17,19 @@ import { fetchDevices, deleteDevice} from '@/services/DeviceService'
 import type { Device } from '@/services/DeviceService'
 import NcDialog from '@nextcloud/vue/components/NcDialog'
 import NcButton from '@nextcloud/vue/components/NcButton'
+import { fetchAllDeviceStatis } from '@/services/DeviceStatusService'
 
-const loading   = ref(false)
-const error     = ref<string | null>(null)
-const devices   = ref<Device[]>([])
+const loading = ref(false)
+const deviceStatisLoading = ref(false)
+const error = ref<string | null>(null)
+const relatedEntityData = reactive({ 'deviceStatus': {}, });
+const devices = ref<Device[]>([])
 const listState = useListState()
 const deviceToDelete = ref<Device | null>(null)
 
 const columns = [
     { key: 'name', label: t('sfxonitam', 'Name'), sortable: true },
-    { key: 'deviceStatusId', label: t('sfxonitam', 'DeviceStatus'), sortable: true },
+    { type: 'relatedEntity', relatedEntityName: 'deviceStatus', key: 'deviceStatusId', label: t('sfxonitam', 'DeviceStatus'), sortable: true },
     { key: 'positionId', label: t('sfxonitam', 'Position'), sortable: true  },
     { key: 'deviceTypeId', label: t('sfxonitam', 'DeviceType'), sortable: true },
     { key: 'userId', label: t('sfxonitam', 'User'), sortable: true },
@@ -75,6 +78,25 @@ async function loadDevices() {
     }
 }
 
+async function loadDeviceStatis() {
+    deviceStatisLoading.value = true;
+
+    try {
+        const data = await fetchAllDeviceStatis({})
+
+        relatedEntityData['deviceStatus'] = Object.values(data.deviceStatis).map((deviceStatus: any) => ({
+            id: deviceStatus.id,
+            label: deviceStatus.name
+        }))
+
+        console.log('relatedEntityData: ', relatedEntityData);
+    } catch(e) {
+        console.error('Fehler beim Laden der Device-Stati', e)
+    } finally {
+        deviceStatisLoading.value = false
+    }
+}
+
 function onEditDevice(device: Device) {
     window.location.href = generateUrl(`/apps/sfxonitam/device/detail?deviceId=${device.id}`);
 }
@@ -84,7 +106,12 @@ async function onDeleteDevice(device: Device) {
 }
 
 watch(() => listState, loadDevices, { deep: true })
-onMounted(loadDevices)
+
+onMounted(async () => {
+    await loadDeviceStatis()
+    await loadDevices()
+})
+
 </script>
 
 <template>
@@ -130,6 +157,7 @@ onMounted(loadDevices)
                     :editCallback="onEditDevice"
                     :listState="listState"
                     :orderByCallback="listState.sortBy"
+                    :relatedEntityData="relatedEntityData"
                 />
 
                 <SfxonPagination

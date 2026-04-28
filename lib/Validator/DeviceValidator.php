@@ -4,10 +4,12 @@ declare(strict_types=1);
 
 namespace OCA\SfxonItam\Validator;
 
+use OCA\SfxonItam\Db\DeviceStatusMapper;
 use OCP\IL10N;
 
 class DeviceValidator {
     public function __construct(
+        private DeviceStatusMapper $deviceStatusMapper,
         private IL10N $l,
     )
     {
@@ -16,14 +18,25 @@ class DeviceValidator {
     public function validate(array $data): array {
         $errors = [];
 
-        // a) name: mindestens 3 Zeichen
+        // name: mindestens 3 Zeichen
         if (empty($data['name'])) {
             $errors['name'] = $this->l->t('The field "name" is required.');
         } elseif (mb_strlen(trim($data['name'])) < 3) {
             $errors['name'] = $this->l->t('The name must be at least 3 characters long.');
         }
 
-        // b) purchaseDate
+        // deviceStatusId: Must be a valid DeviceStatus Entry from the database or null.
+        if (empty($data['deviceStatusId']) && null !== $data['deviceStatusId'] ) {
+            $errors['deviceStatusId'] = $this->l->t('The field deviceStatusId is required.');
+        } else if(null !== $data['deviceStatusId']) {
+            try {
+                $this->deviceStatusMapper->findById($data['deviceStatusId']);
+            } catch(\Exception $e) {
+                $errors['deviceStatusId'] = $this->l->t('Invalid deviceStatusId.');
+            }
+        }
+
+        // purchaseDate
         if (empty($data['purchaseDate']) && null !== $data['purchaseDate'] ) {
             $errors['purchaseDate'] = $this->l->t('The field purchaseDate is required.');
         } else if(null !== $data['purchaseDate']) {

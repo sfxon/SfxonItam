@@ -88,6 +88,17 @@ class DeviceStatusController extends Controller {
         ]);
     }
 
+    #[NoCSRFRequired]
+    #[OpenAPI(OpenAPI::SCOPE_IGNORE)]
+    #[FrontpageRoute(verb: 'GET', url: '/device-status/listall')]
+    public function listall(): JSONResponse {
+        $deviceStatis = $this->deviceStatusMapper->findAll();
+
+        return new JSONResponse([
+            'deviceStatis' => array_map(fn($d) => $d->jsonSerialize(), $deviceStatis),
+        ]);
+    }
+
     #[OpenAPI(OpenAPI::SCOPE_IGNORE)]
     #[FrontpageRoute(verb: 'POST', url: '/device-status/save')]
     public function save(): DataResponse {
