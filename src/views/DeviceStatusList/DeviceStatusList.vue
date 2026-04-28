@@ -9,6 +9,7 @@ import NcIconSvgWrapper from '@nextcloud/vue/components/NcIconSvgWrapper'
 import NcLoadingIcon from '@nextcloud/vue/components/NcLoadingIcon'
 import { translate as t } from '@nextcloud/l10n'
 import { generateUrl } from '@nextcloud/router'
+import SfxonMainNavigation from '@/components/SfxonMainNavigation'
 import SfxonPagination from '@/components/SfxonPagination'
 import SfxonTable from '@/components/SfxonTable'
 import { useListState } from '@/composables/useListState'
@@ -88,6 +89,7 @@ onMounted(loadDeviceStatis)
                         <NcIconSvgWrapper :path="mdiPlus" :size="20" />
                     </template>
                 </NcAppNavigationNew>
+                <SfxonMainNavigation :currentPage="'deviceStatis'" />
             </template>
         </NcAppNavigation>
 

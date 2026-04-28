@@ -1,7 +1,10 @@
 <script setup lang="ts">
-import NcAppContent from '@nextcloud/vue/components/NcAppContent'
-import NcContent from '@nextcloud/vue/components/NcContent'
 import { ref, computed, onMounted } from 'vue'
+import NcAppContent from '@nextcloud/vue/components/NcAppContent'
+import NcAppNavigation from '@nextcloud/vue/components/NcAppNavigation'
+import NcAppNavigationNew from '@nextcloud/vue/components/NcAppNavigationNew'
+import NcContent from '@nextcloud/vue/components/NcContent'
+import { mdiPlus } from '@mdi/js'
 import { translate as t } from '@nextcloud/l10n'
 import { generateUrl } from '@nextcloud/router'
 import NcButton from '@nextcloud/vue/components/NcButton'
@@ -14,6 +17,7 @@ import { useApiErrors } from '@/composables/useApiErrors'
 import { mdiClose } from '@mdi/js'
 import NcIconSvgWrapper from '@nextcloud/vue/components/NcIconSvgWrapper'
 import { fetchDevice, createDevice, updateDevice } from '@/services/DeviceService'
+import SfxonMainNavigation from '@/components/SfxonMainNavigation'
 
 // Formulardaten
 const name = ref('')
@@ -28,6 +32,10 @@ const isSaving = ref(false)
 
 // Fehlerbehandlung
 const { fieldErrors, generalError, handleApiError, clearErrors, clearFieldError } = useApiErrors()
+
+function addItem() {
+    window.location.href = generateUrl('/apps/sfxonitam/device/detail')
+}
 
 // Id und Modus laden.
 const deviceId = computed(() => {
@@ -129,6 +137,20 @@ onMounted(async () => {
 
 <template>
     <NcContent app-name="sfxonitamdeviceeditor">
+        <NcAppNavigation>
+            <template #list>
+                <NcAppNavigationNew
+                :text="t('sfxonitam', 'Neues Gerät')"
+                @click="addItem"
+                >
+                    <template #icon>
+                        <NcIconSvgWrapper :path="mdiPlus" :size="20" />
+                    </template>
+                </NcAppNavigationNew>
+                <SfxonMainNavigation :currentPage="'devices'" />
+            </template>
+        </NcAppNavigation>
+
         <!-- Inhaltsbereich -->
         <NcAppContent :class="$style.content">
             <div :class="$style.form">
