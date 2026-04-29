@@ -17,12 +17,14 @@ import { fetchDeviceStatis, deleteDeviceStatus} from '@/services/DeviceStatusSer
 import type { DeviceStatus } from '@/services/DeviceStatusService'
 import NcDialog from '@nextcloud/vue/components/NcDialog'
 import NcButton from '@nextcloud/vue/components/NcButton'
+import NcNoteCard from '@nextcloud/vue/components/NcNoteCard'
 
 const loading   = ref(false)
 const error     = ref<string | null>(null)
 const deviceStatis   = ref<DeviceSatus[]>([])
 const listState = useListState()
 const deviceStatusToDelete = ref<DeviceStatus | null>(null)
+const generalError = ref<string>('')
 
 const columns = [
     { key: 'name', label: t('sfxonitam', 'Name'), sortable: true },
@@ -39,13 +41,29 @@ function cancelDelete() {
 }
 
 async function confirmDelete() {
-    if (!deviceStatusToDelete.value) return
-    await deleteDeviceStatus(deviceStatusToDelete.value.id)
+    if (!deviceStatusToDelete.value) {
+        return
+    }
+
+    try {
+        let result = await deleteDeviceStatus(deviceStatusToDelete.value.id)
+    } catch (e: any) {
+        deviceStatusToDelete.value = null
+
+        if(e.response && e.response.status == 422) {
+            generalError.value = e.response.data.errors.join('<br>')
+        } else {
+            generalError.value = 'Es ist ein Fehler beim Löschen aufgetreten.'
+        }
+        return;
+    }
+
     deviceStatusToDelete.value = null
     await loadDeviceStatis()
 }
 
 async function loadDeviceStatis() {
+    generalError.value = ''
     loading.value = true
     error.value = null
 
@@ -70,6 +88,7 @@ function onEditDeviceStatus(deviceStatus: DeviceStatus) {
 }
 
 async function onDeleteDeviceStatus(deviceStatus: DeviceStatus) {
+    generalError.value = ''
     deviceStatusToDelete.value = deviceStatus
 }
 
@@ -98,6 +117,17 @@ onMounted(loadDeviceStatis)
             <div :class="$style.sfxonItamHeader">
                 Gerätestatus-Verwaltung
             </div>
+
+            <!-- Allgemeine Fehlermeldung -->
+            <div :class="$style.sfxonItamGeneralError">
+                <NcNoteCard
+                    v-if="generalError"
+                    type="error"
+                >
+                    {{ generalError }}
+                </NcNoteCard>
+            </div>
+
             <div :class="$style.sfxonItamContent">
                 <!-- Fehler -->
                 <div v-if="error" class="devicestatus-list__error">{{ error }}</div>
@@ -169,6 +199,11 @@ onMounted(loadDeviceStatis)
     }
 
     .sfxonItamContent {
+        padding-left: 12px;
+        padding-right: 12px;
+    }
+
+    .sfxonItamGeneralError {
         padding-left: 12px;
         padding-right: 12px;
     }

@@ -14,6 +14,7 @@ use OCP\AppFramework\Http\TemplateResponse;
 use OCP\AppFramework\Http\JSONResponse;
 use OCP\IRequest;
 use OCA\SfxonItam\AppInfo\Application;
+use OCA\SfxonItam\Db\DeviceMapper;
 use OCA\SfxonItam\Db\DeviceStatus;
 use OCA\SfxonItam\Db\DeviceStatusMapper;
 use OCA\SfxonItam\Service\DeviceStatusService;
@@ -25,6 +26,7 @@ class DeviceStatusController extends Controller {
     public function __construct(
         string $appName,
         IRequest $request,
+        private DeviceMapper $deviceMapper,
         private DeviceStatusMapper $deviceStatusMapper,
         private readonly DeviceStatusService $deviceStatusService
     ) {
@@ -34,6 +36,16 @@ class DeviceStatusController extends Controller {
     #[OpenAPI(OpenAPI::SCOPE_IGNORE)]
     #[FrontpageRoute(verb: 'DELETE', url: '/device-status/{id}')]
     public function delete(int $id): JsonResponse {
+        // Only allow delete, if the deviceStatus is still used by another entity.
+        $hasEntries = $this->deviceMapper->isEntityValueInUse('device_status_id', $id);
+
+        if($hasEntries) {
+            return new JsonResponse([
+                'status' => 'error',
+                'errors' => ['Cannot delete. There are still devices assigned to this status.']
+            ], Http::STATUS_UNPROCESSABLE_ENTITY); // Returns error 422
+        }
+
         // Put this in a try-catch block, since findById will throw an error,
         // if it does not find an element with the given id.
         try {

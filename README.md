@@ -10,18 +10,21 @@ Das Programm richtet sich an kleine und mittelständische Unternehmen (KMU) sowi
 
 ## Timeline
 
-* DeviceStatus Entität umsetzen
+* Alle weiteren Entitäten umsetzen:
+    - Location
+    - Position
+    - DeviceType
+    - User: Benutzer werden erstmal "normale" Entität. Wir verwenden also nicht weiterhin die Benutzer von Nextcloud. Diese sollten dem Login vorbehalten bleiben (Design-Entscheidung).
+    - Verkäufer
+
+* ✅ DeviceStatus Entität umsetzen
     - ✅ Entität in Datenbank erstellen
-    - Menüpunkt zum Verwalten von DeviceStati hinzufügen (verlinkt auf die Liste)
+    - ✅ Menüpunkt zum Verwalten von DeviceStati hinzufügen (verlinkt auf die Liste)
     - ✅ Liste darstellen
     - ✅ Button "Neu" hinzufügen
     - ✅ Einträge verwalten (CRUD)
-    - nur Löschen, wenn ein Status nicht mehr in Device verwendet wird.
-    - DeviceStatus in den Menüpunkten zum Verwalten von Geräten (Device) hinzufügen.
-
-* Alle weiteren Entitäten umsetzen.
-    - Das Feld userId soll Optional sein.
-    - Benutzer werden erstmal "normale" Entität. Wir verwenden also nicht weiterhin die Benutzer von Nextcloud. Diese sollten dem Login vorbehalten bleiben (Design-Entscheidung).
+    - ✅ nur Löschen, wenn ein Status nicht mehr in Device verwendet wird.
+    - ✅ DeviceStatus in den Menüpunkten zum Verwalten von Geräten (Device) hinzufügen.
 
 * Device Entität umsetzen:
     - ✅ Übersichts-Seite für die Geräte umsetzen:
@@ -56,6 +59,7 @@ Das Programm richtet sich an kleine und mittelständische Unternehmen (KMU) sowi
         - ✅ Logik aus der DeviceList auslagern in eine Klasse Device, die dynamisch auf den Daten arbeitet.
         - ✅ Logik aus DeviceEditor ebenfalls auslagern in die Klasse Device. Das sollte die zentrale Klasse dafür werden.+
         - ✅ Denkbar ist jetzt noch eine Klasse DeviceApi oder ähnliches, welche die API-Logik noch etwas herauszieht, damit man schönen sauberen Code hat. Dann sollte es erstmal genug sein.
+    - Geräte-Liste durchsuchbar und filterbar machen.
 
 * Rechte-Verwaltung integrieren. Die Bestandteile dürfen nur mit der notwendigen Berechtigung verwendet werden dürfen.
 

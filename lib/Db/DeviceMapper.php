@@ -14,6 +14,28 @@ class DeviceMapper extends QBMapper {
         parent::__construct($db, 'sfxon_device', Device::class);
     }
 
+    public function isEntityValueInUse($entityFieldName, $id) {
+        $allowedEntityIdFields = ['device_status_id'];
+
+        if(!in_array($entityFieldName, $allowedEntityIdFields)) {
+            throw new \Exception('Entity field name \'' . $entityFieldName . '\' is not allowed.');
+        }
+
+        $qb = $this->db->getQueryBuilder();
+        $qb->select('*')
+            ->from($this->getTableName())
+            ->where($qb->expr()->eq($entityFieldName, $qb->createNamedParameter($id, IQueryBuilder::PARAM_INT)))
+            ->setMaxResults(1);
+
+        $result = $qb->executeQuery()->fetchAssociative();
+
+        if ($result === false) {
+            return false;
+        }
+
+        return true;
+    }
+
     public function findById(int $id): Device {
         $qb = $this->db->getQueryBuilder();
         $qb->select('*')
