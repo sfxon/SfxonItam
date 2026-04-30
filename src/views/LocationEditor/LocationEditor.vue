@@ -13,43 +13,43 @@ import NcTextField from '@nextcloud/vue/components/NcTextField'
 import NcNoteCard from '@nextcloud/vue/components/NcNoteCard'
 import { useApiErrors } from '@/composables/useApiErrors'
 import NcIconSvgWrapper from '@nextcloud/vue/components/NcIconSvgWrapper'
-import { fetchDeviceStatus, createDeviceStatus, updateDeviceStatus } from '@/services/DeviceStatusService'
+import { fetchLocation, createLocation, updateLocation } from '@/services/LocationService'
 import SfxonMainNavigation from '@/components/SfxonMainNavigation'
 
 // Formulardaten
 const name = ref('')
 const comment = ref('')
 const savedSuccessfully = ref(false);
-const deviceStatusLoading = ref(false)
+const locationLoading = ref(false)
 const isSaving = ref(false)
 
 // Fehlerbehandlung
 const { fieldErrors, generalError, handleApiError, clearErrors, clearFieldError } = useApiErrors()
 
 // Id und Modus laden.
-const deviceStatusId = computed(() => {
-    const param = new URLSearchParams(window.location.search).get('deviceStatusId')
+const locationId = computed(() => {
+    const param = new URLSearchParams(window.location.search).get('locationId')
     return param ? parseInt(param, 10) : undefined
 })
-const isEditMode = computed(() => !!deviceStatusId.value)
+const isEditMode = computed(() => !!locationId.value)
 
 function addItem() {
-    window.location.href = generateUrl('/apps/sfxonitam/device-status/detail')
+    window.location.href = generateUrl('/apps/sfxonitam/location/detail')
 }
 
 // Funktionen definieren.
-async function loadDeviceStatus(id: number): Promise<void> {
-    deviceStatusLoading.value = true
+async function loadLocation(id: number): Promise<void> {
+    locationLoading.value = true
 
     try {
-        const d = await fetchDeviceStatus(id)
+        const d = await fetchLocation(id)
         name.value = d.name ?? ''
         comment.value = d.comment ? d.comment : ''
     } catch (e: any) {
-        generalError.value = t('sfxonitam', 'Gerätestatus konnte nicht geladen werden.')
-        console.error('Fehler beim Laden des Gerätestatus:', e)
+        generalError.value = t('sfxonitam', 'Standort konnte nicht geladen werden.')
+        console.error('Fehler beim Laden des Standorts:', e)
     } finally {
-        deviceStatusLoading.value = false
+        locationLoading.value = false
     }
 }
 
@@ -65,8 +65,8 @@ async function submitForm() {
 
     try {
         const data = isEditMode.value
-            ? await updateDeviceStatus(deviceStatusId.value!, payload)
-            : await createDeviceStatus(payload)
+            ? await updateLocation(locationId.value!, payload)
+            : await createLocation(payload)
 
         // Backend gibt status: 'error' mit HTTP 200 zurück
         if (data?.status === 'error') {
@@ -88,25 +88,25 @@ async function submitForm() {
 }
 
 onMounted(async () => {
-    if (deviceStatusId.value) {
-        await loadDeviceStatus(deviceStatusId.value)
+    if (locationId.value) {
+        await loadLocation(locationId.value)
     }
 })
 </script>
 
 <template>
-    <NcContent app-name="sfxonitamdevicestatuseditor">
+    <NcContent app-name="sfxonitamlocationeditor">
         <NcAppNavigation>
             <template #list>
                 <NcAppNavigationNew
-                :text="t('sfxonitam', 'Neuer Gerätestatus')"
+                :text="t('sfxonitam', 'Neuer Standort')"
                 @click="addItem"
                 >
                     <template #icon>
                         <NcIconSvgWrapper :path="mdiPlus" :size="20" />
                     </template>
                 </NcAppNavigationNew>
-                <SfxonMainNavigation :currentPage="'deviceStatis'" />
+                <SfxonMainNavigation :currentPage="'locations'" />
             </template>
         </NcAppNavigation>
 
@@ -115,8 +115,8 @@ onMounted(async () => {
             <div :class="$style.form">
                 <h2>
                     {{ isEditMode
-                        ? t('sfxonitam', 'Gerätestatus bearbeiten')
-                        : t('sfxonitam', 'Gerätestatus erfassen') }}
+                        ? t('sfxonitam', 'Standort bearbeiten')
+                        : t('sfxonitam', 'Standort erfassen') }}
                 </h2>
 
                 <!-- Allgemeine Fehlermeldung -->

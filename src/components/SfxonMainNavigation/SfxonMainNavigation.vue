@@ -16,11 +16,14 @@ function navigateToPage(pageName: String) {
 
     switch(pageName) {
         case 'devices':
-            window.location.href = generateUrl(`/apps/sfxonitam/`);
-            break;
+            window.location.href = generateUrl(`/apps/sfxonitam/`)
+            break
         case 'deviceStatis':
-            window.location.href = generateUrl(`/apps/sfxonitam/device-status`);
-            break;
+            window.location.href = generateUrl(`/apps/sfxonitam/device-status`)
+            break
+        case 'locations':
+            window.location.href = generateUrl(`/apps/sfxonitam/location`)
+            break
     }
 }
 
@@ -28,4 +31,5 @@ function navigateToPage(pageName: String) {
 <template>
     <NcAppNavigationItem name="Geräte Verwaltung" @click="navigateToPage('devices')" :active="currentPage == 'devices'" />
     <NcAppNavigationItem name="Geräte-Status" @click="navigateToPage('deviceStatis')" :active="currentPage == 'deviceStatis'" />
+    <NcAppNavigationItem name="Standorte" @click="navigateToPage('locations')" :active="currentPage == 'locations'" />
 </template>

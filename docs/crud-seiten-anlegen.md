@@ -44,9 +44,13 @@ j) src/views/DeviceStatusEditor/DeviceStatusEditor.vue
 k) src/views/DeviceStatusList/index.ts
 l) src/views/DeviceStatusList/DeviceStatusList.vue
 m) src/services/DeviceStatusService.ts
-n) templates/device-status/editor.php
-o) templates/device-status/list.php
-p) Migration laufen lassen: <br />```shell
+n) src/components/SfxonMainNavigation.vue (Ändern)
+o) templates/device-status/editor.php
+p) templates/device-status/list.php
+q) appinfo/info.xml (Versionsnummer anheben wegen Migration)
+
+
+r) Migration laufen lassen: <br />```shell
 # Go to nextcloud root directory.
 cd /var/www/html
 
@@ -56,7 +60,7 @@ php -d memory_limit=512M occ upgrade
 # Disable Maintenance Mode.
 php -d memory_limit=512M occ maintenance:mode --off
 ```
-q) Vue kompilieren:
+s) Vue kompilieren:
 ```bash
 # 1. ssh into container or docker exec in container:
 docker exec -it itam bash
@@ -69,4 +73,4 @@ npm run dev
 
 # 4. Alternatively compile prod environment: npm run prod
 ```
-r) Testen
+t) Testen

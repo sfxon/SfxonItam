@@ -7,14 +7,14 @@ use OCP\DB\QueryBuilder\IQueryBuilder;
 use OCP\IDBConnection;
 
 /**
- * @template-extends QBMapper<DeviceStatus>
+ * @template-extends QBMapper<Location>
  */
-class DeviceStatusMapper extends QBMapper {
+class LocationMapper extends QBMapper {
     public function __construct(IDBConnection $db) {
-        parent::__construct($db, 'sfxon_device_status', Device::class);
+        parent::__construct($db, 'sfxon_location', Location::class);
     }
 
-    public function findById(int $id): Device {
+    public function findById(int $id): Location {
         $qb = $this->db->getQueryBuilder();
         $qb->select('*')
             ->from($this->getTableName())
@@ -23,14 +23,14 @@ class DeviceStatusMapper extends QBMapper {
         return $this->findEntity($qb);
     }
 
-    /** @return Device[] */
+    /** @return Location[] */
     public function findAll(): array {
         $qb = $this->db->getQueryBuilder();
         $qb->select('*')->from($this->getTableName());
         return $this->findEntities($qb);
     }
 
-    /** @return Device[] */
+    /** @return Location[] */
     public function findAllPaged(
         string $orderBy = 'name',
         string $direction = 'ASC',

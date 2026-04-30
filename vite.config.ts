@@ -7,6 +7,8 @@ export default createAppConfig(
         deviceEditor: resolve(join('src', 'views', 'DeviceEditor', 'index.ts')),
         deviceStatusList: resolve(join('src', 'views', 'DeviceStatusList', 'index.ts')),
         deviceStatusEditor: resolve(join('src', 'views', 'DeviceStatusEditor', 'index.ts')),
+        locationList: resolve(join('src', 'views', 'LocationList', 'index.ts')),
+        locationEditor: resolve(join('src', 'views', 'LocationEditor', 'index.ts')),
     },
     {
         createEmptyCSSEntryPoints: true,
