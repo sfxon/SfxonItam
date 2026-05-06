@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, watch, onMounted } from 'vue'
+import { reactive, ref, watch, onMounted } from 'vue'
 import NcAppContent from '@nextcloud/vue/components/NcAppContent'
 import NcAppNavigation from '@nextcloud/vue/components/NcAppNavigation'
 import NcAppNavigationList from '@nextcloud/vue/components/NcAppNavigationList'
@@ -14,42 +14,46 @@ import SfxonMainNavigation from '@/components/SfxonMainNavigation'
 import SfxonPagination from '@/components/SfxonPagination'
 import SfxonTable from '@/components/SfxonTable'
 import { useListState } from '@/composables/useListState'
-import { fetchDeviceStatis, deleteDeviceStatus} from '@/services/DeviceStatusService'
-import type { DeviceStatus } from '@/services/DeviceStatusService'
+import { fetchPositions, deletePosition } from '@/services/PositionService'
+import type { Position } from '@/services/PositionService'
 import NcDialog from '@nextcloud/vue/components/NcDialog'
 import NcButton from '@nextcloud/vue/components/NcButton'
 import NcNoteCard from '@nextcloud/vue/components/NcNoteCard'
+import { fetchAllLocations } from '@/services/LocationService'
 
 const loading   = ref(false)
+const locationsLoading = ref(false)
 const error     = ref<string | null>(null)
-const deviceStatis   = ref<DeviceSatus[]>([])
+const positions   = ref<Position[]>([])
+const relatedEntityData = reactive({ 'location': {}, });
 const listState = useListState()
-const deviceStatusToDelete = ref<DeviceStatus | null>(null)
+const positionToDelete = ref<Position | null>(null)
 const generalError = ref<string>('')
 
 const columns = [
     { key: 'name', label: t('sfxonitam', 'Name'), sortable: true },
+    { type: 'relatedEntity', relatedEntityName: 'location', key: 'locationId', label: t('sfxonitam', 'Location'), sortable: false },
     { key: 'comment', label: t('sfxonitam', 'Beschreibung/Kommentare'), sortable: false },
     { type: 'actions', label: t('sfxonitam', 'Aktion'), sortable: false },
 ];
 
 function addItem() {
-    window.location.href = generateUrl('/apps/sfxonitam/device-status/detail')
+    window.location.href = generateUrl('/apps/sfxonitam/position/detail')
 }
 
 function cancelDelete() {
-    deviceStatusToDelete.value = null
+    positionToDelete.value = null
 }
 
 async function confirmDelete() {
-    if (!deviceStatusToDelete.value) {
+    if (!positionToDelete.value) {
         return
     }
 
     try {
-        let result = await deleteDeviceStatus(deviceStatusToDelete.value.id)
+        let result = await deletePosition(positionToDelete.value.id)
     } catch (e: any) {
-        deviceStatusToDelete.value = null
+        positionToDelete.value = null
 
         if(e.response && e.response.status == 422) {
             generalError.value = e.response.data.errors.join('<br>')
@@ -59,42 +63,63 @@ async function confirmDelete() {
         return;
     }
 
-    deviceStatusToDelete.value = null
-    await loadDeviceStatis()
+    positionToDelete.value = null
+    await loadPositions()
 }
 
-async function loadDeviceStatis() {
+async function loadPositions() {
     generalError.value = ''
     loading.value = true
     error.value = null
 
     try {
-        const data = await fetchDeviceStatis({
+        const data = await fetchPositions({
             orderBy: listState.orderBy,
             direction: listState.orderDirection,
             page: listState.page,
             limit: listState.limit
         })
-        deviceStatis.value = data.deviceStatis
+        positions.value = data.positions
         listState.total = data.total
     } catch (e) {
-        error.value = t('sfxonitam', 'Fehler beim Laden der Gerätestati.')
+        error.value = t('sfxonitam', 'Fehler beim Laden der Positionen.')
     } finally {
         loading.value = false
     }
 }
 
-function onEditDeviceStatus(deviceStatus: DeviceStatus) {
-    window.location.href = generateUrl(`/apps/sfxonitam/device-status/detail?deviceStatusId=${deviceStatus.id}`);
+async function loadLocations() {
+    locationsLoading.value = true;
+
+    try {
+        const data = await fetchAllLocations({})
+
+        relatedEntityData['location'] = Object.values(data.locations).map((deviceStatus: any) => ({
+            id: deviceStatus.id,
+            label: deviceStatus.name
+        }))
+    } catch(e) {
+        console.error('Fehler beim Laden der Device-Stati', e)
+    } finally {
+        locationsLoading.value = false
+    }
 }
 
-async function onDeleteDeviceStatus(deviceStatus: DeviceStatus) {
+function onEditPosition(position: Position) {
+    window.location.href = generateUrl(`/apps/sfxonitam/position/detail?positionId=${position.id}`);
+}
+
+async function onDeletePosition(position: Position) {
     generalError.value = ''
-    deviceStatusToDelete.value = deviceStatus
+    positionToDelete.value = position
 }
 
-watch(() => listState, loadDeviceStatis, { deep: true })
-onMounted(loadDeviceStatis)
+watch(() => listState, loadPositions, { deep: true })
+
+onMounted(async () => {
+    await loadLocations()
+    await loadPositions()
+})
 </script>
 
 <template>
@@ -102,7 +127,7 @@ onMounted(loadDeviceStatis)
         <NcAppNavigation>
             <NcAppNavigationList>
                 <NcAppNavigationNew
-                :text="t('sfxonitam', 'Neuer Gerätestatus')"
+                :text="t('sfxonitam', 'Neue Position')"
                 @click="addItem"
                 >
                     <template #icon>
@@ -110,13 +135,13 @@ onMounted(loadDeviceStatis)
                     </template>
                 </NcAppNavigationNew>
             </NcAppNavigationList>
-            <SfxonMainNavigation :currentPage="'deviceStatis'" />
+            <SfxonMainNavigation :currentPage="'positions'" />
         </NcAppNavigation>
 
         <!-- Inhaltsbereich -->
         <NcAppContent>
             <div :class="$style.sfxonItamHeader">
-                Gerätestatus-Verwaltung
+                Positionen-Verwaltung
             </div>
 
             <!-- Allgemeine Fehlermeldung -->
@@ -131,26 +156,27 @@ onMounted(loadDeviceStatis)
 
             <div :class="$style.sfxonItamContent">
                 <!-- Fehler -->
-                <div v-if="error" class="devicestatus-list__error">{{ error }}</div>
+                <div v-if="error" class="positions-list__error">{{ error }}</div>
 
                 <!-- Ladeindikator -->
-                <div v-else-if="loading" class="devicestatus-list__loading">
+                <div v-else-if="loading" class="positions-list__loading">
                     <NcLoadingIcon :size="32" />
                 </div>
 
                 <!-- Leerer Zustand -->
-                <div v-else-if="deviceStatis.length === 0" class="devicestatus-list__empty">
-                    {{ t('sfxonitam', 'Keine Gerätestati gefunden.') }}
+                <div v-else-if="positions.length === 0" class="positions-list__empty">
+                    {{ t('sfxonitam', 'Keine Positionen gefunden.') }}
                 </div>
 
                 <SfxonTable
                     :columns="columns"
-                    :dataArray="deviceStatis"
+                    :dataArray="positions"
                     :dataArrayKey="'id'"
-                    :deleteCallback="onDeleteDeviceStatus"
-                    :editCallback="onEditDeviceStatus"
+                    :deleteCallback="onDeletePosition"
+                    :editCallback="onEditPosition"
                     :listState="listState"
                     :orderByCallback="listState.sortBy"
+                    :relatedEntityData="relatedEntityData"
                 />
 
                 <SfxonPagination
@@ -162,13 +188,13 @@ onMounted(loadDeviceStatis)
     </NcContent>
 
     <NcDialog
-        v-if="deviceStatusToDelete"
-        :name="t('sfxonitam', 'Gerätestatus löschen')"
-        :open="!!deviceStatusToDelete"
+        v-if="positionToDelete"
+        :name="t('sfxonitam', 'Position löschen')"
+        :open="!!positionToDelete"
         @closing="cancelDelete"
     >
         <p>
-            {{ t('sfxonitam', `Status „${deviceStatusToDelete.name}" wirklich löschen?`) }}
+            {{ t('sfxonitam', `Position „${positionToDelete.name}" wirklich löschen?`) }}
         </p>
 
         <template #actions>

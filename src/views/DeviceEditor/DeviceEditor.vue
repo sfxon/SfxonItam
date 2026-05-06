@@ -2,6 +2,7 @@
 import { ref, computed, onMounted } from 'vue'
 import NcAppContent from '@nextcloud/vue/components/NcAppContent'
 import NcAppNavigation from '@nextcloud/vue/components/NcAppNavigation'
+import NcAppNavigationList from '@nextcloud/vue/components/NcAppNavigationList'
 import NcAppNavigationNew from '@nextcloud/vue/components/NcAppNavigationNew'
 import NcContent from '@nextcloud/vue/components/NcContent'
 import { mdiPlus } from '@mdi/js'
@@ -19,18 +20,23 @@ import NcIconSvgWrapper from '@nextcloud/vue/components/NcIconSvgWrapper'
 import { fetchDevice, createDevice, updateDevice } from '@/services/DeviceService'
 import SfxonMainNavigation from '@/components/SfxonMainNavigation'
 import { fetchAllDeviceStatis } from '@/services/DeviceStatusService'
+import { fetchAllLocations } from '@/services/LocationService'
+import { fetchAllPositions } from '@/services/PositionService'
 
 // Formulardaten
 const name = ref('')
 const purchaseDate = ref<Date | null>(null)
 const selectedDeviceStatus = ref<{ id: string; label: string } | null>(null)
+const selectedPosition = ref<{ id: string; label: string } | null>(null)
 const selectedUser = ref<{ id: string; label: string } | null>(null)
-const savedSuccessfully = ref(false);
+const savedSuccessfully = ref(false)
 
 // Ladezustände
 const usersLoading = ref(false)
 const deviceLoading = ref(false)
 const deviceStatisLoading = ref(false)
+const locationsLoading = ref(false)
+const positionsLoading = ref(false)
 const isSaving = ref(false)
 
 // Fehlerbehandlung
@@ -50,6 +56,8 @@ const isEditMode = computed(() => !!deviceId.value)
 // Abhängige Entitäten definieren.
 const users = ref<{ id: string; label: string }[]>([])
 const deviceStatis = ref<{ id: string; label: string}[]>([])
+const locations = ref<{ id: string; label: string}[]>([])
+const positions = ref<{ id: string; label: string}[]>([])
 
 const toLocalDateString = (date: Date): string => {
     const y = date.getFullYear()
@@ -66,6 +74,7 @@ async function loadDevice(id: number): Promise<void> {
         const d = await fetchDevice(id)
         name.value = d.name ?? ''
         selectedDeviceStatus.value = deviceStatis.value.find(s => s.id === d.deviceStatusId) ?? null
+        selectedPosition.value = positions.value.find(s => s.id == d.positionId) ?? null
         purchaseDate.value = d.purchaseDate ? new Date(d.purchaseDate + 'T00:00:00') : null
         selectedUser.value = users.value.find(u => u.id === d.userId) ?? null
     } catch (e: any) {
@@ -113,6 +122,50 @@ async function loadDeviceStatis() {
     }
 }
 
+async function loadLocations() {
+    locationsLoading.value = true;
+
+    try {
+        const data = await fetchAllLocations({})
+
+        locations.value = Object.values(data.locations).map((location: any) => ({
+            id: location.id,
+            label: location.name
+        }))
+    } catch(e) {
+        console.error('Fehler beim Laden der Locations', e)
+    } finally {
+        locationsLoading.value = false
+    }
+}
+
+async function loadPositions() {
+    await loadLocations()
+
+    positionsLoading.value = true;
+
+    try {
+        const data = await fetchAllPositions({})
+
+        positions.value = Object.values(data.positions).map((position: any) => {
+            const location = locations.value.find(l => l.id == position.locationId)
+            return {
+                id: position.id,
+                label: location
+                    ? location.label + ' - ' + position.name
+                    : position.name
+            }
+        })
+
+        // Sort list alphabetically ASC.
+        positions.value.sort((a, b) => a.label.localeCompare(b.label))
+    } catch(e) {
+        console.error('Fehler beim Laden der Positionen', e)
+    } finally {
+        positionsLoading.value = false
+    }
+}
+
 async function submitForm() {
     clearErrors()
     savedSuccessfully.value = false;
@@ -121,6 +174,7 @@ async function submitForm() {
     const payload = {
         name: name.value,
         deviceStatusId: selectedDeviceStatus.value?.id ?? null,
+        positionId: selectedPosition.value?.id ?? null,
         purchaseDate: purchaseDate.value ? toLocalDateString(purchaseDate.value) : null,
         userId: selectedUser.value?.id ?? null,
     }
@@ -152,6 +206,7 @@ async function submitForm() {
 onMounted(async () => {
     await loadUsers()
     await loadDeviceStatis()
+    await loadPositions()
 
     if (deviceId.value) {
         await loadDevice(deviceId.value)
@@ -162,7 +217,7 @@ onMounted(async () => {
 <template>
     <NcContent app-name="sfxonitamdeviceeditor">
         <NcAppNavigation>
-            <template #list>
+            <NcAppNavigationList>
                 <NcAppNavigationNew
                 :text="t('sfxonitam', 'Neues Gerät')"
                 @click="addItem"
@@ -171,8 +226,8 @@ onMounted(async () => {
                         <NcIconSvgWrapper :path="mdiPlus" :size="20" />
                     </template>
                 </NcAppNavigationNew>
-                <SfxonMainNavigation :currentPage="'devices'" />
-            </template>
+            </NcAppNavigationList>
+            <SfxonMainNavigation :currentPage="'devices'" />
         </NcAppNavigation>
 
         <!-- Inhaltsbereich -->
@@ -233,6 +288,27 @@ onMounted(async () => {
                     />
                     <span v-if="fieldErrors.deviceStatusId" :class="$style.errorText">
                         {{ fieldErrors.deviceStatusId }}
+                    </span>
+                </div>
+
+                <!-- Position -->
+                <div :class="$style.field">
+                    <label for="position-select" :class="$style.label">
+                        {{ t('sfxonitam', 'Position') }}
+                    </label>
+                    <NcSelect
+                        id="position-select"
+                        v-model="selectedPosition"
+                        :options="positions"
+                        :loading="positionsLoading"
+                        :placeholder="t('sfxonitam', 'Position auswählen')"
+                        :label="'label'"
+                        track-by="id"
+                        :class="fieldErrors.positionId ? $style.fieldError : ''"
+                        @input="clearFieldError('positionId')"
+                    />
+                    <span v-if="fieldErrors.positionId" :class="$style.errorText">
+                        {{ fieldErrors.positionId }}
                     </span>
                 </div>
 

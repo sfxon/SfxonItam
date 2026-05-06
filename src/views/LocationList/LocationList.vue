@@ -2,6 +2,7 @@
 import { ref, watch, onMounted } from 'vue'
 import NcAppContent from '@nextcloud/vue/components/NcAppContent'
 import NcAppNavigation from '@nextcloud/vue/components/NcAppNavigation'
+import NcAppNavigationList from '@nextcloud/vue/components/NcAppNavigationList'
 import NcAppNavigationNew from '@nextcloud/vue/components/NcAppNavigationNew'
 import NcContent from '@nextcloud/vue/components/NcContent'
 import { mdiPlus } from '@mdi/js'
@@ -99,7 +100,7 @@ onMounted(loadLocations)
 <template>
     <NcContent app-name="sfxonitam">
         <NcAppNavigation>
-            <template #list>
+            <NcAppNavigationList>
                 <NcAppNavigationNew
                 :text="t('sfxonitam', 'Neuer Standort')"
                 @click="addItem"
@@ -108,14 +109,14 @@ onMounted(loadLocations)
                         <NcIconSvgWrapper :path="mdiPlus" :size="20" />
                     </template>
                 </NcAppNavigationNew>
-                <SfxonMainNavigation :currentPage="'locations'" />
-            </template>
+            </NcAppNavigationList>
+            <SfxonMainNavigation :currentPage="'locations'" />
         </NcAppNavigation>
 
         <!-- Inhaltsbereich -->
         <NcAppContent>
             <div :class="$style.sfxonItamHeader">
-                Gerätestatus-Verwaltung
+                Standort-Verwaltung
             </div>
 
             <!-- Allgemeine Fehlermeldung -->
@@ -162,12 +163,12 @@ onMounted(loadLocations)
 
     <NcDialog
         v-if="locationToDelete"
-        :name="t('sfxonitam', 'Gerätestatus löschen')"
+        :name="t('sfxonitam', 'Standort löschen')"
         :open="!!locationToDelete"
         @closing="cancelDelete"
     >
         <p>
-            {{ t('sfxonitam', `Status „${locationToDelete.name}" wirklich löschen?`) }}
+            {{ t('sfxonitam', `Standort „${locationToDelete.name}" wirklich löschen?`) }}
         </p>
 
         <template #actions>

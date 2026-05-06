@@ -1,56 +1,80 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
+import { mdiPlus } from '@mdi/js'
 import NcAppContent from '@nextcloud/vue/components/NcAppContent'
 import NcAppNavigation from '@nextcloud/vue/components/NcAppNavigation'
 import NcAppNavigationList from '@nextcloud/vue/components/NcAppNavigationList'
 import NcAppNavigationNew from '@nextcloud/vue/components/NcAppNavigationNew'
 import NcContent from '@nextcloud/vue/components/NcContent'
-import { mdiPlus } from '@mdi/js'
-import { translate as t } from '@nextcloud/l10n'
-import { generateUrl } from '@nextcloud/router'
 import NcButton from '@nextcloud/vue/components/NcButton'
+import NcIconSvgWrapper from '@nextcloud/vue/components/NcIconSvgWrapper'
+import NcNoteCard from '@nextcloud/vue/components/NcNoteCard'
+import NcSelect from '@nextcloud/vue/components/NcSelect'
 import NcTextArea from '@nextcloud/vue/components/NcTextArea'
 import NcTextField from '@nextcloud/vue/components/NcTextField'
-import NcNoteCard from '@nextcloud/vue/components/NcNoteCard'
+import { translate as t } from '@nextcloud/l10n'
+import { generateUrl } from '@nextcloud/router'
 import { useApiErrors } from '@/composables/useApiErrors'
-import NcIconSvgWrapper from '@nextcloud/vue/components/NcIconSvgWrapper'
-import { fetchLocation, createLocation, updateLocation } from '@/services/LocationService'
+import { fetchPosition, createPosition, updatePosition } from '@/services/PositionService'
 import SfxonMainNavigation from '@/components/SfxonMainNavigation'
+import { fetchAllLocations } from '@/services/LocationService'
 
 // Formulardaten
 const name = ref('')
+const selectedLocation = ref<{ id: string; label: string } | null>(null)
 const comment = ref('')
 const savedSuccessfully = ref(false);
-const locationLoading = ref(false)
+const locationsLoading = ref(false)
+const positionLoading = ref(false)
 const isSaving = ref(false)
 
 // Fehlerbehandlung
 const { fieldErrors, generalError, handleApiError, clearErrors, clearFieldError } = useApiErrors()
 
 // Id und Modus laden.
-const locationId = computed(() => {
-    const param = new URLSearchParams(window.location.search).get('locationId')
+const positionId = computed(() => {
+    const param = new URLSearchParams(window.location.search).get('positionId')
     return param ? parseInt(param, 10) : undefined
 })
-const isEditMode = computed(() => !!locationId.value)
-
-function addItem() {
-    window.location.href = generateUrl('/apps/sfxonitam/location/detail')
-}
+const isEditMode = computed(() => !!positionId.value)
+// Abhängige Entitäten definieren.
+const locations = ref<{ id: string; label: string}[]>([])
 
 // Funktionen definieren.
-async function loadLocation(id: number): Promise<void> {
-    locationLoading.value = true
+function addItem() {
+    window.location.href = generateUrl('/apps/sfxonitam/position/detail')
+}
+
+async function loadPosition(id: number): Promise<void> {
+    positionLoading.value = true
 
     try {
-        const d = await fetchLocation(id)
+        const d = await fetchPosition(id)
         name.value = d.name ?? ''
+        selectedLocation.value = locations.value.find(s => s.id == d.locationId) ?? null
         comment.value = d.comment ? d.comment : ''
     } catch (e: any) {
-        generalError.value = t('sfxonitam', 'Standort konnte nicht geladen werden.')
-        console.error('Fehler beim Laden des Standorts:', e)
+        generalError.value = t('sfxonitam', 'Position konnte nicht geladen werden.')
+        console.error('Fehler beim Laden der Position:', e)
     } finally {
-        locationLoading.value = false
+        positionLoading.value = false
+    }
+}
+
+async function loadLocations() {
+    locationsLoading.value = true;
+
+    try {
+        const data = await fetchAllLocations({})
+
+        locations.value = Object.values(data.locations).map((location: any) => ({
+            id: location.id,
+            label: location.name
+        }))
+    } catch(e) {
+        console.error('Fehler beim Laden der Locations', e)
+    } finally {
+        locationsLoading.value = false
     }
 }
 
@@ -61,13 +85,14 @@ async function submitForm() {
 
     const payload = {
         name: name.value,
+        locationId: selectedLocation.value?.id ?? null,
         comment: comment.value,
     }
 
     try {
         const data = isEditMode.value
-            ? await updateLocation(locationId.value!, payload)
-            : await createLocation(payload)
+            ? await updatePosition(positionId.value!, payload)
+            : await createPosition(payload)
 
         // Backend gibt status: 'error' mit HTTP 200 zurück
         if (data?.status === 'error') {
@@ -89,18 +114,20 @@ async function submitForm() {
 }
 
 onMounted(async () => {
-    if (locationId.value) {
-        await loadLocation(locationId.value)
+    await loadLocations()
+
+    if (positionId.value) {
+        await loadPosition(positionId.value)
     }
 })
 </script>
 
 <template>
-    <NcContent app-name="sfxonitamlocationeditor">
+    <NcContent app-name="sfxonitampositioneditor">
         <NcAppNavigation>
             <NcAppNavigationList>
                 <NcAppNavigationNew
-                :text="t('sfxonitam', 'Neuer Standort')"
+                :text="t('sfxonitam', 'Neue Position')"
                 @click="addItem"
                 >
                     <template #icon>
@@ -108,7 +135,7 @@ onMounted(async () => {
                     </template>
                 </NcAppNavigationNew>
             </NcAppNavigationList>
-            <SfxonMainNavigation :currentPage="'locations'" />
+            <SfxonMainNavigation :currentPage="'positions'" />
         </NcAppNavigation>
 
         <!-- Inhaltsbereich -->
@@ -116,8 +143,8 @@ onMounted(async () => {
             <div :class="$style.form">
                 <h2>
                     {{ isEditMode
-                        ? t('sfxonitam', 'Standort bearbeiten')
-                        : t('sfxonitam', 'Standort erfassen') }}
+                        ? t('sfxonitam', 'Position bearbeiten')
+                        : t('sfxonitam', 'Position erfassen') }}
                 </h2>
 
                 <!-- Allgemeine Fehlermeldung -->
@@ -148,6 +175,27 @@ onMounted(async () => {
                     />
                     <span v-if="fieldErrors.name" :class="$style.errorText">
                         {{ fieldErrors.name }}
+                    </span>
+                </div>
+
+                <!-- Locatoin -->
+                <div :class="$style.field">
+                    <label for="location-select" :class="$style.label">
+                        {{ t('sfxonitam', 'Location') }}
+                    </label>
+                    <NcSelect
+                        id="device-status-select"
+                        v-model="selectedLocation"
+                        :options="locations"
+                        :loading="locationsLoading"
+                        :placeholder="t('sfxonitam', 'Position auswählen')"
+                        :label="'label'"
+                        track-by="id"
+                        :class="fieldErrors.locationId ? $style.fieldError : ''"
+                        @input="clearFieldError('locationId')"
+                    />
+                    <span v-if="fieldErrors.locationId" :class="$style.errorText">
+                        {{ fieldErrors.locationId }}
                     </span>
                 </div>
 

@@ -22,6 +22,8 @@ use OCA\SfxonItam\Service\DeviceService;
  * @psalm-suppress UnusedClass
  */
 class DeviceController extends Controller {
+    private array $expectedFields = ['name', 'deviceStatusId', 'positionId', 'purchaseDate', 'userId'];
+
     public function __construct(
         string $appName,
         IRequest $request,
@@ -91,9 +93,7 @@ class DeviceController extends Controller {
     #[OpenAPI(OpenAPI::SCOPE_IGNORE)]
     #[FrontpageRoute(verb: 'POST', url: '/device/save')]
     public function save(): DataResponse {
-        $expectedFields = ['name', 'deviceStatusId', 'purchaseDate', 'userId'];
-
-        $data = $this->deviceService->getDataFromRequest($this->request->getParams(), $expectedFields);
+        $data = $this->deviceService->getDataFromRequest($this->request->getParams(), $this->expectedFields);
         $result = $this->deviceService->validateData($data);
 
         if($result['valid'] === false) {
@@ -104,11 +104,7 @@ class DeviceController extends Controller {
         }
 
         $device = new Device();
-        $device->setName($this->request->getParam('name'));
-        $device->setUserId($this->request->getParam('userId') ?? '');
-        $device->setDeviceStatusId($this->request->getParam('deviceStatusId') ?? '');
-        $purchaseDateRaw = $this->request->getParam('purchaseDate');
-        $device->setPurchaseDate($purchaseDateRaw);
+        $device = $this->setDeviceDataFromRequest($device);
 
         $saved = $this->deviceMapper->insert($device);
 
@@ -147,8 +143,7 @@ class DeviceController extends Controller {
             );
         }
 
-        $expectedFields = ['name', 'deviceStatusId', 'purchaseDate', 'userId'];
-        $data = $this->deviceService->getDataFromRequest($this->request->getParams(), $expectedFields);
+        $data = $this->deviceService->getDataFromRequest($this->request->getParams(), $this->expectedFields);
         $result = $this->deviceService->validateData($data);
 
         if ($result['valid'] === false) {
@@ -158,18 +153,24 @@ class DeviceController extends Controller {
             ], Http::STATUS_UNPROCESSABLE_ENTITY);
         }
 
-        // Felder aktualisieren
-        $device->setName($this->request->getParam('name'));
-        $device->setDeviceStatusId($this->request->getParam('deviceStatusId') ?? '');
-        $device->setUserId($this->request->getParam('userId') ?? '');
-        $purchaseDateRaw = $this->request->getParam('purchaseDate');
-        $device->setPurchaseDate($purchaseDateRaw);
-
+        // Datensatz aktualisieren
+        $device = $this->setDeviceDataFromRequest($device);
         $updated = $this->deviceMapper->update($device);
 
         return new DataResponse([
             'status' => 'ok',
             'id'     => $updated->getId(),
         ]);
+    }
+
+    private function setDeviceDataFromRequest($device) {
+        $device->setName($this->request->getParam('name'));
+        $device->setDeviceStatusId($this->request->getParam('deviceStatusId') ?? '');
+        $device->setPositionId($this->request->getParam('positionId') ?? '');
+        $device->setUserId($this->request->getParam('userId') ?? '');
+        $purchaseDateRaw = $this->request->getParam('purchaseDate');
+        $device->setPurchaseDate($purchaseDateRaw);
+
+        return $device;
     }
 }

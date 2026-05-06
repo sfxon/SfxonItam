@@ -2,6 +2,7 @@
 import { reactive, ref, watch, onMounted } from 'vue'
 import NcAppContent from '@nextcloud/vue/components/NcAppContent'
 import NcAppNavigation from '@nextcloud/vue/components/NcAppNavigation'
+import NcAppNavigationList from '@nextcloud/vue/components/NcAppNavigationList'
 import NcAppNavigationNew from '@nextcloud/vue/components/NcAppNavigationNew'
 import NcContent from '@nextcloud/vue/components/NcContent'
 import { mdiPlus } from '@mdi/js'
@@ -18,19 +19,29 @@ import type { Device } from '@/services/DeviceService'
 import NcDialog from '@nextcloud/vue/components/NcDialog'
 import NcButton from '@nextcloud/vue/components/NcButton'
 import { fetchAllDeviceStatis } from '@/services/DeviceStatusService'
+import { fetchAllLocations } from '@/services/LocationService'
+import { fetchAllPositions } from '@/services/PositionService'
 
 const loading = ref(false)
 const deviceStatisLoading = ref(false)
+const locationsLoading = ref(false)
+const positionsLoading = ref(false)
+
 const error = ref<string | null>(null)
-const relatedEntityData = reactive({ 'deviceStatus': {}, });
-const devices = ref<Device[]>([])
 const listState = useListState()
+
+const devices = ref<Device[]>([])
 const deviceToDelete = ref<Device | null>(null)
+const locations = ref<{ id: string; label: string}[]>([])
+const relatedEntityData = reactive<Record<string, { id: any; label: string }[]>>({
+    'deviceStatus': [],
+    'position': []
+});
 
 const columns = [
     { key: 'name', label: t('sfxonitam', 'Name'), sortable: true },
-    { type: 'relatedEntity', relatedEntityName: 'deviceStatus', key: 'deviceStatusId', label: t('sfxonitam', 'DeviceStatus'), sortable: true },
-    { key: 'positionId', label: t('sfxonitam', 'Position'), sortable: true  },
+    { type: 'relatedEntity', relatedEntityName: 'deviceStatus', key: 'deviceStatusId', label: t('sfxonitam', 'DeviceStatus'), sortable: false },
+    { type: 'relatedEntity', relatedEntityName: 'position', key: 'positionId', label: t('sfxonitam', 'Position'), sortable: false  },
     { key: 'deviceTypeId', label: t('sfxonitam', 'DeviceType'), sortable: true },
     { key: 'userId', label: t('sfxonitam', 'User'), sortable: true },
     { key: 'serialNumber', label: t('sfxonitam', 'Seriennummer'), sortable: true },
@@ -78,6 +89,50 @@ async function loadDevices() {
     }
 }
 
+async function loadLocations() {
+    locationsLoading.value = true;
+
+    try {
+        const data = await fetchAllLocations({})
+
+        locations.value = Object.values(data.locations).map((location: any) => ({
+            id: location.id,
+            label: location.name
+        }))
+    } catch(e) {
+        console.error('Fehler beim Laden der Locations', e)
+    } finally {
+        locationsLoading.value = false
+    }
+}
+
+async function loadPositions() {
+    await loadLocations()
+
+    positionsLoading.value = true;
+
+    try {
+        const data = await fetchAllPositions({})
+
+        relatedEntityData['position'] = Object.values(data.positions).map((position: any) => {
+            const location = locations.value.find(l => l.id == position.locationId)
+            return {
+                id: position.id,
+                label: location
+                    ? location.label + ' - ' + position.name
+                    : position.name
+            }
+        })
+
+        // Sort list alphabetically ASC.
+        relatedEntityData['position'].sort((a, b) => a.label.localeCompare(b.label))
+    } catch(e) {
+        console.error('Fehler beim Laden der Positionen', e)
+    } finally {
+        positionsLoading.value = false
+    }
+}
+
 async function loadDeviceStatis() {
     deviceStatisLoading.value = true;
 
@@ -88,8 +143,6 @@ async function loadDeviceStatis() {
             id: deviceStatus.id,
             label: deviceStatus.name
         }))
-
-        console.log('relatedEntityData: ', relatedEntityData);
     } catch(e) {
         console.error('Fehler beim Laden der Device-Stati', e)
     } finally {
@@ -108,6 +161,7 @@ async function onDeleteDevice(device: Device) {
 watch(() => listState, loadDevices, { deep: true })
 
 onMounted(async () => {
+    await loadPositions()
     await loadDeviceStatis()
     await loadDevices()
 })
@@ -117,7 +171,7 @@ onMounted(async () => {
 <template>
     <NcContent app-name="sfxonitam">
         <NcAppNavigation>
-            <template #list>
+            <NcAppNavigationList>
                 <NcAppNavigationNew
                 :text="t('sfxonitam', 'Neues Gerät')"
                 @click="addItem"
@@ -126,8 +180,8 @@ onMounted(async () => {
                         <NcIconSvgWrapper :path="mdiPlus" :size="20" />
                     </template>
                 </NcAppNavigationNew>
-                <SfxonMainNavigation :currentPage="'devices'" />
-            </template>
+            </NcAppNavigationList>
+            <SfxonMainNavigation :currentPage="'devices'" />
         </NcAppNavigation>
 
         <!-- Inhaltsbereich -->

@@ -22,7 +22,7 @@ und weitere. Die Felder sind neben Standard-Feldern flexibel erweiterbar.
 
 2. **Lizenz-Management**
 Manage deine Software-Lizenzen.]]></description>
-	<version>1.1.4</version>
+	<version>1.1.5</version>
 	<licence>MIT</licence>
 	<author mail="steve@mindfav.com" homepage="https://github.com/sfxon">Steve Krämer</author>
 	<namespace>SfxonItam</namespace>

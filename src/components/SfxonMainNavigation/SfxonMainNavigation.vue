@@ -1,6 +1,8 @@
 <script setup lang="ts">
 
+import NcAppNavigationCaption from '@nextcloud/vue/components/NcAppNavigationCaption'
 import NcAppNavigationItem from '@nextcloud/vue/components/NcAppNavigationItem'
+import NcAppNavigationList from '@nextcloud/vue/components/NcAppNavigationList'
 import { translate as t } from '@nextcloud/l10n'
 import { generateUrl } from '@nextcloud/router'
 
@@ -24,12 +26,23 @@ function navigateToPage(pageName: String) {
         case 'locations':
             window.location.href = generateUrl(`/apps/sfxonitam/location`)
             break
+        case 'positions':
+            window.location.href = generateUrl(`/apps/sfxonitam/position`)
+            break
     }
 }
 
 </script>
 <template>
-    <NcAppNavigationItem name="Geräte Verwaltung" @click="navigateToPage('devices')" :active="currentPage == 'devices'" />
-    <NcAppNavigationItem name="Geräte-Status" @click="navigateToPage('deviceStatis')" :active="currentPage == 'deviceStatis'" />
-    <NcAppNavigationItem name="Standorte" @click="navigateToPage('locations')" :active="currentPage == 'locations'" />
+    <NcAppNavigationCaption heading-id="bereiche-heading" is-heading name="Bereiche" />
+    <NcAppNavigationList aria-labelledby="bereiche-heading">
+        <NcAppNavigationItem name="Geräte Verwaltung" @click="navigateToPage('devices')" :active="currentPage == 'devices'" />
+    </NcAppNavigationList>
+
+    <NcAppNavigationCaption heading-id="stammdaten-heading" is-heading name="Stammdaten" />
+    <NcAppNavigationList aria-labelledby="stammdaten-heading">
+        <NcAppNavigationItem name="Geräte-Status" @click="navigateToPage('deviceStatis')" :active="currentPage == 'deviceStatis'" />
+        <NcAppNavigationItem name="Positionen" @click="navigateToPage('positions')" :active="currentPage == 'positions'" />
+        <NcAppNavigationItem name="Standorte" @click="navigateToPage('locations')" :active="currentPage == 'locations'" />
+    </NcAppNavigationList>
 </template>

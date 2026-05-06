@@ -12,7 +12,7 @@ Das Programm richtet sich an kleine und mittelständische Unternehmen (KMU) sowi
 
 * Alle weiteren Entitäten umsetzen:
     - ✅ Location
-    - Position
+    - ✅ Position
     - Manufacturer/Hersteller
     - DeviceType
     - User: Benutzer werden erstmal "normale" Entität. Wir verwenden also nicht weiterhin die Benutzer von Nextcloud. Diese sollten dem Login vorbehalten bleiben (Design-Entscheidung).

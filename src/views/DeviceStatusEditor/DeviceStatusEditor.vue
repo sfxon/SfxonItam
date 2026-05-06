@@ -2,6 +2,7 @@
 import { ref, computed, onMounted } from 'vue'
 import NcAppContent from '@nextcloud/vue/components/NcAppContent'
 import NcAppNavigation from '@nextcloud/vue/components/NcAppNavigation'
+import NcAppNavigationList from '@nextcloud/vue/components/NcAppNavigationList'
 import NcAppNavigationNew from '@nextcloud/vue/components/NcAppNavigationNew'
 import NcContent from '@nextcloud/vue/components/NcContent'
 import { mdiPlus } from '@mdi/js'
@@ -97,7 +98,7 @@ onMounted(async () => {
 <template>
     <NcContent app-name="sfxonitamdevicestatuseditor">
         <NcAppNavigation>
-            <template #list>
+            <NcAppNavigationList>
                 <NcAppNavigationNew
                 :text="t('sfxonitam', 'Neuer Gerätestatus')"
                 @click="addItem"
@@ -106,8 +107,8 @@ onMounted(async () => {
                         <NcIconSvgWrapper :path="mdiPlus" :size="20" />
                     </template>
                 </NcAppNavigationNew>
-                <SfxonMainNavigation :currentPage="'deviceStatis'" />
-            </template>
+            </NcAppNavigationList>
+            <SfxonMainNavigation :currentPage="'deviceStatis'" />
         </NcAppNavigation>
 
         <!-- Inhaltsbereich -->
