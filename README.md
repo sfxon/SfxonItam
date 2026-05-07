@@ -13,8 +13,8 @@ Das Programm richtet sich an kleine und mittelständische Unternehmen (KMU) sowi
 * Alle weiteren Entitäten umsetzen:
     - ✅ Location
     - ✅ Position
-    - Manufacturer/Hersteller
-    - DeviceType
+    - ✅ Manufacturer/Hersteller
+    - ✅ DeviceType
     - User: Benutzer werden erstmal "normale" Entität. Wir verwenden also nicht weiterhin die Benutzer von Nextcloud. Diese sollten dem Login vorbehalten bleiben (Design-Entscheidung).
     - Verkäufer
 
@@ -105,6 +105,22 @@ Manage deine Software-Lizenzen.
 ITAM unterstützt bei der Erstellung von Berichten und Exporten.
 Jeder Report umfasst eine flexible Auswahl an Datensätzen und Feldern in auswählbarer Reihenfolge.
 Es werden 2 Export-Formate unterstützt: druckbare HTML-Seiten und CSV-Dateien.
+
+
+## Feature Requests
+
+* QR-Codes als URLs (Chlorophylllius - Twitch)<br/>QR-Codes als URLs, welche direkt ins Asset-Maanagement verlinken.
+
+* Bilder der Assets hinterlegen (Chlorophylllius - Twitch)
+
+* Mengen-Angaben (bspw. bei Kabeln und Displays) (Chlorophylllius - Twitch)
+
+* Custom-Fields
+
+* Ausgeliehen an (Chlorophylllius - Twitch)
+
+* Bearbeitungs-Historie (Chlorophylllius - Twitch)
+
 
 ## Systemvoraussetzungen
 
