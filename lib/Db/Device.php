@@ -63,6 +63,7 @@ class Device extends Entity implements \JsonSerializable {
             'id' => $this->getId(),
             'name' => $this->getName(),
             'deviceStatusId' => $this->getDeviceStatusId(),
+            'deviceTypeId' => $this->getDeviceTypeId(),
             'positionId' => $this->getPositionId(),
             'userId' => $this->getUserId(),
             'serialNumber' => $this->getSerialNumber(),

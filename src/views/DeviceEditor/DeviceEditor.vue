@@ -21,12 +21,15 @@ import { fetchDevice, createDevice, updateDevice } from '@/services/DeviceServic
 import SfxonMainNavigation from '@/components/SfxonMainNavigation'
 import { fetchAllDeviceStatis } from '@/services/DeviceStatusService'
 import { fetchAllLocations } from '@/services/LocationService'
+import { fetchAllDeviceTypes } from '@/services/DeviceTypeService'
 import { fetchAllPositions } from '@/services/PositionService'
+
 
 // Formulardaten
 const name = ref('')
 const purchaseDate = ref<Date | null>(null)
 const selectedDeviceStatus = ref<{ id: string; label: string } | null>(null)
+const selectedDeviceType = ref<{ id: string; label: string } | null>(null)
 const selectedPosition = ref<{ id: string; label: string } | null>(null)
 const selectedUser = ref<{ id: string; label: string } | null>(null)
 const savedSuccessfully = ref(false)
@@ -35,6 +38,7 @@ const savedSuccessfully = ref(false)
 const usersLoading = ref(false)
 const deviceLoading = ref(false)
 const deviceStatisLoading = ref(false)
+const deviceTypesLoading = ref(false)
 const locationsLoading = ref(false)
 const positionsLoading = ref(false)
 const isSaving = ref(false)
@@ -56,6 +60,7 @@ const isEditMode = computed(() => !!deviceId.value)
 // Abhängige Entitäten definieren.
 const users = ref<{ id: string; label: string }[]>([])
 const deviceStatis = ref<{ id: string; label: string}[]>([])
+const deviceTypes = ref<{ id: string; label: string}[]>([])
 const locations = ref<{ id: string; label: string}[]>([])
 const positions = ref<{ id: string; label: string}[]>([])
 
@@ -72,8 +77,12 @@ async function loadDevice(id: number): Promise<void> {
 
     try {
         const d = await fetchDevice(id)
+
+        console.log('device: ', d);
+
         name.value = d.name ?? ''
         selectedDeviceStatus.value = deviceStatis.value.find(s => s.id === d.deviceStatusId) ?? null
+        selectedDeviceType.value = deviceTypes.value.find(s => s.id == d.deviceTypeId) ?? null
         selectedPosition.value = positions.value.find(s => s.id == d.positionId) ?? null
         purchaseDate.value = d.purchaseDate ? new Date(d.purchaseDate + 'T00:00:00') : null
         selectedUser.value = users.value.find(u => u.id === d.userId) ?? null
@@ -119,6 +128,23 @@ async function loadDeviceStatis() {
         console.error('Fehler beim Laden der Device-Stati', e)
     } finally {
         deviceStatisLoading.value = false
+    }
+}
+
+async function loadDeviceTypes() {
+    deviceTypesLoading.value = true;
+
+    try {
+        const data = await fetchAllDeviceTypes({})
+
+        deviceTypes.value = Object.values(data.deviceTypes).map((deviceType: any) => ({
+            id: deviceType.id,
+            label: deviceType.name
+        }))
+    } catch(e) {
+        console.error('Fehler beim Laden der Device-Types', e)
+    } finally {
+        deviceTypesLoading.value = false
     }
 }
 
@@ -174,6 +200,7 @@ async function submitForm() {
     const payload = {
         name: name.value,
         deviceStatusId: selectedDeviceStatus.value?.id ?? null,
+        deviceTypeId: selectedDeviceType.value?.id ?? null,
         positionId: selectedPosition.value?.id ?? null,
         purchaseDate: purchaseDate.value ? toLocalDateString(purchaseDate.value) : null,
         userId: selectedUser.value?.id ?? null,
@@ -206,6 +233,7 @@ async function submitForm() {
 onMounted(async () => {
     await loadUsers()
     await loadDeviceStatis()
+    await loadDeviceTypes()
     await loadPositions()
 
     if (deviceId.value) {
@@ -309,6 +337,27 @@ onMounted(async () => {
                     />
                     <span v-if="fieldErrors.positionId" :class="$style.errorText">
                         {{ fieldErrors.positionId }}
+                    </span>
+                </div>
+
+                <!-- Geräte-Typ -->
+                <div :class="$style.field">
+                    <label for="device-type-select" :class="$style.label">
+                        {{ t('sfxonitam', 'Geräte-Typ') }}
+                    </label>
+                    <NcSelect
+                        id="device-type-select"
+                        v-model="selectedDeviceType"
+                        :options="deviceTypes"
+                        :loading="deviceTypesLoading"
+                        :placeholder="t('sfxonitam', 'Geräte-Typ auswählen')"
+                        :label="'label'"
+                        track-by="id"
+                        :class="fieldErrors.deviceTypeId ? $style.fieldError : ''"
+                        @input="clearFieldError('deviceTypeId')"
+                    />
+                    <span v-if="fieldErrors.deviceTypeId" :class="$style.errorText">
+                        {{ fieldErrors.deviceTypeId }}
                     </span>
                 </div>
 

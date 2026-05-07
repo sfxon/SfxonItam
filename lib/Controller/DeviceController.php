@@ -22,7 +22,7 @@ use OCA\SfxonItam\Service\DeviceService;
  * @psalm-suppress UnusedClass
  */
 class DeviceController extends Controller {
-    private array $expectedFields = ['name', 'deviceStatusId', 'positionId', 'purchaseDate', 'userId'];
+    private array $expectedFields = ['name', 'deviceStatusId', 'positionId', 'deviceTypeId', 'purchaseDate', 'userId'];
 
     public function __construct(
         string $appName,
@@ -165,12 +165,26 @@ class DeviceController extends Controller {
 
     private function setDeviceDataFromRequest($device) {
         $device->setName($this->request->getParam('name'));
-        $device->setDeviceStatusId($this->request->getParam('deviceStatusId') ?? '');
-        $device->setPositionId($this->request->getParam('positionId') ?? '');
-        $device->setUserId($this->request->getParam('userId') ?? '');
+
+        $deviceStatusId = $this->sanitizeForeignKey($this->request->getParam('deviceStatusId') ?? '');
+        $device->setDeviceStatusId($deviceStatusId);
+
+        $deviceTypeId = $this->sanitizeForeignKey($this->request->getParam('deviceTypeId') ?? '');
+        $device->setDeviceTypeId($deviceTypeId);
+
+        $positionId = $this->sanitizeForeignKey($this->request->getParam('positionId') ?? '');
+        $device->setPositionId($positionId);
+
+        $userId = $this->sanitizeForeignKey($this->request->getParam('userId') ?? '');
+        $device->setUserId($userId);
+        
         $purchaseDateRaw = $this->request->getParam('purchaseDate');
         $device->setPurchaseDate($purchaseDateRaw);
 
         return $device;
+    }
+
+    private function sanitizeForeignKey($foreignKeyValue) {
+        return ($foreignKeyValue == 0 || $foreignKeyValue == '0' || $foreignKeyValue == '') ? null : $foreignKeyValue;
     }
 }

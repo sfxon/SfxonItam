@@ -19,11 +19,13 @@ import type { Device } from '@/services/DeviceService'
 import NcDialog from '@nextcloud/vue/components/NcDialog'
 import NcButton from '@nextcloud/vue/components/NcButton'
 import { fetchAllDeviceStatis } from '@/services/DeviceStatusService'
+import { fetchAllDeviceTypes } from '@/services/DeviceTypeService'
 import { fetchAllLocations } from '@/services/LocationService'
 import { fetchAllPositions } from '@/services/PositionService'
 
 const loading = ref(false)
 const deviceStatisLoading = ref(false)
+const deviceTypesLoading = ref(false)
 const locationsLoading = ref(false)
 const positionsLoading = ref(false)
 
@@ -35,6 +37,7 @@ const deviceToDelete = ref<Device | null>(null)
 const locations = ref<{ id: string; label: string}[]>([])
 const relatedEntityData = reactive<Record<string, { id: any; label: string }[]>>({
     'deviceStatus': [],
+    'deviceType': [],
     'position': []
 });
 
@@ -42,7 +45,7 @@ const columns = [
     { key: 'name', label: t('sfxonitam', 'Name'), sortable: true },
     { type: 'relatedEntity', relatedEntityName: 'deviceStatus', key: 'deviceStatusId', label: t('sfxonitam', 'DeviceStatus'), sortable: false },
     { type: 'relatedEntity', relatedEntityName: 'position', key: 'positionId', label: t('sfxonitam', 'Position'), sortable: false  },
-    { key: 'deviceTypeId', label: t('sfxonitam', 'DeviceType'), sortable: true },
+    { type: 'relatedEntity', relatedEntityName: 'deviceType', key: 'deviceTypeId', label: t('sfxonitam', 'DeviceType'), sortable: false },
     { key: 'userId', label: t('sfxonitam', 'User'), sortable: true },
     { key: 'serialNumber', label: t('sfxonitam', 'Seriennummer'), sortable: true },
     { key: 'serialNumber2', label: t('sfxonitam', 'Seriennummer 2'), sortable: true },
@@ -86,6 +89,42 @@ async function loadDevices() {
         error.value = t('sfxonitam', 'Fehler beim Laden der Geräte.')
     } finally {
         loading.value = false
+    }
+}
+
+async function loadDeviceStatis() {
+    deviceStatisLoading.value = true;
+
+    try {
+        const data = await fetchAllDeviceStatis({})
+
+        relatedEntityData['deviceStatus'] = Object.values(data.deviceStatis).map((deviceStatus: any) => ({
+            id: deviceStatus.id,
+            label: deviceStatus.name
+        }))
+    } catch(e) {
+        console.error('Fehler beim Laden der Device-Stati', e)
+    } finally {
+        deviceStatisLoading.value = false
+    }
+}
+
+async function loadDeviceTypes() {
+    deviceTypesLoading.value = true;
+
+    try {
+        const data = await fetchAllDeviceTypes({})
+
+        relatedEntityData['deviceType'] = Object.values(data.deviceTypes).map((deviceType: any) => ({
+            id: deviceType.id,
+            label: deviceType.name
+        }))
+
+        console.log('relatedEntityData: ', relatedEntityData)
+    } catch(e) {
+        console.error('Fehler beim Laden der Device-Types', e)
+    } finally {
+        deviceTypesLoading.value = false
     }
 }
 
@@ -133,23 +172,6 @@ async function loadPositions() {
     }
 }
 
-async function loadDeviceStatis() {
-    deviceStatisLoading.value = true;
-
-    try {
-        const data = await fetchAllDeviceStatis({})
-
-        relatedEntityData['deviceStatus'] = Object.values(data.deviceStatis).map((deviceStatus: any) => ({
-            id: deviceStatus.id,
-            label: deviceStatus.name
-        }))
-    } catch(e) {
-        console.error('Fehler beim Laden der Device-Stati', e)
-    } finally {
-        deviceStatisLoading.value = false
-    }
-}
-
 function onEditDevice(device: Device) {
     window.location.href = generateUrl(`/apps/sfxonitam/device/detail?deviceId=${device.id}`);
 }
@@ -161,8 +183,11 @@ async function onDeleteDevice(device: Device) {
 watch(() => listState, loadDevices, { deep: true })
 
 onMounted(async () => {
-    await loadPositions()
     await loadDeviceStatis()
+    await loadDeviceTypes()
+    await loadPositions()
+
+    // Load other entities before Devices.
     await loadDevices()
 })
 

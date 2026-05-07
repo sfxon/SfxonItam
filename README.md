@@ -118,6 +118,7 @@ Es werden 2 Export-Formate unterstützt: druckbare HTML-Seiten und CSV-Dateien.
 * Custom-Fields
 
 * Ausgeliehen an (Chlorophylllius - Twitch)
+    - E-Mail Bestätigung / Ausgeliehen, zurückgegeben.
 
 * Bearbeitungs-Historie (Chlorophylllius - Twitch)
 

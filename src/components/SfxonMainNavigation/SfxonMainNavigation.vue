@@ -23,8 +23,14 @@ function navigateToPage(pageName: String) {
         case 'deviceStatis':
             window.location.href = generateUrl(`/apps/sfxonitam/device-status`)
             break
+        case 'deviceTypes':
+            window.location.href = generateUrl(`/apps/sfxonitam/device-type`)
+            break
         case 'locations':
             window.location.href = generateUrl(`/apps/sfxonitam/location`)
+            break
+        case 'manufacturers':
+            window.location.href = generateUrl(`/apps/sfxonitam/manufacturer`)
             break
         case 'positions':
             window.location.href = generateUrl(`/apps/sfxonitam/position`)
@@ -42,6 +48,8 @@ function navigateToPage(pageName: String) {
     <NcAppNavigationCaption heading-id="stammdaten-heading" is-heading name="Stammdaten" />
     <NcAppNavigationList aria-labelledby="stammdaten-heading">
         <NcAppNavigationItem name="Geräte-Status" @click="navigateToPage('deviceStatis')" :active="currentPage == 'deviceStatis'" />
+        <NcAppNavigationItem name="Geräte-Typen" @click="navigateToPage('deviceTypes')" :active="currentPage == 'deviceTypes'" />
+        <NcAppNavigationItem name="Hersteller" @click="navigateToPage('manufacturers')" :active="currentPage == 'manufacturers'" />
         <NcAppNavigationItem name="Positionen" @click="navigateToPage('positions')" :active="currentPage == 'positions'" />
         <NcAppNavigationItem name="Standorte" @click="navigateToPage('locations')" :active="currentPage == 'locations'" />
     </NcAppNavigationList>

@@ -7,15 +7,15 @@ use OCP\DB\QueryBuilder\IQueryBuilder;
 use OCP\IDBConnection;
 
 /**
- * @template-extends QBMapper<Device>
+ * @template-extends QBMapper<DeviceType>
  */
-class DeviceMapper extends QBMapper {
+class DeviceTypeMapper extends QBMapper {
     public function __construct(IDBConnection $db) {
-        parent::__construct($db, 'sfxon_device', Device::class);
+        parent::__construct($db, 'sfxon_device_type', DeviceType::class);
     }
 
     public function isEntityValueInUse($entityFieldName, $id) {
-        $allowedEntityIdFields = ['device_status_id', 'position_id', 'device_type_id'];
+        $allowedEntityIdFields = ['manufacturer_id'];
 
         if(!in_array($entityFieldName, $allowedEntityIdFields)) {
             throw new \Exception('Entity field name \'' . $entityFieldName . '\' is not allowed.');
@@ -36,7 +36,7 @@ class DeviceMapper extends QBMapper {
         return true;
     }
 
-    public function findById(int $id): Device {
+    public function findById(int $id): DeviceType {
         $qb = $this->db->getQueryBuilder();
         $qb->select('*')
             ->from($this->getTableName())
@@ -45,21 +45,21 @@ class DeviceMapper extends QBMapper {
         return $this->findEntity($qb);
     }
 
-    /** @return Device[] */
+    /** @return DeviceType[] */
     public function findAll(): array {
         $qb = $this->db->getQueryBuilder();
         $qb->select('*')->from($this->getTableName());
         return $this->findEntities($qb);
     }
 
-    /** @return Device[] */
+    /** @return DeviceType[] */
     public function findAllPaged(
         string $orderBy = 'name',
         string $direction = 'ASC',
         int $limit = 20,
         int $offset = 0
     ): array {
-        $allowedColumns = [ 'name', 'serialNumber', 'assetNumber', 'purchaseDate', 'userId', ];
+        $allowedColumns = [ 'name', ];
         $col = in_array($orderBy, $allowedColumns, true) ? $orderBy : 'name';
         $col = strtolower(preg_replace('/[A-Z]/', '_$0', $col)); // CamelCase to SnakeCase umwandeln.
         $dir = strtoupper($direction) === 'DESC' ? 'DESC' : 'ASC';
