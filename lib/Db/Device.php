@@ -13,8 +13,8 @@ use OCP\AppFramework\Db\Entity;
  * @method void setPositionId(int|null $positionId)
  * @method int|null getDeviceTypeId()
  * @method void setDeviceTypeId(int|null $deviceTypeId)
- * @method string getUserId()
- * @method void setUserId(string $userId)
+ * @method int getItamUserId()
+ * @method void setItamUserId(int $itamUserId)
  * @method string|null getSerialNumber()
  * @method void setSerialNumber(string|null $serialNumber)
  * @method string|null getSerialNumber2()
@@ -39,7 +39,7 @@ class Device extends Entity implements \JsonSerializable {
     protected ?int $deviceStatusId = null;
     protected ?int $positionId = null;
     protected ?int $deviceTypeId = null;
-    protected string  $userId = '';
+    protected ?int  $itamUserId = null;
     protected ?string $serialNumber = null;
     protected ?string $serialNumber2 = null;
     protected ?string $assetNumber = null;
@@ -65,7 +65,7 @@ class Device extends Entity implements \JsonSerializable {
             'deviceStatusId' => $this->getDeviceStatusId(),
             'deviceTypeId' => $this->getDeviceTypeId(),
             'positionId' => $this->getPositionId(),
-            'userId' => $this->getUserId(),
+            'itamUserId' => $this->getItamUserId(),
             'serialNumber' => $this->getSerialNumber(),
             'serialNumber2' => $this->getSerialNumber2(),
             'assetNumber' => $this->getAssetNumber(),

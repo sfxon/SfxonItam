@@ -56,9 +56,8 @@ class Version010100Date20260411092800 extends SimpleMigrationStep {
                 'notnull' => false,
             ]);
 
-            $table->addColumn('user_id', Types::STRING, [
-                'notnull' => true,
-                'length' => 64,
+            $table->addColumn('itam_user_id', Types::BIGINT, [
+                'notnull' => false,
             ]);
 
             $table->addColumn('serial_number', Types::STRING, [
@@ -103,7 +102,7 @@ class Version010100Date20260411092800 extends SimpleMigrationStep {
             ]);
 
             $table->setPrimaryKey(['id']);
-            $table->addIndex(['user_id'], 'sfxon_device_uid');
+            $table->addIndex(['itam_user_id'], 'sfxon_device_uid');
         }
 
         return $schema;

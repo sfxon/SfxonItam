@@ -9,6 +9,8 @@ export default createAppConfig(
         deviceStatusEditor: resolve(join('src', 'views', 'DeviceStatusEditor', 'index.ts')),
         deviceTypeList: resolve(join('src', 'views', 'DeviceTypeList', 'index.ts')),
         deviceTypeEditor: resolve(join('src', 'views', 'DeviceTypeEditor', 'index.ts')),
+        itamUserList: resolve(join('src', 'views', 'ItamUserList', 'index.ts')),
+        itamUserEditor: resolve(join('src', 'views', 'ItamUserEditor', 'index.ts')),
         locationList: resolve(join('src', 'views', 'LocationList', 'index.ts')),
         locationEditor: resolve(join('src', 'views', 'LocationEditor', 'index.ts')),
         manufacturerList: resolve(join('src', 'views', 'ManufacturerList', 'index.ts')),

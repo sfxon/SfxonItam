@@ -15,7 +15,7 @@ Das Programm richtet sich an kleine und mittelständische Unternehmen (KMU) sowi
     - ✅ Position
     - ✅ Manufacturer/Hersteller
     - ✅ DeviceType
-    - User: Benutzer werden erstmal "normale" Entität. Wir verwenden also nicht weiterhin die Benutzer von Nextcloud. Diese sollten dem Login vorbehalten bleiben (Design-Entscheidung).
+    - ✅ User: Benutzer werden erstmal "normale" Entität. Wir verwenden also nicht weiterhin die Benutzer von Nextcloud. Diese sollten dem Login vorbehalten bleiben (Design-Entscheidung).
     - Verkäufer
 
 * ✅ DeviceStatus Entität umsetzen
@@ -312,7 +312,7 @@ php -d memory_limit=512M occ maintenance:mode --off
 erDiagram
     Device }o--o| Position : has
     Device }o--o| DeviceType : has
-    Device }o--o| User : has
+    Device }o--o| ItamUser : has
     Device }o--o| Merchant : has
     Device }o--o| DeviceStatus : has
     Position }o--o| Location : has
@@ -324,7 +324,7 @@ erDiagram
         BIGINT deviceStatusId FK "DEFAULT NULL"
         BIGINT positionId FK "DEFAULT NULL;<br>Im Sinn von Position"
         BIGINT deviceTypeId FK "DEFAULT NULL;"
-        BIGINT userId FK
+        BIGINT itemUserId FK
         string serialNumber
         string serialNumber2
         string assetNumber "Anlagennummer"
@@ -358,6 +358,14 @@ erDiagram
         BIGINT id PK
         string name UK
         BIGINT manufacturerId FK "DEFAULT NULL"
+        string comment
+    }
+
+    ItamUser {
+        BIGINT id PK
+        string firstname
+        string lastname
+        string email
         string comment
     }
 

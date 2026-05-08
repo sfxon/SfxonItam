@@ -7,36 +7,14 @@ use OCP\DB\QueryBuilder\IQueryBuilder;
 use OCP\IDBConnection;
 
 /**
- * @template-extends QBMapper<Device>
+ * @template-extends QBMapper<ItamUser>
  */
-class DeviceMapper extends QBMapper {
+class ItamUserMapper extends QBMapper {
     public function __construct(IDBConnection $db) {
-        parent::__construct($db, 'sfxon_device', Device::class);
+        parent::__construct($db, 'sfxon_itam_user', ItamUser::class);
     }
 
-    public function isEntityValueInUse($entityFieldName, $id) {
-        $allowedEntityIdFields = ['device_status_id', 'position_id', 'device_type_id', 'itam_user_id'];
-
-        if(!in_array($entityFieldName, $allowedEntityIdFields)) {
-            throw new \Exception('Entity field name \'' . $entityFieldName . '\' is not allowed.');
-        }
-
-        $qb = $this->db->getQueryBuilder();
-        $qb->select('*')
-            ->from($this->getTableName())
-            ->where($qb->expr()->eq($entityFieldName, $qb->createNamedParameter($id, IQueryBuilder::PARAM_INT)))
-            ->setMaxResults(1);
-
-        $result = $qb->executeQuery()->fetchAssociative();
-
-        if ($result === false) {
-            return false;
-        }
-
-        return true;
-    }
-
-    public function findById(int $id): Device {
+    public function findById(int $id): ItamUser {
         $qb = $this->db->getQueryBuilder();
         $qb->select('*')
             ->from($this->getTableName())
@@ -45,22 +23,22 @@ class DeviceMapper extends QBMapper {
         return $this->findEntity($qb);
     }
 
-    /** @return Device[] */
+    /** @return ItamUser[] */
     public function findAll(): array {
         $qb = $this->db->getQueryBuilder();
         $qb->select('*')->from($this->getTableName());
         return $this->findEntities($qb);
     }
 
-    /** @return Device[] */
+    /** @return ItamUser[] */
     public function findAllPaged(
-        string $orderBy = 'name',
+        string $orderBy = 'email',
         string $direction = 'ASC',
         int $limit = 20,
         int $offset = 0
     ): array {
-        $allowedColumns = [ 'name', 'serialNumber', 'assetNumber', 'purchaseDate', 'itamUserId', ];
-        $col = in_array($orderBy, $allowedColumns, true) ? $orderBy : 'name';
+        $allowedColumns = [ 'firstname', 'lastname', 'email' ];
+        $col = in_array($orderBy, $allowedColumns, true) ? $orderBy : 'email';
         $col = strtolower(preg_replace('/[A-Z]/', '_$0', $col)); // CamelCase to SnakeCase umwandeln.
         $dir = strtoupper($direction) === 'DESC' ? 'DESC' : 'ASC';
 

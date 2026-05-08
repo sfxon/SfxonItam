@@ -22,7 +22,7 @@ use OCA\SfxonItam\Service\DeviceService;
  * @psalm-suppress UnusedClass
  */
 class DeviceController extends Controller {
-    private array $expectedFields = ['name', 'deviceStatusId', 'positionId', 'deviceTypeId', 'purchaseDate', 'userId'];
+    private array $expectedFields = ['name', 'deviceStatusId', 'positionId', 'deviceTypeId', 'purchaseDate', 'itamUserId'];
 
     public function __construct(
         string $appName,
@@ -175,8 +175,8 @@ class DeviceController extends Controller {
         $positionId = $this->sanitizeForeignKey($this->request->getParam('positionId') ?? '');
         $device->setPositionId($positionId);
 
-        $userId = $this->sanitizeForeignKey($this->request->getParam('userId') ?? '');
-        $device->setUserId($userId);
+        $itamUserId = $this->sanitizeForeignKey($this->request->getParam('itamUserId') ?? '');
+        $device->setItamUserId($itamUserId);
         
         $purchaseDateRaw = $this->request->getParam('purchaseDate');
         $device->setPurchaseDate($purchaseDateRaw);

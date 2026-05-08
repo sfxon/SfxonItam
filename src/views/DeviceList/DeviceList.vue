@@ -20,12 +20,14 @@ import NcDialog from '@nextcloud/vue/components/NcDialog'
 import NcButton from '@nextcloud/vue/components/NcButton'
 import { fetchAllDeviceStatis } from '@/services/DeviceStatusService'
 import { fetchAllDeviceTypes } from '@/services/DeviceTypeService'
+import { fetchAllItamUsers } from '@/services/ItamUserService'
 import { fetchAllLocations } from '@/services/LocationService'
 import { fetchAllPositions } from '@/services/PositionService'
 
 const loading = ref(false)
 const deviceStatisLoading = ref(false)
 const deviceTypesLoading = ref(false)
+const itamUsersLoading = ref(false)
 const locationsLoading = ref(false)
 const positionsLoading = ref(false)
 
@@ -38,6 +40,7 @@ const locations = ref<{ id: string; label: string}[]>([])
 const relatedEntityData = reactive<Record<string, { id: any; label: string }[]>>({
     'deviceStatus': [],
     'deviceType': [],
+    'itamUser': [],
     'position': []
 });
 
@@ -46,7 +49,7 @@ const columns = [
     { type: 'relatedEntity', relatedEntityName: 'deviceStatus', key: 'deviceStatusId', label: t('sfxonitam', 'DeviceStatus'), sortable: false },
     { type: 'relatedEntity', relatedEntityName: 'position', key: 'positionId', label: t('sfxonitam', 'Position'), sortable: false  },
     { type: 'relatedEntity', relatedEntityName: 'deviceType', key: 'deviceTypeId', label: t('sfxonitam', 'DeviceType'), sortable: false },
-    { key: 'userId', label: t('sfxonitam', 'User'), sortable: true },
+    { type: 'relatedEntity', relatedEntityName: 'itamUser', key: 'itamUserId', label: t('sfxonitam', 'User'), sortable: true },
     { key: 'serialNumber', label: t('sfxonitam', 'Seriennummer'), sortable: true },
     { key: 'serialNumber2', label: t('sfxonitam', 'Seriennummer 2'), sortable: true },
     { key: 'assetNumber', label: t('sfxonitam', 'Assetnumber'), sortable: true },
@@ -128,6 +131,23 @@ async function loadDeviceTypes() {
     }
 }
 
+async function loadItamUsers() {
+    itamUsersLoading.value = true;
+
+    try {
+        const data = await fetchAllItamUsers({})
+
+        relatedEntityData['itamUser'] = Object.values(data.itamUsers).map((itamUser: any) => ({
+            id: itamUser.id,
+            label: itamUser.firstname + ' ' + itamUser.lastname
+        }))
+    } catch(e) {
+        console.error('Fehler beim Laden der itamUsers', e)
+    } finally {
+        itamUsersLoading.value = false
+    }
+}
+
 async function loadLocations() {
     locationsLoading.value = true;
 
@@ -185,6 +205,7 @@ watch(() => listState, loadDevices, { deep: true })
 onMounted(async () => {
     await loadDeviceStatis()
     await loadDeviceTypes()
+    await loadItamUsers()
     await loadPositions()
 
     // Load other entities before Devices.

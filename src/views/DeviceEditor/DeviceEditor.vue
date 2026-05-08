@@ -20,6 +20,7 @@ import NcIconSvgWrapper from '@nextcloud/vue/components/NcIconSvgWrapper'
 import { fetchDevice, createDevice, updateDevice } from '@/services/DeviceService'
 import SfxonMainNavigation from '@/components/SfxonMainNavigation'
 import { fetchAllDeviceStatis } from '@/services/DeviceStatusService'
+import { fetchAllItamUsers } from '@/services/ItamUserService'
 import { fetchAllLocations } from '@/services/LocationService'
 import { fetchAllDeviceTypes } from '@/services/DeviceTypeService'
 import { fetchAllPositions } from '@/services/PositionService'
@@ -30,15 +31,15 @@ const name = ref('')
 const purchaseDate = ref<Date | null>(null)
 const selectedDeviceStatus = ref<{ id: string; label: string } | null>(null)
 const selectedDeviceType = ref<{ id: string; label: string } | null>(null)
+const selectedItamUser = ref<{ id: string; label: string } | null>(null)
 const selectedPosition = ref<{ id: string; label: string } | null>(null)
-const selectedUser = ref<{ id: string; label: string } | null>(null)
 const savedSuccessfully = ref(false)
 
 // Ladezustände
-const usersLoading = ref(false)
 const deviceLoading = ref(false)
 const deviceStatisLoading = ref(false)
 const deviceTypesLoading = ref(false)
+const itamUsersLoading = ref(false)
 const locationsLoading = ref(false)
 const positionsLoading = ref(false)
 const isSaving = ref(false)
@@ -58,7 +59,7 @@ const deviceId = computed(() => {
 const isEditMode = computed(() => !!deviceId.value)
 
 // Abhängige Entitäten definieren.
-const users = ref<{ id: string; label: string }[]>([])
+const itamUsers = ref<{ id: string; label: string }[]>([])
 const deviceStatis = ref<{ id: string; label: string}[]>([])
 const deviceTypes = ref<{ id: string; label: string}[]>([])
 const locations = ref<{ id: string; label: string}[]>([])
@@ -82,10 +83,10 @@ async function loadDevice(id: number): Promise<void> {
 
         name.value = d.name ?? ''
         selectedDeviceStatus.value = deviceStatis.value.find(s => s.id === d.deviceStatusId) ?? null
-        selectedDeviceType.value = deviceTypes.value.find(s => s.id == d.deviceTypeId) ?? null
         selectedPosition.value = positions.value.find(s => s.id == d.positionId) ?? null
+        selectedDeviceType.value = deviceTypes.value.find(s => s.id == d.deviceTypeId) ?? null
+        selectedItamUser.value = itamUsers.value.find(u => u.id === d.itamUserId) ?? null
         purchaseDate.value = d.purchaseDate ? new Date(d.purchaseDate + 'T00:00:00') : null
-        selectedUser.value = users.value.find(u => u.id === d.userId) ?? null
     } catch (e: any) {
         generalError.value = t('sfxonitam', 'Gerät konnte nicht geladen werden.')
         console.error('Fehler beim Laden des Geräts:', e)
@@ -94,23 +95,20 @@ async function loadDevice(id: number): Promise<void> {
     }
 }
 
-async function loadUsers() {
-    usersLoading.value = true
+async function loadItamUsers() {
+    itamUsersLoading.value = true;
 
     try {
-        const response = await axios.get(
-            generateUrl('/ocs/v2.php/cloud/users/details?format=json'),
-            { headers: { 'OCS-APIRequest': 'true' } }
-        )
-        const usersData = response.data?.ocs?.data?.users ?? {}
-        users.value = Object.values(usersData).map((user: any) => ({
-            id: user.id,
-            label: user.displayname,
+        const data = await fetchAllItamUsers({})
+
+        itamUsers.value = Object.values(data.itamUsers).map((itamUser: any) => ({
+            id: itamUser.id,
+            label: itamUser.firstname + ' ' + itamUser.lastname
         }))
-    } catch (e) {
-        console.error('Fehler beim Laden der User:', e)
+    } catch(e) {
+        console.error('Fehler beim Laden der ItamUsers', e)
     } finally {
-        usersLoading.value = false
+        itamUsersLoading.value = false
     }
 }
 
@@ -201,9 +199,9 @@ async function submitForm() {
         name: name.value,
         deviceStatusId: selectedDeviceStatus.value?.id ?? null,
         deviceTypeId: selectedDeviceType.value?.id ?? null,
+        itamUserId: selectedItamUser.value?.id ?? null,
         positionId: selectedPosition.value?.id ?? null,
         purchaseDate: purchaseDate.value ? toLocalDateString(purchaseDate.value) : null,
-        userId: selectedUser.value?.id ?? null,
     }
 
     try {
@@ -231,9 +229,9 @@ async function submitForm() {
 }
 
 onMounted(async () => {
-    await loadUsers()
     await loadDeviceStatis()
     await loadDeviceTypes()
+    await loadItamUsers()
     await loadPositions()
 
     if (deviceId.value) {
@@ -361,7 +359,28 @@ onMounted(async () => {
                     </span>
                 </div>
 
-                <!-- Rechnungsdatum -->
+                <!-- itamUser -->
+                <div :class="$style.field">
+                    <label for="user-select" :class="$style.label">
+                        {{ t('sfxonitam', 'User') }}
+                    </label>
+                    <NcSelect
+                        id="user-select"
+                        v-model="selectedItamUser"
+                        :options="itamUsers"
+                        :loading="itamUsersLoading"
+                        :placeholder="t('sfxonitam', 'Benutzer auswählen')"
+                        :label="'label'"
+                        track-by="id"
+                        :class="fieldErrors.itamUserId ? $style.fieldError : ''"
+                        @input="clearFieldError('itamUserId')"
+                    />
+                    <span v-if="fieldErrors.itamUserId" :class="$style.errorText">
+                        {{ fieldErrors.itamUserId }}
+                    </span>
+                </div>
+
+                <!-- Purchase-Date -->
                 <div :class="$style.field">
                     <label for="purchaseDate" :class="$style.label">
                         {{ t('sfxonitam', 'Kaufdatum') }}
@@ -390,27 +409,6 @@ onMounted(async () => {
 
                     <span v-if="fieldErrors.purchaseDate" :class="$style.errorText">
                         {{ fieldErrors.purchaseDate }}
-                    </span>
-                </div>
-
-                <!-- User-Auswahl -->
-                <div :class="$style.field">
-                    <label for="user-select" :class="$style.label">
-                        {{ t('sfxonitam', 'Benutzer') }}
-                    </label>
-                    <NcSelect
-                        id="user-select"
-                        v-model="selectedUser"
-                        :options="users"
-                        :loading="usersLoading"
-                        :placeholder="t('sfxonitam', 'Benutzer auswählen')"
-                        :label="'label'"
-                        track-by="id"
-                        :class="fieldErrors.userId ? $style.fieldError : ''"
-                        @input="clearFieldError('userId')"
-                    />
-                    <span v-if="fieldErrors.userId" :class="$style.errorText">
-                        {{ fieldErrors.userId }}
                     </span>
                 </div>
 
