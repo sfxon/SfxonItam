@@ -10,7 +10,7 @@ use OCP\DB\Types;
 use OCP\Migration\IOutput;
 use OCP\Migration\SimpleMigrationStep;
 
-class Version010100Date202605071535700 extends SimpleMigrationStep {
+class Version010100Date20260507192070 extends SimpleMigrationStep {
     /**
      * @param IOutput $output
      * @param Closure $schemaClosure The `\Closure` returns a `ISchemaWrapper`
@@ -29,8 +29,8 @@ class Version010100Date202605071535700 extends SimpleMigrationStep {
         /** @var ISchemaWrapper $schema */
         $schema = $schemaClosure();
 
-        if (!$schema->hasTable('sfxon_manufacturer')) {
-            $table = $schema->createTable('sfxon_manufacturer');
+        if (!$schema->hasTable('sfxon_itam_user')) {
+            $table = $schema->createTable('sfxon_itam_user');
             
             $table->addColumn('id', Types::BIGINT, [
                 'autoincrement' => true,
@@ -39,13 +39,19 @@ class Version010100Date202605071535700 extends SimpleMigrationStep {
                 'unsigned' => true,
             ]);
 
-            $table->addColumn('name', Types::STRING, [
+            $table->addColumn('firstname', Types::STRING, [
                 'notnull' => false,
                 'length' => 300,
             ]);
 
-            $table->addColumn('manufacturer_id', Types::BIGINT, [
+            $table->addColumn('lastname', Types::STRING, [
                 'notnull' => false,
+                'length' => 300,
+            ]);
+
+            $table->addColumn('email', Types::STRING, [
+                'notnull' => false,
+                'length' => 300,
             ]);
 
             $table->addColumn('comment', Types::TEXT, [

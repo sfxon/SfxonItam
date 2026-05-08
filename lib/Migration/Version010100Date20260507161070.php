@@ -10,7 +10,7 @@ use OCP\DB\Types;
 use OCP\Migration\IOutput;
 use OCP\Migration\SimpleMigrationStep;
 
-class Version010100Date202605050705700 extends SimpleMigrationStep {
+class Version010100Date20260507161070 extends SimpleMigrationStep {
     /**
      * @param IOutput $output
      * @param Closure $schemaClosure The `\Closure` returns a `ISchemaWrapper`
@@ -29,8 +29,8 @@ class Version010100Date202605050705700 extends SimpleMigrationStep {
         /** @var ISchemaWrapper $schema */
         $schema = $schemaClosure();
 
-        if (!$schema->hasTable('sfxon_position')) {
-            $table = $schema->createTable('sfxon_position');
+        if (!$schema->hasTable('sfxon_device_type')) {
+            $table = $schema->createTable('sfxon_device_type');
             
             $table->addColumn('id', Types::BIGINT, [
                 'autoincrement' => true,
@@ -42,10 +42,6 @@ class Version010100Date202605050705700 extends SimpleMigrationStep {
             $table->addColumn('name', Types::STRING, [
                 'notnull' => false,
                 'length' => 300,
-            ]);
-
-            $table->addColumn('location_id', Types::BIGINT, [
-                'notnull' => false,
             ]);
 
             $table->addColumn('comment', Types::TEXT, [

@@ -18,12 +18,13 @@ import { useApiErrors } from '@/composables/useApiErrors'
 import { mdiClose } from '@mdi/js'
 import NcIconSvgWrapper from '@nextcloud/vue/components/NcIconSvgWrapper'
 import { fetchDevice, createDevice, updateDevice } from '@/services/DeviceService'
-import SfxonMainNavigation from '@/components/SfxonMainNavigation'
 import { fetchAllDeviceStatis } from '@/services/DeviceStatusService'
+import { fetchAllDeviceTypes } from '@/services/DeviceTypeService'
 import { fetchAllItamUsers } from '@/services/ItamUserService'
 import { fetchAllLocations } from '@/services/LocationService'
-import { fetchAllDeviceTypes } from '@/services/DeviceTypeService'
+import { fetchAllMerchants } from '@/services/MerchantService'
 import { fetchAllPositions } from '@/services/PositionService'
+import SfxonMainNavigation from '@/components/SfxonMainNavigation'
 
 
 // Formulardaten
@@ -33,6 +34,7 @@ const selectedDeviceStatus = ref<{ id: string; label: string } | null>(null)
 const selectedDeviceType = ref<{ id: string; label: string } | null>(null)
 const selectedItamUser = ref<{ id: string; label: string } | null>(null)
 const selectedPosition = ref<{ id: string; label: string } | null>(null)
+const selectedMerchant = ref<{ id: string; label: string } | null>(null)
 const savedSuccessfully = ref(false)
 
 // Ladezustände
@@ -41,6 +43,7 @@ const deviceStatisLoading = ref(false)
 const deviceTypesLoading = ref(false)
 const itamUsersLoading = ref(false)
 const locationsLoading = ref(false)
+const merchantsLoading = ref(false)
 const positionsLoading = ref(false)
 const isSaving = ref(false)
 
@@ -63,6 +66,7 @@ const itamUsers = ref<{ id: string; label: string }[]>([])
 const deviceStatis = ref<{ id: string; label: string}[]>([])
 const deviceTypes = ref<{ id: string; label: string}[]>([])
 const locations = ref<{ id: string; label: string}[]>([])
+const merchants = ref<{ id: string; label: string }[]>([])
 const positions = ref<{ id: string; label: string}[]>([])
 
 const toLocalDateString = (date: Date): string => {
@@ -79,13 +83,12 @@ async function loadDevice(id: number): Promise<void> {
     try {
         const d = await fetchDevice(id)
 
-        console.log('device: ', d);
-
         name.value = d.name ?? ''
         selectedDeviceStatus.value = deviceStatis.value.find(s => s.id === d.deviceStatusId) ?? null
-        selectedPosition.value = positions.value.find(s => s.id == d.positionId) ?? null
         selectedDeviceType.value = deviceTypes.value.find(s => s.id == d.deviceTypeId) ?? null
         selectedItamUser.value = itamUsers.value.find(u => u.id === d.itamUserId) ?? null
+        selectedMerchant.value = merchants.value.find(u => u.id === d.merchantId) ?? null
+        selectedPosition.value = positions.value.find(s => s.id == d.positionId) ?? null
         purchaseDate.value = d.purchaseDate ? new Date(d.purchaseDate + 'T00:00:00') : null
     } catch (e: any) {
         generalError.value = t('sfxonitam', 'Gerät konnte nicht geladen werden.')
@@ -163,6 +166,23 @@ async function loadLocations() {
     }
 }
 
+async function loadMerchants() {
+    merchantsLoading.value = true;
+
+    try {
+        const data = await fetchAllMerchants({})
+
+        merchants.value = Object.values(data.merchants).map((merchant: any) => ({
+            id: merchant.id,
+            label: merchant.name
+        }))
+    } catch(e) {
+        console.error('Fehler beim Laden der Merchants', e)
+    } finally {
+        merchantsLoading.value = false
+    }
+}
+
 async function loadPositions() {
     await loadLocations()
 
@@ -200,6 +220,7 @@ async function submitForm() {
         deviceStatusId: selectedDeviceStatus.value?.id ?? null,
         deviceTypeId: selectedDeviceType.value?.id ?? null,
         itamUserId: selectedItamUser.value?.id ?? null,
+        merchantId: selectedMerchant.value?.id ?? null,
         positionId: selectedPosition.value?.id ?? null,
         purchaseDate: purchaseDate.value ? toLocalDateString(purchaseDate.value) : null,
     }
@@ -232,6 +253,7 @@ onMounted(async () => {
     await loadDeviceStatis()
     await loadDeviceTypes()
     await loadItamUsers()
+    await loadMerchants()
     await loadPositions()
 
     if (deviceId.value) {
@@ -377,6 +399,27 @@ onMounted(async () => {
                     />
                     <span v-if="fieldErrors.itamUserId" :class="$style.errorText">
                         {{ fieldErrors.itamUserId }}
+                    </span>
+                </div>
+
+                <!-- merchant -->
+                <div :class="$style.field">
+                    <label for="merchant-select" :class="$style.label">
+                        {{ t('sfxonitam', 'Merchant') }}
+                    </label>
+                    <NcSelect
+                        id="user-select"
+                        v-model="selectedMerchant"
+                        :options="merchants"
+                        :loading="merchantsLoading"
+                        :placeholder="t('sfxonitam', 'Select merchants')"
+                        :label="'label'"
+                        track-by="id"
+                        :class="fieldErrors.merchantId ? $style.fieldError : ''"
+                        @input="clearFieldError('merchantId')"
+                    />
+                    <span v-if="fieldErrors.merchantId" :class="$style.errorText">
+                        {{ fieldErrors.merchantId }}
                     </span>
                 </div>
 

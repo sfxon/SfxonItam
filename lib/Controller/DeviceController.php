@@ -22,7 +22,15 @@ use OCA\SfxonItam\Service\DeviceService;
  * @psalm-suppress UnusedClass
  */
 class DeviceController extends Controller {
-    private array $expectedFields = ['name', 'deviceStatusId', 'positionId', 'deviceTypeId', 'purchaseDate', 'itamUserId'];
+    private array $expectedFields = [
+        'deviceStatusId',
+        'deviceTypeId',
+        'itamUserId',
+        'merchantId',
+        'name',
+        'purchaseDate',
+        'positionId',
+    ];
 
     public function __construct(
         string $appName,
@@ -164,19 +172,22 @@ class DeviceController extends Controller {
     }
 
     private function setDeviceDataFromRequest($device) {
-        $device->setName($this->request->getParam('name'));
-
         $deviceStatusId = $this->sanitizeForeignKey($this->request->getParam('deviceStatusId') ?? '');
         $device->setDeviceStatusId($deviceStatusId);
 
         $deviceTypeId = $this->sanitizeForeignKey($this->request->getParam('deviceTypeId') ?? '');
         $device->setDeviceTypeId($deviceTypeId);
 
-        $positionId = $this->sanitizeForeignKey($this->request->getParam('positionId') ?? '');
-        $device->setPositionId($positionId);
-
         $itamUserId = $this->sanitizeForeignKey($this->request->getParam('itamUserId') ?? '');
         $device->setItamUserId($itamUserId);
+
+        $merchantId = $this->sanitizeForeignKey($this->request->getParam('merchantId') ?? '');
+        $device->setMerchantId($merchantId);
+
+        $device->setName($this->request->getParam('name'));
+
+        $positionId = $this->sanitizeForeignKey($this->request->getParam('positionId') ?? '');
+        $device->setPositionId($positionId);
         
         $purchaseDateRaw = $this->request->getParam('purchaseDate');
         $device->setPurchaseDate($purchaseDateRaw);

@@ -16,7 +16,7 @@ Das Programm richtet sich an kleine und mittelständische Unternehmen (KMU) sowi
     - ✅ Manufacturer/Hersteller
     - ✅ DeviceType
     - ✅ User: Benutzer werden erstmal "normale" Entität. Wir verwenden also nicht weiterhin die Benutzer von Nextcloud. Diese sollten dem Login vorbehalten bleiben (Design-Entscheidung).
-    - Verkäufer
+    - ✅ Verkäufer (Merchant)
 
 * ✅ DeviceStatus Entität umsetzen
     - ✅ Entität in Datenbank erstellen

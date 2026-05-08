@@ -15,6 +15,8 @@ export default createAppConfig(
         locationEditor: resolve(join('src', 'views', 'LocationEditor', 'index.ts')),
         manufacturerList: resolve(join('src', 'views', 'ManufacturerList', 'index.ts')),
         manufacturerEditor: resolve(join('src', 'views', 'ManufacturerEditor', 'index.ts')),
+        merchantList: resolve(join('src', 'views', 'MerchantList', 'index.ts')),
+        merchantEditor: resolve(join('src', 'views', 'MerchantEditor', 'index.ts')),
         positionList: resolve(join('src', 'views', 'PositionList', 'index.ts')),
         positionEditor: resolve(join('src', 'views', 'PositionEditor', 'index.ts')),
     },

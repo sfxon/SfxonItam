@@ -22,13 +22,15 @@ import { fetchAllDeviceStatis } from '@/services/DeviceStatusService'
 import { fetchAllDeviceTypes } from '@/services/DeviceTypeService'
 import { fetchAllItamUsers } from '@/services/ItamUserService'
 import { fetchAllLocations } from '@/services/LocationService'
+import { fetchAllMerchants } from '@/services/MerchantService'
 import { fetchAllPositions } from '@/services/PositionService'
 
-const loading = ref(false)
 const deviceStatisLoading = ref(false)
 const deviceTypesLoading = ref(false)
 const itamUsersLoading = ref(false)
+const loading = ref(false)
 const locationsLoading = ref(false)
+const merchantsLoading = ref(false)
 const positionsLoading = ref(false)
 
 const error = ref<string | null>(null)
@@ -41,6 +43,7 @@ const relatedEntityData = reactive<Record<string, { id: any; label: string }[]>>
     'deviceStatus': [],
     'deviceType': [],
     'itamUser': [],
+    'merchant': [],
     'position': []
 });
 
@@ -49,12 +52,12 @@ const columns = [
     { type: 'relatedEntity', relatedEntityName: 'deviceStatus', key: 'deviceStatusId', label: t('sfxonitam', 'DeviceStatus'), sortable: false },
     { type: 'relatedEntity', relatedEntityName: 'position', key: 'positionId', label: t('sfxonitam', 'Position'), sortable: false  },
     { type: 'relatedEntity', relatedEntityName: 'deviceType', key: 'deviceTypeId', label: t('sfxonitam', 'DeviceType'), sortable: false },
-    { type: 'relatedEntity', relatedEntityName: 'itamUser', key: 'itamUserId', label: t('sfxonitam', 'User'), sortable: true },
+    { type: 'relatedEntity', relatedEntityName: 'itamUser', key: 'itamUserId', label: t('sfxonitam', 'User'), sortable: false },
     { key: 'serialNumber', label: t('sfxonitam', 'Seriennummer'), sortable: true },
     { key: 'serialNumber2', label: t('sfxonitam', 'Seriennummer 2'), sortable: true },
     { key: 'assetNumber', label: t('sfxonitam', 'Assetnumber'), sortable: true },
     { key: 'macAddress', label: t('sfxonitam', 'MAC-Adresse'), sortable: true },
-    { key: 'merchantId', label: t('sfxonitam', 'Verkäufer'), sortable: true },
+    { type: 'relatedEntity', relatedEntityName: 'merchant', key: 'merchantId', label: t('sfxonitam', 'Händler'), sortable: false },
     { key: 'invoiceNumber', label: t('sfxonitam', 'Rechnungs-Nummer'), sortable: true },
     { type: 'date', key: 'purchaseDate', label: t('sfxonitam', 'Kaufdatum'), sortable: true },
     { type: 'actions', label: t('sfxonitam', 'Aktion'), sortable: false },
@@ -96,7 +99,7 @@ async function loadDevices() {
 }
 
 async function loadDeviceStatis() {
-    deviceStatisLoading.value = true;
+    deviceStatisLoading.value = true
 
     try {
         const data = await fetchAllDeviceStatis({})
@@ -113,7 +116,7 @@ async function loadDeviceStatis() {
 }
 
 async function loadDeviceTypes() {
-    deviceTypesLoading.value = true;
+    deviceTypesLoading.value = true
 
     try {
         const data = await fetchAllDeviceTypes({})
@@ -132,7 +135,7 @@ async function loadDeviceTypes() {
 }
 
 async function loadItamUsers() {
-    itamUsersLoading.value = true;
+    itamUsersLoading.value = true
 
     try {
         const data = await fetchAllItamUsers({})
@@ -149,7 +152,7 @@ async function loadItamUsers() {
 }
 
 async function loadLocations() {
-    locationsLoading.value = true;
+    locationsLoading.value = true
 
     try {
         const data = await fetchAllLocations({})
@@ -165,10 +168,27 @@ async function loadLocations() {
     }
 }
 
+async function loadMerchants() {
+    merchantsLoading.value = true
+
+    try {
+        const data = await fetchAllMerchants({})
+
+        relatedEntityData['merchant'] = Object.values(data.merchants).map((merchant: any) => ({
+            id: merchant.id,
+            label: merchant.name
+        }))
+    } catch(e) {
+        console.error('Fehler beim Laden der Merchants', e)
+    } finally {
+        merchantsLoading.value = false
+    }
+}
+
 async function loadPositions() {
     await loadLocations()
 
-    positionsLoading.value = true;
+    positionsLoading.value = true
 
     try {
         const data = await fetchAllPositions({})
@@ -206,6 +226,7 @@ onMounted(async () => {
     await loadDeviceStatis()
     await loadDeviceTypes()
     await loadItamUsers()
+    await loadMerchants()
     await loadPositions()
 
     // Load other entities before Devices.
