@@ -7,6 +7,9 @@ Das Programm richtet sich an kleine und mittelständische Unternehmen (KMU) sowi
 * kostenfreie Nutzung
 * Release im Nextcloud Appstore zur einfacheren Installation ist geplant.
 
+<img alt="IT-Asset-Management - Device List View" src="https://github.com/user-attachments/assets/d1b2d377-556a-418e-ba6a-4bd4c00f6cf0" />
+
+<img alt="IT-Asset-Management - Device Editor" src="https://github.com/user-attachments/assets/63ddb78e-07e3-4dfd-84cb-b56211382cb3" />
 
 ## Roadmap
 
