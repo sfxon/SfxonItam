@@ -15,7 +15,7 @@ class DeviceMapper extends QBMapper {
     }
 
     public function isEntityValueInUse($entityFieldName, $id) {
-        $allowedEntityIdFields = ['device_status_id', 'position_id', 'device_type_id', 'itam_user_id'];
+        $allowedEntityIdFields = ['device_status_id', 'position_id', 'device_type_id', 'itam_user_id', 'merchant_id'];
 
         if(!in_array($entityFieldName, $allowedEntityIdFields)) {
             throw new \Exception('Entity field name \'' . $entityFieldName . '\' is not allowed.');
@@ -59,7 +59,14 @@ class DeviceMapper extends QBMapper {
         int $limit = 20,
         int $offset = 0
     ): array {
-        $allowedColumns = [ 'name', 'serialNumber', 'assetNumber', 'purchaseDate', 'itamUserId', ];
+        $allowedColumns = [
+            'assetNumber',
+            'inoiceNumber',
+            'name',
+            'purchaseDate',
+            'serialNumber',
+            'serialNumber2',
+        ];
         $col = in_array($orderBy, $allowedColumns, true) ? $orderBy : 'name';
         $col = strtolower(preg_replace('/[A-Z]/', '_$0', $col)); // CamelCase to SnakeCase umwandeln.
         $dir = strtoupper($direction) === 'DESC' ? 'DESC' : 'ASC';

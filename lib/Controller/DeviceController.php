@@ -23,13 +23,17 @@ use OCA\SfxonItam\Service\DeviceService;
  */
 class DeviceController extends Controller {
     private array $expectedFields = [
+        'assetNumber',
         'deviceStatusId',
         'deviceTypeId',
+        'invoiceNumber',
         'itamUserId',
         'merchantId',
         'name',
         'purchaseDate',
         'positionId',
+        'serialNumber',
+        'serialNumber2'
     ];
 
     public function __construct(
@@ -172,11 +176,15 @@ class DeviceController extends Controller {
     }
 
     private function setDeviceDataFromRequest($device) {
+        $device->setAssetNumber($this->request->getParam('assetNumber'));
+
         $deviceStatusId = $this->sanitizeForeignKey($this->request->getParam('deviceStatusId') ?? '');
         $device->setDeviceStatusId($deviceStatusId);
 
         $deviceTypeId = $this->sanitizeForeignKey($this->request->getParam('deviceTypeId') ?? '');
         $device->setDeviceTypeId($deviceTypeId);
+
+        $device->setInvoiceNumber($this->request->getParam('invoiceNumber'));
 
         $itamUserId = $this->sanitizeForeignKey($this->request->getParam('itamUserId') ?? '');
         $device->setItamUserId($itamUserId);
@@ -191,6 +199,10 @@ class DeviceController extends Controller {
         
         $purchaseDateRaw = $this->request->getParam('purchaseDate');
         $device->setPurchaseDate($purchaseDateRaw);
+
+        $device->setSerialNumber($this->request->getParam('serialNumber'));
+
+        $device->setSerialNumber2($this->request->getParam('serialNumber2'));
 
         return $device;
     }

@@ -8,24 +8,7 @@ Das Programm richtet sich an kleine und mittelständische Unternehmen (KMU) sowi
 * Release im Nextcloud Appstore zur einfacheren Installation ist geplant.
 
 
-## Timeline
-
-* Alle weiteren Entitäten umsetzen:
-    - ✅ Location
-    - ✅ Position
-    - ✅ Manufacturer/Hersteller
-    - ✅ DeviceType
-    - ✅ User: Benutzer werden erstmal "normale" Entität. Wir verwenden also nicht weiterhin die Benutzer von Nextcloud. Diese sollten dem Login vorbehalten bleiben (Design-Entscheidung).
-    - ✅ Verkäufer (Merchant)
-
-* ✅ DeviceStatus Entität umsetzen
-    - ✅ Entität in Datenbank erstellen
-    - ✅ Menüpunkt zum Verwalten von DeviceStati hinzufügen (verlinkt auf die Liste)
-    - ✅ Liste darstellen
-    - ✅ Button "Neu" hinzufügen
-    - ✅ Einträge verwalten (CRUD)
-    - ✅ nur Löschen, wenn ein Status nicht mehr in Device verwendet wird.
-    - ✅ DeviceStatus in den Menüpunkten zum Verwalten von Geräten (Device) hinzufügen.
+## Roadmap
 
 * Device Entität umsetzen:
     - ✅ Übersichts-Seite für die Geräte umsetzen:
@@ -37,12 +20,12 @@ Das Programm richtet sich an kleine und mittelständische Unternehmen (KMU) sowi
         - ✅ Pagination in eigene Komponente auslagern
         - ✅ Alte Elemente in VueJs entfernen, die aktuell noch als Referenz enthalten sind.
         - ✅ Action-Spalte hinzufügen.
-    - Detail-Seite erstellen zum Anlegen und Bearbeiten
+    - ✅ Detail-Seite erstellen zum Anlegen und Bearbeiten
         - ✅ Eingaben prüfen
             - ✅ Erste Version der Eingabeprüfung umsetzen.
             - ✅ Frontend-Ausgabe von Fehlern beim Speichern umsetzen.
         - ✅ Ausgaben escapen -> ist nicht notwendig, so lange wir nicht mit v-html binden. Vue escaped die anderen Werte automatisch.
-        - Alle Werte hinzufügen (Entitäten, "normale" Felder)
+        - ✅ Alle Werte hinzufügen (Entitäten, "normale" Felder)
     - ✅ Controller
     - ✅ View
     - ✅ Speicher Aktion hinzufügen.
@@ -65,6 +48,23 @@ Das Programm richtet sich an kleine und mittelständische Unternehmen (KMU) sowi
 * Rechte-Verwaltung integrieren. Die Bestandteile dürfen nur mit der notwendigen Berechtigung verwendet werden dürfen.
 
 * Lizenz-Management integrieren.
+
+* ✅ Alle weiteren Entitäten umsetzen:
+    - ✅ Location
+    - ✅ Position
+    - ✅ Manufacturer/Hersteller
+    - ✅ DeviceType
+    - ✅ User: Benutzer werden erstmal "normale" Entität. Wir verwenden also nicht weiterhin die Benutzer von Nextcloud. Diese sollten dem Login vorbehalten bleiben (Design-Entscheidung).
+    - ✅ Verkäufer (Merchant)
+
+* ✅ DeviceStatus Entität umsetzen
+    - ✅ Entität in Datenbank erstellen
+    - ✅ Menüpunkt zum Verwalten von DeviceStati hinzufügen (verlinkt auf die Liste)
+    - ✅ Liste darstellen
+    - ✅ Button "Neu" hinzufügen
+    - ✅ Einträge verwalten (CRUD)
+    - ✅ nur Löschen, wenn ein Status nicht mehr in Device verwendet wird.
+    - ✅ DeviceStatus in den Menüpunkten zum Verwalten von Geräten (Device) hinzufügen.
 
 ## Aktuelle Funktionen
 

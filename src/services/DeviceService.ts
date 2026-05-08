@@ -7,7 +7,6 @@ export interface Device {
     name: string | null
     serialNumber: string | null
     assetNumber: string | null
-    macAddress: string | null
     purchaseDate: string | null
     deviceStatusId: number | null
 }

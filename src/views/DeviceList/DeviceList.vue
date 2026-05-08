@@ -56,7 +56,6 @@ const columns = [
     { key: 'serialNumber', label: t('sfxonitam', 'Seriennummer'), sortable: true },
     { key: 'serialNumber2', label: t('sfxonitam', 'Seriennummer 2'), sortable: true },
     { key: 'assetNumber', label: t('sfxonitam', 'Assetnumber'), sortable: true },
-    { key: 'macAddress', label: t('sfxonitam', 'MAC-Adresse'), sortable: true },
     { type: 'relatedEntity', relatedEntityName: 'merchant', key: 'merchantId', label: t('sfxonitam', 'Händler'), sortable: false },
     { key: 'invoiceNumber', label: t('sfxonitam', 'Rechnungs-Nummer'), sortable: true },
     { type: 'date', key: 'purchaseDate', label: t('sfxonitam', 'Kaufdatum'), sortable: true },

@@ -14,7 +14,7 @@ use OCP\AppFramework\Http\TemplateResponse;
 use OCP\AppFramework\Http\JSONResponse;
 use OCP\IRequest;
 use OCA\SfxonItam\AppInfo\Application;
-use OCA\SfxonItam\Db\DeviceTypeMapper;
+use OCA\SfxonItam\Db\DeviceMapper;
 use OCA\SfxonItam\Db\Merchant;
 use OCA\SfxonItam\Db\MerchantMapper;
 use OCA\SfxonItam\Service\MerchantService;
@@ -26,7 +26,7 @@ class MerchantController extends Controller {
     public function __construct(
         string $appName,
         IRequest $request,
-        private DeviceTypeMapper $deviceTypeMapper,
+        private DeviceMapper $deviceMapper,
         private MerchantMapper $merchantMapper,
         private readonly MerchantService $merchantService
     ) {
@@ -37,12 +37,12 @@ class MerchantController extends Controller {
     #[FrontpageRoute(verb: 'DELETE', url: '/merchant/{id}')]
     public function delete(int $id): JsonResponse {
         // Only allow delete, if the deviceStatus is still used by another entity.
-        $hasEntries = $this->deviceTypeMapper->isEntityValueInUse('merchant_id', $id);
+        $hasEntries = $this->deviceMapper->isEntityValueInUse('merchant_id', $id);
 
         if($hasEntries) {
             return new JsonResponse([
                 'status' => 'error',
-                'errors' => ['Cannot delete. There are still deviceTypes assigned to this merchant.']
+                'errors' => ['Cannot delete. There are still devices assigned to this merchant.']
             ], Http::STATUS_UNPROCESSABLE_ENTITY); // Returns error 422
         }
 

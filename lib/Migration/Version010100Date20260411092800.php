@@ -75,11 +75,6 @@ class Version010100Date20260411092800 extends SimpleMigrationStep {
                 'length' => 300,
             ]);
 
-            $table->addColumn('mac_address', Types::STRING, [
-                'notnull' => false,
-                'length' => 32, // A MAC Address usually has only 17 characters, when you count the colons. To make this field a power of 8, i decided to give it 32 chars.
-            ]);
-
             $table->addColumn('merchant_id', Types::BIGINT, [
                 'notnull' => false,
             ]);

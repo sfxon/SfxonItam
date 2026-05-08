@@ -21,8 +21,6 @@ use OCP\AppFramework\Db\Entity;
  * @method void setSerialNumber2(string|null $serialNumber2)
  * @method string|null getAssetNumber()
  * @method void setAssetNumber(string|null $assetNumber)
- * @method string|null getMacAddress()
- * @method void setMacAddress(string|null $macAddress)
  * @method int|null getMerchantId()
  * @method void setMerchantId(int|null $merchantId)
  * @method string|null getInvoiceNumber()
@@ -43,7 +41,6 @@ class Device extends Entity implements \JsonSerializable {
     protected ?string $serialNumber = null;
     protected ?string $serialNumber2 = null;
     protected ?string $assetNumber = null;
-    protected ?string $macAddress = null;
     protected ?int $merchantId = null;
     protected ?string $invoiceNumber = null;
     protected ?string $purchaseDate = null;
@@ -69,7 +66,6 @@ class Device extends Entity implements \JsonSerializable {
             'serialNumber' => $this->getSerialNumber(),
             'serialNumber2' => $this->getSerialNumber2(),
             'assetNumber' => $this->getAssetNumber(),
-            'macAddress' => $this->getMacAddress(),
             'merchantId' => $this->getMerchantId(),
             'invoiceNumber' => $this->getInvoiceNumber(),
             'purchaseDate' => $this->getPurchaseDate(),

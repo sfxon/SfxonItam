@@ -28,6 +28,8 @@ import SfxonMainNavigation from '@/components/SfxonMainNavigation'
 
 
 // Formulardaten
+const assetNumber = ref('')
+const invoiceNumber = ref('')
 const name = ref('')
 const purchaseDate = ref<Date | null>(null)
 const selectedDeviceStatus = ref<{ id: string; label: string } | null>(null)
@@ -35,6 +37,8 @@ const selectedDeviceType = ref<{ id: string; label: string } | null>(null)
 const selectedItamUser = ref<{ id: string; label: string } | null>(null)
 const selectedPosition = ref<{ id: string; label: string } | null>(null)
 const selectedMerchant = ref<{ id: string; label: string } | null>(null)
+const serialNumber = ref('')
+const serialNumber2 = ref('')
 const savedSuccessfully = ref(false)
 
 // Ladezustände
@@ -83,12 +87,16 @@ async function loadDevice(id: number): Promise<void> {
     try {
         const d = await fetchDevice(id)
 
+        assetNumber.value = d.assetNumber ?? ''
+        invoiceNumber.value = d.invoiceNumber ?? ''
         name.value = d.name ?? ''
         selectedDeviceStatus.value = deviceStatis.value.find(s => s.id === d.deviceStatusId) ?? null
         selectedDeviceType.value = deviceTypes.value.find(s => s.id == d.deviceTypeId) ?? null
         selectedItamUser.value = itamUsers.value.find(u => u.id === d.itamUserId) ?? null
         selectedMerchant.value = merchants.value.find(u => u.id === d.merchantId) ?? null
         selectedPosition.value = positions.value.find(s => s.id == d.positionId) ?? null
+        serialNumber.value = d.serialNumber ?? ''
+        serialNumber2.value = d.serialNumber2 ?? ''
         purchaseDate.value = d.purchaseDate ? new Date(d.purchaseDate + 'T00:00:00') : null
     } catch (e: any) {
         generalError.value = t('sfxonitam', 'Gerät konnte nicht geladen werden.')
@@ -216,6 +224,8 @@ async function submitForm() {
     isSaving.value = true
 
     const payload = {
+        assetNumber: assetNumber.value,
+        invoiceNumber: invoiceNumber.value,
         name: name.value,
         deviceStatusId: selectedDeviceStatus.value?.id ?? null,
         deviceTypeId: selectedDeviceType.value?.id ?? null,
@@ -223,6 +233,8 @@ async function submitForm() {
         merchantId: selectedMerchant.value?.id ?? null,
         positionId: selectedPosition.value?.id ?? null,
         purchaseDate: purchaseDate.value ? toLocalDateString(purchaseDate.value) : null,
+        serialNumber: serialNumber.value,
+        serialNumber2: serialNumber2.value
     }
 
     try {
@@ -303,7 +315,7 @@ onMounted(async () => {
                     {{ t('sfxonitam', 'Die Änderungen wurden gespeichert.') }}
                 </NcNoteCard>
 
-                <!-- Geräte-Name -->
+                <!-- name -->
                 <div :class="$style.field">
                     <NcTextField
                         id="name"
@@ -318,7 +330,7 @@ onMounted(async () => {
                     </span>
                 </div>
 
-                <!-- Geräte-Status -->
+                <!-- DeviceStatus -->
                 <div :class="$style.field">
                     <label for="device-status-select" :class="$style.label">
                         {{ t('sfxonitam', 'Geräte-Status') }}
@@ -360,7 +372,7 @@ onMounted(async () => {
                     </span>
                 </div>
 
-                <!-- Geräte-Typ -->
+                <!-- DeviceType -->
                 <div :class="$style.field">
                     <label for="device-type-select" :class="$style.label">
                         {{ t('sfxonitam', 'Geräte-Typ') }}
@@ -381,7 +393,7 @@ onMounted(async () => {
                     </span>
                 </div>
 
-                <!-- itamUser -->
+                <!-- ItamUser -->
                 <div :class="$style.field">
                     <label for="user-select" :class="$style.label">
                         {{ t('sfxonitam', 'User') }}
@@ -402,7 +414,52 @@ onMounted(async () => {
                     </span>
                 </div>
 
-                <!-- merchant -->
+                <!-- serialNumber -->
+                <div :class="$style.field">
+                    <NcTextField
+                        id="serialNumber"
+                        v-model="serialNumber"
+                        :label="t('sfxonitam', 'Serial Number')"
+                        :placeholder="t('sfxonitam', 'e.g. EX-123-45678-999')"
+                        :class="fieldErrors.serialNumber ? $style.fieldError : ''"
+                        @input="clearFieldError('serialNumber')"
+                    />
+                    <span v-if="fieldErrors.serialNumber" :class="$style.errorText">
+                        {{ fieldErrors.serialNumber }}
+                    </span>
+                </div>
+
+                <!-- serialNumber2 -->
+                <div :class="$style.field">
+                    <NcTextField
+                        id="serialNumber2"
+                        v-model="serialNumber2"
+                        :label="t('sfxonitam', 'Serial Number 2')"
+                        :placeholder="t('sfxonitam', 'e.g. EX-123-45678-999')"
+                        :class="fieldErrors.serialNumber2 ? $style.fieldError : ''"
+                        @input="clearFieldError('serialNumber2')"
+                    />
+                    <span v-if="fieldErrors.serialNumber2" :class="$style.errorText">
+                        {{ fieldErrors.serialNumber2 }}
+                    </span>
+                </div>
+
+                <!-- assetNumber -->
+                <div :class="$style.field">
+                    <NcTextField
+                        id="assetNumber"
+                        v-model="assetNumber"
+                        :label="t('sfxonitam', 'Asset Number')"
+                        :placeholder="t('sfxonitam', 'e.g. EX-123-45678-999')"
+                        :class="fieldErrors.assetNumber ? $style.fieldError : ''"
+                        @input="clearFieldError('assetNumber')"
+                    />
+                    <span v-if="fieldErrors.assetNumber" :class="$style.errorText">
+                        {{ fieldErrors.assetNumber }}
+                    </span>
+                </div>
+
+                <!-- Merchant -->
                 <div :class="$style.field">
                     <label for="merchant-select" :class="$style.label">
                         {{ t('sfxonitam', 'Merchant') }}
@@ -423,7 +480,22 @@ onMounted(async () => {
                     </span>
                 </div>
 
-                <!-- Purchase-Date -->
+                <!-- invoiceNumber -->
+                <div :class="$style.field">
+                    <NcTextField
+                        id="invoiceNumber"
+                        v-model="invoiceNumber"
+                        :label="t('sfxonitam', 'Invoice Number')"
+                        :placeholder="t('sfxonitam', 'e.g. EX-123-45678-999')"
+                        :class="fieldErrors.invoiceNumber ? $style.fieldError : ''"
+                        @input="clearFieldError('invoiceNumber')"
+                    />
+                    <span v-if="fieldErrors.invoiceNumber" :class="$style.errorText">
+                        {{ fieldErrors.invoiceNumber }}
+                    </span>
+                </div>
+
+                <!-- purchaseDate -->
                 <div :class="$style.field">
                     <label for="purchaseDate" :class="$style.label">
                         {{ t('sfxonitam', 'Kaufdatum') }}
