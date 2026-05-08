@@ -1,10 +1,11 @@
-# ITAM
+# IT Asset Management
 
-ITAM (IT Asset Management) ist eine Nextcloud Erweiterung zur Verwaltung von Hardwaregeräten und Softwarelizenzen.
-Das Programm richtet sich an kleine und mittelständische Unternehmen (KMU) sowie Privatpersonen.
+ITAM (**IT Asset Management**) ist eine Nextcloud Erweiterung zur **Verwaltung von Hardwaregeräten** und **Verwaltung von Softwarelizenzen**.
+Das Programm richtet sich an **KMU** (kleine und mittelständische Unternehmen) sowie Privatpersonen.
 
-* MIT-Lizenz
-* kostenfreie Nutzung
+* Geräte-Verwaltung
+* Lizenz-Verwaltung (Software-Lizenzen)
+* Open Source + kostenfreie Nutzung (MIT-Lizenz)
 * Release im Nextcloud Appstore zur einfacheren Installation ist geplant.
 
 <img alt="IT-Asset-Management - Device List View" src="https://github.com/user-attachments/assets/d1b2d377-556a-418e-ba6a-4bd4c00f6cf0" /><br><br>
