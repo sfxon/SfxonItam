@@ -46,6 +46,18 @@ Das Programm richtet sich an kleine und mittelständische Unternehmen (KMU) sowi
         - ✅ Logik aus DeviceEditor ebenfalls auslagern in die Klasse Device. Das sollte die zentrale Klasse dafür werden.+
         - ✅ Denkbar ist jetzt noch eine Klasse DeviceApi oder ähnliches, welche die API-Logik noch etwas herauszieht, damit man schönen sauberen Code hat. Dann sollte es erstmal genug sein.
     - Geräte-Liste durchsuchbar und filterbar machen.
+        - Geräteliste filterbar machen.
+            - Eigene Komponente erstellen: SfxonFilterBar
+            - Teilkomponenten dafür erstellen:
+                - 1. Filter für Text-Felder / Number-Felder SfxonFilterFieldText
+                - 2. Filter für Datum (von bis, mit Datum-Selector) SfxonFilterFieldDate
+                - 3. Filter für Entitäten SfxonFilterFieldEntity
+                    -> verwende hierzu Dropdown-Listen mit denen sich alle Werte von Entitäten auswählen lassen.
+                    -> unten drunter die aktuell ausgewählten Werte
+                    -> Aktualisieren-Button
+            - Controller: Filtereinstellungen entgegennehmen und Ergebnis filtern / suchen.
+
+        - Geräteliste auch nach Entitäten sortierbar machen.
 
 * Rechte-Verwaltung integrieren. Die Bestandteile dürfen nur mit der notwendigen Berechtigung verwendet werden dürfen.
 

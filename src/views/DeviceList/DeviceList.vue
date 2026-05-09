@@ -4,20 +4,21 @@ import NcAppContent from '@nextcloud/vue/components/NcAppContent'
 import NcAppNavigation from '@nextcloud/vue/components/NcAppNavigation'
 import NcAppNavigationList from '@nextcloud/vue/components/NcAppNavigationList'
 import NcAppNavigationNew from '@nextcloud/vue/components/NcAppNavigationNew'
+import NcButton from '@nextcloud/vue/components/NcButton'
 import NcContent from '@nextcloud/vue/components/NcContent'
-import { mdiPlus } from '@mdi/js'
+import NcDialog from '@nextcloud/vue/components/NcDialog'
 import NcIconSvgWrapper from '@nextcloud/vue/components/NcIconSvgWrapper'
 import NcLoadingIcon from '@nextcloud/vue/components/NcLoadingIcon'
+import { mdiPlus } from '@mdi/js'
 import { translate as t } from '@nextcloud/l10n'
 import { generateUrl } from '@nextcloud/router'
+import SfxonFilterBar from '@/components/SfxonFilterBar'
 import SfxonMainNavigation from '@/components/SfxonMainNavigation'
 import SfxonPagination from '@/components/SfxonPagination'
 import SfxonTable from '@/components/SfxonTable'
 import { useListState } from '@/composables/useListState'
 import { fetchDevices, deleteDevice} from '@/services/DeviceService'
 import type { Device } from '@/services/DeviceService'
-import NcDialog from '@nextcloud/vue/components/NcDialog'
-import NcButton from '@nextcloud/vue/components/NcButton'
 import { fetchAllDeviceStatis } from '@/services/DeviceStatusService'
 import { fetchAllDeviceTypes } from '@/services/DeviceTypeService'
 import { fetchAllItamUsers } from '@/services/ItamUserService'
@@ -27,6 +28,7 @@ import { fetchAllPositions } from '@/services/PositionService'
 
 const deviceStatisLoading = ref(false)
 const deviceTypesLoading = ref(false)
+const filterSidebarOpen = ref(true)
 const itamUsersLoading = ref(false)
 const loading = ref(false)
 const locationsLoading = ref(false)
@@ -38,6 +40,8 @@ const listState = useListState()
 
 const devices = ref<Device[]>([])
 const deviceToDelete = ref<Device | null>(null)
+const filterValues = reactive<Record<string, { value: any }[]>>({
+})
 const locations = ref<{ id: string; label: string}[]>([])
 const relatedEntityData = reactive<Record<string, { id: any; label: string }[]>>({
     'deviceStatus': [],
@@ -124,8 +128,6 @@ async function loadDeviceTypes() {
             id: deviceType.id,
             label: deviceType.name
         }))
-
-        console.log('relatedEntityData: ', relatedEntityData)
     } catch(e) {
         console.error('Fehler beim Laden der Device-Types', e)
     } finally {
@@ -219,6 +221,10 @@ async function onDeleteDevice(device: Device) {
     deviceToDelete.value = device
 }
 
+function onFilterBtn() {
+    console.log('filterValues: ', filterValues.name);
+}
+
 watch(() => listState, loadDevices, { deep: true })
 
 onMounted(async () => {
@@ -253,7 +259,12 @@ onMounted(async () => {
         <!-- Inhaltsbereich -->
         <NcAppContent>
             <div :class="$style.sfxonItamHeader">
-                Geräte-Verwaltung
+                <div class=".content-title">Geräte-Verwaltung</div>
+                <div :class="$style.sfxonItamHeaderSidebarToggleBtn">
+                    <NcButton @click.prevent="filterSidebarOpen = !filterSidebarOpen">
+                        {{ t('sfxonitam', 'Search/Filter') }}
+                    </NcButton>
+                </div>
             </div>
             <div :class="$style.sfxonItamContent">
                 <!-- Fehler -->
@@ -286,6 +297,13 @@ onMounted(async () => {
                 />
             </div>
         </NcAppContent>
+
+        <!-- Sidebar for filter and search -->
+        <SfxonFilterBar
+            v-model:filterSidebarOpen="filterSidebarOpen"
+            :filterValues="filterValues"
+            :onFilterBtn="onFilterBtn"
+        />
     </NcContent>
 
     <NcDialog
@@ -329,5 +347,10 @@ onMounted(async () => {
     .sfxonItamContent {
         padding-left: 12px;
         padding-right: 12px;
+    }
+
+    .sfxonItamHeaderSidebarToggleBtn {
+        margin-left: auto;
+        margin-right: 0;
     }
 </style>
