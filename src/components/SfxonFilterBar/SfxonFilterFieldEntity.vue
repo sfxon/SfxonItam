@@ -44,7 +44,6 @@ const hasValue = computed(() => props.modelValue.length > 0)
         border-bottom: 1px solid #EEE;
         padding-bottom: .5rem;
         margin-bottom: .5rem;
-        border-radius: 6px;
         transition: background-color 0.2s;
     }
 
@@ -54,5 +53,9 @@ const hasValue = computed(() => props.modelValue.length > 0)
 
     .active :global(.vs__dropdown-toggle) {
         background-color: rgb(231, 250, 205)!important;
+    }
+
+    :global(body[data-theme-dark]) .active :global(.vs__dropdown-toggle) {
+        background-color: rgb(45, 63, 20) !important;
     }
 </style>

@@ -56,18 +56,27 @@ const columns = [
     { type: 'relatedEntity', relatedEntityName: 'position', key: 'positionId', label: t('sfxonitam', 'Position'), sortable: false  },
     { type: 'relatedEntity', relatedEntityName: 'deviceType', key: 'deviceTypeId', label: t('sfxonitam', 'DeviceType'), sortable: false },
     { type: 'relatedEntity', relatedEntityName: 'itamUser', key: 'itamUserId', label: t('sfxonitam', 'User'), sortable: false },
-    { key: 'serialNumber', label: t('sfxonitam', 'Seriennummer'), sortable: true },
-    { key: 'serialNumber2', label: t('sfxonitam', 'Seriennummer 2'), sortable: true },
-    { key: 'assetNumber', label: t('sfxonitam', 'Assetnumber'), sortable: true },
+    { key: 'serialNumber', label: t('sfxonitam', 'Serial Number'), sortable: true },
+    { key: 'serialNumber2', label: t('sfxonitam', 'Serial Number 2'), sortable: true },
+    { key: 'assetNumber', label: t('sfxonitam', 'Asset Number'), sortable: true },
     { type: 'relatedEntity', relatedEntityName: 'merchant', key: 'merchantId', label: t('sfxonitam', 'Händler'), sortable: false },
     { key: 'invoiceNumber', label: t('sfxonitam', 'Rechnungs-Nummer'), sortable: true },
-    { type: 'date', key: 'purchaseDate', label: t('sfxonitam', 'Kaufdatum'), sortable: true },
+    { type: 'date', key: 'purchaseDate', label: t('sfxonitam', 'Purchase Date'), sortable: true },
     { type: 'actions', label: t('sfxonitam', 'Aktion'), sortable: false },
 ]
 
 const filterFields = [
     { key: 'name', label: t('sfxonitam', 'Name'), },
     { type: 'relatedEntity', relatedEntityName: 'deviceStatus', key: 'deviceStatusId', label: t('sfxonitam', 'DeviceStatus'), },
+    { type: 'relatedEntity', relatedEntityName: 'position', key: 'positionId', label: t('sfxonitam', 'Position'), },
+    { type: 'relatedEntity', relatedEntityName: 'deviceType', key: 'deviceTypeId', label: t('sfxonitam', 'DeviceType'), },
+    { type: 'relatedEntity', relatedEntityName: 'itamUser', key: 'itamUserId', label: t('sfxonitam', 'User'), },
+    { key: 'serialNumber', label: t('sfxonitam', 'Serial Number'), },
+    { key: 'serialNumber2', label: t('sfxonitam', 'Serial Number 2'), },
+    { key: 'assetNumber', label: t('sfxonitam', 'Asset Number'), },
+    { type: 'relatedEntity', relatedEntityName: 'merchant', key: 'merchantId', label: t('sfxonitam', 'Merchant'), },
+    { key: 'invoiceNumber', label: t('sfxonitam', 'Invoice Number'), },
+    { type: 'date', key: 'purchaseDate', labelFrom: t('sfxonitam', 'Purchase Date from'), labelTo: t('sfxonitam', 'Purchase Date to') },
 ]
 
 function addItem() {

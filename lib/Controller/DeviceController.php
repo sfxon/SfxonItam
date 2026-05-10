@@ -176,6 +176,10 @@ class DeviceController extends Controller {
         ]);
     }
 
+    private function sanitizeForeignKey($foreignKeyValue) {
+        return ($foreignKeyValue == 0 || $foreignKeyValue == '0' || $foreignKeyValue == '') ? null : $foreignKeyValue;
+    }
+
     private function setDeviceDataFromRequest($device) {
         $device->setAssetNumber($this->request->getParam('assetNumber'));
 
@@ -206,9 +210,5 @@ class DeviceController extends Controller {
         $device->setSerialNumber2($this->request->getParam('serialNumber2'));
 
         return $device;
-    }
-
-    private function sanitizeForeignKey($foreignKeyValue) {
-        return ($foreignKeyValue == 0 || $foreignKeyValue == '0' || $foreignKeyValue == '') ? null : $foreignKeyValue;
     }
 }

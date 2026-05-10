@@ -80,10 +80,6 @@ class DeviceMapper extends QBMapper {
             ->setFirstResult($offset);
 
         if($filters !== null) {
-            // Joins – später bei Bedarf aktivieren
-            // $qb->leftJoin('d', 'sfxonitam_device_types', 'dt', $qb->expr()->eq('d.device_type_id', 'dt.id'));
-            // $qb->leftJoin('d', 'sfxonitam_positions', 'p', $qb->expr()->eq('d.position_id', 'p.id'));
-
             $this->applyFilters($qb, $filters);
         }
         
@@ -111,10 +107,67 @@ class DeviceMapper extends QBMapper {
             match ($key) {
                 'name' => $this->applyLikeFilter($qb, 'd.name', $values),
                 'deviceStatusId' => $this->applyInFilter($qb, 'd.device_status_id', $values),
+                'positionId' => $this->applyInFilter($qb, 'd.position_id', $values),
+                'deviceTypeId' => $this->applyInFilter($qb, 'd.device_type_id', $values),
+                'itamUserId' => $this->applyInFilter($qb, 'd.itam_user_id', $values),
                 'serialNumber' => $this->applyLikeFilter($qb, 'd.serial_number', $values),
+                'serialNumber2' => $this->applyLikeFilter($qb, 'd.serial_number2', $values),
+                'assetNumber' => $this->applyLikeFilter($qb, 'd.asset_number', $values),
+                'merchantId' => $this->applyInFilter($qb, 'd.merchant_id', $values),
+                'invoiceNumber' => $this->applyLikeFilter($qb, 'd.invoice_number', $values),
+                'purchaseDate' => $this->applyDateFromToFilter($qb, 'd.purchase_date', $values),
                 default => null,
             };
         }
+    }
+
+    private function applyDateFromToFilter(IQueryBuilder $qb, string $column, array $values): void {
+        // Check if both dates where submitted.
+        $from = null;
+        $fromTimestamp = null;
+        $to = null;
+        $toTimestamp = null;
+
+        if(count($values) > 0 && isset($values[0])) {
+            $fromTimestamp = strtotime($values[0]);
+
+            if($fromTimestamp === false) {
+                $fromTimestamp = null;
+            } else {
+                $from = date('Y-m-d', $fromTimestamp);
+            }
+        }
+
+        if(count($values) > 1 && isset($values[1])) {
+            $toTimestamp = strtotime($values[1]);
+            $to = date('Y-m-d', $toTimestamp);
+        }
+
+        if($from === null && $to === null) {
+            return;
+        }
+
+        if($from !== null) {
+            $qb->andWhere(
+                $qb->expr()->gte($column, $qb->createNamedParameter($from)),
+            );
+        }
+
+        if($to !== null) {
+            $qb->andWhere(
+                $qb->expr()->lte($column, $qb->createNamedParameter($to)),
+            );
+        }
+    }
+
+    private function applyInFilter(IQueryBuilder $qb, string $column, array $values): void {
+        $qb->andWhere($qb->expr()->in(
+            $column,
+            $qb->createNamedParameter(
+                array_map('intval', $values),  // ← String zu Integer
+                IQueryBuilder::PARAM_INT_ARRAY
+            )
+        ));
     }
 
     private function applyLikeFilter(IQueryBuilder $qb, string $column, array $values): void {
@@ -130,15 +183,5 @@ class DeviceMapper extends QBMapper {
         }
 
         $qb->andWhere($orX);
-    }
-
-    private function applyInFilter(IQueryBuilder $qb, string $column, array $values): void {
-        $qb->andWhere($qb->expr()->in(
-            $column,
-            $qb->createNamedParameter(
-                array_map('intval', $values),  // ← String zu Integer
-                IQueryBuilder::PARAM_INT_ARRAY
-            )
-        ));
     }
 }

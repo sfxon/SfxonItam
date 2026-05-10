@@ -3,8 +3,9 @@ import { translate as t } from '@nextcloud/l10n'
 import NcAppSidebar from '@nextcloud/vue/components/NcAppSidebar'
 import NcAppSidebarTab from '@nextcloud/vue/components/NcAppSidebarTab'
 import NcButton from '@nextcloud/vue/components/NcButton'
-import SfxonFilterFieldText from './SfxonFilterFieldText.vue'
+import SfxonFilterFieldDate from './SfxonFilterFieldDate.vue'
 import SfxonFilterFieldEntity from './SfxonFilterFieldEntity.vue'
+import SfxonFilterFieldText from './SfxonFilterFieldText.vue'
 
 type FilterField = {
     key: string
@@ -41,6 +42,13 @@ const emit = defineEmits<{ 'update:filterSidebarOpen': [value: boolean] }>()
                         <SfxonFilterFieldEntity
                             :label="filterField.label"
                             :entityData="relatedEntityData[filterField.relatedEntityName]"
+                            v-model="filterValues[filterField.key]"
+                        />
+                    </template>
+                    <template v-else-if="filterField.type == 'date'">
+                        <SfxonFilterFieldDate
+                            :labelFrom="filterField.labelFrom"
+                            :labelTo="filterField.labelTo"
                             v-model="filterValues[filterField.key]"
                         />
                     </template>

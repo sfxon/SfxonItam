@@ -23,12 +23,12 @@ const hasValue = computed(() => !!inputValue.value)
 </script>
 <template>
     <div :class="[$style.filterRow]">
+        <label for="textField">{{ label }}</label>
         <NcTextField
             :class="[{ [$style.active]: hasValue }]"
             id="filterValuesName"
             v-model="inputValue"
-            :label="label"
-            :placeholder="t('sfxonitam', 'e.g. JP001')" />
+            :label-outside="true" />
     </div>
 </template>
 <style module>
@@ -36,10 +36,12 @@ const hasValue = computed(() => !!inputValue.value)
         border-bottom: 1px solid #EEE;
         padding-bottom: .5rem;
         margin-bottom: .5rem;
-        border-radius: 6px;
         transition: background-color 0.2s;
     }
     .active input {
         background-color: rgb(231, 250, 205)!important;
+    }
+    :global(body[data-theme-dark]) .active input {
+        background-color: rgb(45, 63, 20) !important;
     }
 </style>

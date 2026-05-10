@@ -51,14 +51,22 @@ Das Programm richtet sich an **KMU** (kleine und mittelständische Unternehmen) 
             - ✅ Eigene Komponente erstellen: SfxonFilterBar
             - Teilkomponenten dafür erstellen:
                 - ✅ 1. Filter für Text-Felder / Number-Felder SfxonFilterFieldText
-                - 2. Filter für Datum (von bis, mit Datum-Selector) SfxonFilterFieldDate
-                - 3. Filter für Entitäten SfxonFilterFieldEntity
-                    -> verwende hierzu Dropdown-Listen mit denen sich alle Werte von Entitäten auswählen lassen.
-                    -> unten drunter die aktuell ausgewählten Werte
-                    -> Aktualisieren-Button
-            - Controller: Filtereinstellungen entgegennehmen und Ergebnis filtern / suchen.
+                - ✅ 2. Filter für Datum (von bis, mit Datum-Selector) SfxonFilterFieldDate
+                - ✅ 3. Filter für Entitäten SfxonFilterFieldEntity
+                    ✅ -> verwende hierzu Dropdown-Listen mit denen sich alle Werte von Entitäten auswählen lassen.
+                    ✅ > unten drunter die aktuell ausgewählten Werte
+                    ✅ -> Aktualisieren-Button
+            - ✅ Controller: Filtereinstellungen entgegennehmen und Ergebnis filtern / suchen.
+            - Filter für Standort hinzufügen (doppelte Tiefe)
+            - Filter für Geräte-Typ-Hersteller hinzufügen (doppelte Tiefe)
+            - Menge hinzufügen
+            - Bild hinzufügen
+            - QR-Code Generator hinzufügen
 
         - Geräteliste auch nach Entitäten sortierbar machen.
+    - Menü hinzufügen, mit dem die Reihenfolge der Spalten geändert werden kann, sowie eingestellt werden kann, in welcher Reihenfolge gefiltert werden kann.
+
+* Filter, Sortier und Spalten-Einstellungen auch in andere Entitäten aufnehmen (einheitlich).
 
 * Rechte-Verwaltung integrieren. Die Bestandteile dürfen nur mit der notwendigen Berechtigung verwendet werden dürfen.
 
