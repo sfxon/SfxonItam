@@ -48,7 +48,7 @@ const relatedEntityData = reactive<Record<string, { id: any; label: string }[]>>
     'itamUser': [],
     'merchant': [],
     'position': []
-});
+})
 
 const columns = [
     { key: 'name', label: t('sfxonitam', 'Name'), sortable: true },
@@ -63,7 +63,12 @@ const columns = [
     { key: 'invoiceNumber', label: t('sfxonitam', 'Rechnungs-Nummer'), sortable: true },
     { type: 'date', key: 'purchaseDate', label: t('sfxonitam', 'Kaufdatum'), sortable: true },
     { type: 'actions', label: t('sfxonitam', 'Aktion'), sortable: false },
-];
+]
+
+const filterFields = [
+    { key: 'name', label: t('sfxonitam', 'Name'), },
+    { type: 'relatedEntity', relatedEntityName: 'deviceStatus', key: 'deviceStatusId', label: t('sfxonitam', 'DeviceStatus'), },
+]
 
 function addItem() {
     window.location.href = generateUrl('/apps/sfxonitam/device/detail')
@@ -323,8 +328,10 @@ onMounted(async () => {
         <!-- Sidebar for filter and search -->
         <SfxonFilterBar
             v-model:filterSidebarOpen="filterSidebarOpen"
+            :filterFields="filterFields"
             :filterValues="filterValues"
             :onFilterBtn="onFilterBtn"
+            :relatedEntityData="relatedEntityData"
         />
     </NcContent>
 

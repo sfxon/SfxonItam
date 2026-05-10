@@ -110,6 +110,7 @@ class DeviceMapper extends QBMapper {
 
             match ($key) {
                 'name' => $this->applyLikeFilter($qb, 'd.name', $values),
+                'deviceStatusId' => $this->applyInFilter($qb, 'd.device_status_id', $values),
                 'serialNumber' => $this->applyLikeFilter($qb, 'd.serial_number', $values),
                 default => null,
             };
@@ -131,9 +132,13 @@ class DeviceMapper extends QBMapper {
         $qb->andWhere($orX);
     }
 
-    private function applyInFilter(IQueryBuilder $qb, string $column, array $values): void
-    {
-        $params = array_map(fn($v) => $qb->createNamedParameter($v), $values);
-        $qb->andWhere($qb->expr()->in($column, $params));
+    private function applyInFilter(IQueryBuilder $qb, string $column, array $values): void {
+        $qb->andWhere($qb->expr()->in(
+            $column,
+            $qb->createNamedParameter(
+                array_map('intval', $values),  // ← String zu Integer
+                IQueryBuilder::PARAM_INT_ARRAY
+            )
+        ));
     }
 }
