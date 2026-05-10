@@ -88,11 +88,12 @@ class DeviceController extends Controller {
         string $orderBy = 'name',
         string $direction = 'ASC',
         int $page = 1,
-        int $limit = 20
+        int $limit = 20,
+        ?array $filters = null
     ): JSONResponse {
         $offset = ($page - 1) * $limit;
-        $devices = $this->deviceMapper->findAllPaged($orderBy, $direction, $limit, $offset);
-        $total   = $this->deviceMapper->countAll();
+        $devices = $this->deviceMapper->findAllPaged($orderBy, $direction, $limit, $offset, $filters);
+        $total   = $this->deviceMapper->countAll($filters);
 
         return new JSONResponse([
             'devices' => array_map(fn($d) => $d->jsonSerialize(), $devices),

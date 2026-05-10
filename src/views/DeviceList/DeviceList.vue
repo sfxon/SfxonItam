@@ -40,8 +40,7 @@ const listState = useListState()
 
 const devices = ref<Device[]>([])
 const deviceToDelete = ref<Device | null>(null)
-const filterValues = reactive<Record<string, { value: any }[]>>({
-})
+const filterValues = reactive<Record<string, { value: any }[]>>({})
 const locations = ref<{ id: string; label: string}[]>([])
 const relatedEntityData = reactive<Record<string, { id: any; label: string }[]>>({
     'deviceStatus': [],
@@ -74,6 +73,16 @@ function cancelDelete() {
     deviceToDelete.value = null
 }
 
+function clearData() {
+    devices.value = []
+    locations.value = []
+    relatedEntityData.deviceStatus = []
+    relatedEntityData.deviceType = []
+    relatedEntityData.itamUser = []
+    relatedEntityData.merchant = []
+    relatedEntityData.position = []
+}
+
 async function confirmDelete() {
     if (!deviceToDelete.value) return
     await deleteDevice(deviceToDelete.value.id)
@@ -82,28 +91,33 @@ async function confirmDelete() {
 }
 
 async function loadDevices() {
-    loading.value = true
     error.value = null
 
     try {
+        const filters = Object.fromEntries(
+            Object.entries(filterValues).map(([key, entries]) => [
+                key,
+                entries.map(e => e.value)  // nur den value-Anteil extrahieren
+            ])
+        )
+
         const data = await fetchDevices({
             orderBy: listState.orderBy,
             direction: listState.orderDirection,
             page: listState.page,
-            limit: listState.limit
+            limit: listState.limit,
+            filters
         })
         devices.value = data.devices
         listState.total = data.total
     } catch (e) {
         error.value = t('sfxonitam', 'Fehler beim Laden der Geräte.')
+        console.log(e)
     } finally {
-        loading.value = false
     }
 }
 
 async function loadDeviceStatis() {
-    deviceStatisLoading.value = true
-
     try {
         const data = await fetchAllDeviceStatis({})
 
@@ -222,12 +236,14 @@ async function onDeleteDevice(device: Device) {
 }
 
 function onFilterBtn() {
-    console.log('filterValues: ', filterValues.name);
+    clearData()
+    listState.page = 1;
+    reloadDevices()
 }
 
-watch(() => listState, loadDevices, { deep: true })
+async function reloadDevices() {
+    loading.value = true
 
-onMounted(async () => {
     await loadDeviceStatis()
     await loadDeviceTypes()
     await loadItamUsers()
@@ -236,6 +252,17 @@ onMounted(async () => {
 
     // Load other entities before Devices.
     await loadDevices()
+
+    loading.value = false
+}
+
+watch(
+    () => [listState.orderBy, listState.orderDirection, listState.page, listState.limit],
+    loadDevices
+)
+
+onMounted(async () => {
+    await reloadDevices()
 })
 
 </script>
@@ -273,11 +300,6 @@ onMounted(async () => {
                 <!-- Ladeindikator -->
                 <div v-else-if="loading" class="device-list__loading">
                     <NcLoadingIcon :size="32" />
-                </div>
-
-                <!-- Leerer Zustand -->
-                <div v-else-if="devices.length === 0" class="device-list__empty">
-                    {{ t('sfxonitam', 'Keine Geräte gefunden.') }}
                 </div>
 
                 <SfxonTable

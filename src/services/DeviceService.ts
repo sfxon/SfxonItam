@@ -28,7 +28,8 @@ export interface ListParams {
     orderBy: string
     direction: string
     page: number
-    limit: number
+    limit: number,
+    filters?: Record<string, any>
 }
 
 export async function createDevice(payload: DevicePayload) {
@@ -41,8 +42,21 @@ export async function fetchDevice(id: number): Promise<Device> {
     return data
 }
 
-export async function fetchDevices(params: ListParams): Promise<DeviceListResponse> {
-    const { data } = await axios.get(generateUrl('/apps/sfxonitam/device/list'), { params })
+export async function fetchDevices(options: ListParams): Promise<DeviceListResponse> {
+    const params = new URLSearchParams()
+    params.append('orderBy', options.orderBy)
+    params.append('direction', options.direction)
+    params.append('page', String(options.page))
+    params.append('limit', String(options.limit))
+
+    for (const [key, values] of Object.entries(options.filters ?? {})) {
+        for (const value of values) {
+            params.append(`filters[${key}][]`, value)
+        }
+    }
+
+    const url = generateUrl('/apps/sfxonitam/device/list') + '?' + params.toString()
+    const { data } = await axios.get(url)
     return data
 }
 

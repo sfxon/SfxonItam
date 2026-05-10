@@ -3,7 +3,7 @@
 import { translate as t } from '@nextcloud/l10n'
 
 const props = defineProps<{
-    page: 0,
+    page: number,
     listState: any
 }>()
 
@@ -13,8 +13,8 @@ const emit = defineEmits<{
 
 </script>
 <template>
-    <div v-if="listState.totalPages > 1" class="device-list__pagination">
-        <button :disabled="page === 1" @click="emit('update:page', page - 1)">‹</button>
+    <div class="device-list__pagination">
+        <button :disabled="page <= 1" @click="emit('update:page', page - 1)">‹</button>
 
         <template v-for="p in listState.totalPages" :key="p">
             <!-- Fenster: erste, letzte, und ±2 um aktuelle Seite -->
@@ -24,11 +24,14 @@ const emit = defineEmits<{
             <span v-else-if="p === page - 3 || p === page + 3">…</span>
         </template>
 
-        <button :disabled="page === listState.totalPages" @click="emit('update:page', page + 1)">›</button>
+        <button :disabled="page >= listState.totalPages" @click="emit('update:page', page + 1)">›</button>
 
-        <span class="device-list__info">
+        <span class="device-list__info" v-if="listState.total > 0">
             {{ (page - 1) * listState.limit + 1 }}–{{ Math.min(page * listState.limit, listState.total) }}
             {{ t('sfxonitam', 'von') }} {{ listState.total }}
+        </span>
+        <span class="device-list__info" v-else>
+            Keine Ergebnisse gefunden
         </span>
     </div>
 </template>
