@@ -14,7 +14,7 @@ use OCP\AppFramework\Http\TemplateResponse;
 use OCP\AppFramework\Http\JSONResponse;
 use OCP\IRequest;
 use OCA\SfxonItam\AppInfo\Application;
-use OCA\SfxonItam\Db\DeviceTypeMapper;
+use OCA\SfxonItam\Db\DeviceMapper;
 use OCA\SfxonItam\Db\QuantityUnit;
 use OCA\SfxonItam\Db\QuantityUnitMapper;
 use OCA\SfxonItam\Service\QuantityUnitService;
@@ -26,7 +26,7 @@ class QuantityUnitController extends Controller {
     public function __construct(
         string $appName,
         IRequest $request,
-        private DeviceTypeMapper $deviceTypeMapper,
+        private DeviceMapper $deviceMapper,
         private QuantityUnitMapper $quantityUnitMapper,
         private readonly QuantityUnitService $quantityUnitService
     ) {
@@ -37,12 +37,12 @@ class QuantityUnitController extends Controller {
     #[FrontpageRoute(verb: 'DELETE', url: '/quantity-unit/{id}')]
     public function delete(int $id): JsonResponse {
         // Only allow delete, if the deviceStatus is still used by another entity.
-        $hasEntries = $this->deviceTypeMapper->isEntityValueInUse('quantity_unit_id', $id);
+        $hasEntries = $this->deviceMapper->isEntityValueInUse('quantity_unit_id', $id);
 
         if($hasEntries) {
             return new JsonResponse([
                 'status' => 'error',
-                'errors' => ['Cannot delete. There are still deviceTypes assigned to this quantityUnit.']
+                'errors' => ['Cannot delete. There are still devices assigned to this quantityUnit.']
             ], Http::STATUS_UNPROCESSABLE_ENTITY); // Returns error 422
         }
 
