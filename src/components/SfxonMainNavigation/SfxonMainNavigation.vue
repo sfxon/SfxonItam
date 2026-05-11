@@ -41,6 +41,9 @@ function navigateToPage(pageName: String) {
         case 'positions':
             window.location.href = generateUrl(`/apps/sfxonitam/position`)
             break
+        case 'quantityUnits':
+            window.location.href = generateUrl(`/apps/sfxonitam/quantity-unit`)
+            break
     }
 }
 
@@ -57,6 +60,7 @@ function navigateToPage(pageName: String) {
         <NcAppNavigationItem name="Geräte-Typen" @click="navigateToPage('deviceTypes')" :active="currentPage == 'deviceTypes'" />
         <NcAppNavigationItem name="Händler" @click="navigateToPage('merchants')" :active="currentPage == 'merchants'" />
         <NcAppNavigationItem name="Hersteller" @click="navigateToPage('manufacturers')" :active="currentPage == 'manufacturers'" />
+        <NcAppNavigationItem name="Mengeneinheiten" @click="navigateToPage('quantityUnits')" :active="currentPage == 'quantityUnits'" />
         <NcAppNavigationItem name="Mitarbeiter" @click="navigateToPage('itamUsers')" :active="currentPage == 'itamUsers'" />
         <NcAppNavigationItem name="Positionen" @click="navigateToPage('positions')" :active="currentPage == 'positions'" />
         <NcAppNavigationItem name="Standorte" @click="navigateToPage('locations')" :active="currentPage == 'locations'" />

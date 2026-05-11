@@ -7,6 +7,10 @@ use OCP\AppFramework\Db\Entity;
 /**
  * @method string|null getName()
  * @method void setName(string|null $name)
+ * @method float|null getQuantity()
+ * @method void setQuantity(float|null $quantity)
+ * @method int|null getQuantityUnitId()
+ * @method void setQuantityUnitId(int|null $quantityUnitId)
  * @method int|null getDeviceStatusId()
  * @method void setDeviceStatusId(int|null $deviceStatusId)
  * @method int|null getPositionId()
@@ -34,6 +38,8 @@ use OCP\AppFramework\Db\Entity;
  */
 class Device extends Entity implements \JsonSerializable {
     protected ?string $name = null;
+    protected ?string $quantity = null;
+    protected ?int $quantityUnitId = null;
     protected ?int $deviceStatusId = null;
     protected ?int $positionId = null;
     protected ?int $deviceTypeId = null;
@@ -51,6 +57,7 @@ class Device extends Entity implements \JsonSerializable {
         $this->addType('id', 'integer');
         $this->addType('deviceStatusId', 'integer');
         $this->addType('positionId', 'integer');
+        $this->addType('quantityUnitId', 'integer');
         $this->addType('deviceTypeId', 'integer');
         $this->addType('merchantId', 'integer');
     }
@@ -59,6 +66,8 @@ class Device extends Entity implements \JsonSerializable {
         return [
             'id' => $this->getId(),
             'name' => $this->getName(),
+            'quantity' => $this->getQuantity(),
+            'quantityUnitId' => $this->getQuantityUnitId(),
             'deviceStatusId' => $this->getDeviceStatusId(),
             'deviceTypeId' => $this->getDeviceTypeId(),
             'positionId' => $this->getPositionId(),

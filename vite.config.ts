@@ -19,6 +19,8 @@ export default createAppConfig(
         merchantEditor: resolve(join('src', 'views', 'MerchantEditor', 'index.ts')),
         positionList: resolve(join('src', 'views', 'PositionList', 'index.ts')),
         positionEditor: resolve(join('src', 'views', 'PositionEditor', 'index.ts')),
+        quantityUnitList: resolve(join('src', 'views', 'QuantityUnitList', 'index.ts')),
+        quantityUnitEditor: resolve(join('src', 'views', 'QuantityUnitEditor', 'index.ts')),
     },
     {
         createEmptyCSSEntryPoints: true,

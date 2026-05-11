@@ -44,6 +44,17 @@ class Version010100Date20260411092800 extends SimpleMigrationStep {
                 'length' => 300,
             ]);
 
+            $table->addColumn('quantity', Types::DECIMAL, [
+                'precision' => 10,
+                'scale' => 4,
+                'notnull' => false,
+                'default'   => 0.0000
+            ]);
+
+            $table->addColumn('quantity_unit_id', Types::BIGINT, [
+                'notnull' => false,
+            ]);
+
             $table->addColumn('device_status_id', Types::BIGINT, [
                 'notnull' => false,
             ]);
