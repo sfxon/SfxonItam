@@ -57,8 +57,8 @@ Das Programm richtet sich an **KMU** (kleine und mittelständische Unternehmen) 
                     ✅ > unten drunter die aktuell ausgewählten Werte
                     ✅ -> Aktualisieren-Button
             - ✅ Controller: Filtereinstellungen entgegennehmen und Ergebnis filtern / suchen.
-            - Filter für Standort hinzufügen (doppelte Tiefe)
-            - Filter für Geräte-Typ-Hersteller hinzufügen (doppelte Tiefe)
+            - ✅ Filter für Standort hinzufügen (doppelte Tiefe)
+            - ✅ Filter für Geräte-Typ-Hersteller hinzufügen (doppelte Tiefe)
             - Menge hinzufügen
             - Bild hinzufügen
             - QR-Code Generator hinzufügen

@@ -188,7 +188,6 @@ onMounted(async () => {
                         v-model="selectedManufacturer"
                         :options="manufacturers"
                         :loading="manufacturersLoading"
-                        :placeholder="t('sfxonitam', 'Geräte-Typ auswählen')"
                         :label="'label'"
                         track-by="id"
                         :class="fieldErrors.manufacturerId ? $style.fieldError : ''"

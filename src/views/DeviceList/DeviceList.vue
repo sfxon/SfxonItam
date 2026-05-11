@@ -23,6 +23,7 @@ import { fetchAllDeviceStatis } from '@/services/DeviceStatusService'
 import { fetchAllDeviceTypes } from '@/services/DeviceTypeService'
 import { fetchAllItamUsers } from '@/services/ItamUserService'
 import { fetchAllLocations } from '@/services/LocationService'
+import { fetchAllManufacturers } from '@/services/ManufacturerService'
 import { fetchAllMerchants } from '@/services/MerchantService'
 import { fetchAllPositions } from '@/services/PositionService'
 
@@ -32,6 +33,7 @@ const filterSidebarOpen = ref(true)
 const itamUsersLoading = ref(false)
 const loading = ref(false)
 const locationsLoading = ref(false)
+const manufacturersLoading = ref(false)
 const merchantsLoading = ref(false)
 const positionsLoading = ref(false)
 
@@ -42,10 +44,13 @@ const devices = ref<Device[]>([])
 const deviceToDelete = ref<Device | null>(null)
 const filterValues = reactive<Record<string, { value: any }[]>>({})
 const locations = ref<{ id: string; label: string}[]>([])
+const manufacturers = ref<{ id: string; label: string}[]>([])
 const relatedEntityData = reactive<Record<string, { id: any; label: string }[]>>({
     'deviceStatus': [],
     'deviceType': [],
     'itamUser': [],
+    'location': [],
+    'manufacturer': [],
     'merchant': [],
     'position': []
 })
@@ -69,7 +74,9 @@ const filterFields = [
     { key: 'name', label: t('sfxonitam', 'Name'), },
     { type: 'relatedEntity', relatedEntityName: 'deviceStatus', key: 'deviceStatusId', label: t('sfxonitam', 'DeviceStatus'), },
     { type: 'relatedEntity', relatedEntityName: 'position', key: 'positionId', label: t('sfxonitam', 'Position'), },
+    { type: 'relatedEntity', relatedEntityName: 'location', key: 'locationId', label: t('sfxonitam', 'Location'), },
     { type: 'relatedEntity', relatedEntityName: 'deviceType', key: 'deviceTypeId', label: t('sfxonitam', 'DeviceType'), },
+    { type: 'relatedEntity', relatedEntityName: 'manufacturer', key: 'manufacturerId', label: t('sfxonitam', 'Manufacturer'), },
     { type: 'relatedEntity', relatedEntityName: 'itamUser', key: 'itamUserId', label: t('sfxonitam', 'User'), },
     { key: 'serialNumber', label: t('sfxonitam', 'Serial Number'), },
     { key: 'serialNumber2', label: t('sfxonitam', 'Serial Number 2'), },
@@ -90,6 +97,7 @@ function cancelDelete() {
 function clearData() {
     devices.value = []
     locations.value = []
+    manufacturers.value = []
     relatedEntityData.deviceStatus = []
     relatedEntityData.deviceType = []
     relatedEntityData.itamUser = []
@@ -190,6 +198,7 @@ async function loadLocations() {
             id: location.id,
             label: location.name
         }))
+        relatedEntityData['location'] = locations
     } catch(e) {
         console.error('Fehler beim Laden der Locations', e)
     } finally {
@@ -211,6 +220,23 @@ async function loadMerchants() {
         console.error('Fehler beim Laden der Merchants', e)
     } finally {
         merchantsLoading.value = false
+    }
+}
+
+async function loadManufacturers() {
+    manufacturersLoading.value = true
+
+    try {
+        const data = await fetchAllManufacturers({})
+
+        relatedEntityData['manufacturer'] = Object.values(data.manufacturers).map((manufacturer: any) => ({
+            id: manufacturer.id,
+            label: manufacturer.name
+        }))
+    } catch(e) {
+        console.error('Error while loading Manufacturers', e)
+    } finally {
+        manufacturersLoading.value = false
     }
 }
 
@@ -261,6 +287,7 @@ async function reloadDevices() {
     await loadDeviceStatis()
     await loadDeviceTypes()
     await loadItamUsers()
+    await loadManufacturers()
     await loadMerchants()
     await loadPositions()
 

@@ -110,6 +110,8 @@ class DeviceMapper extends QBMapper {
                 'positionId' => $this->applyInFilter($qb, 'd.position_id', $values),
                 'deviceTypeId' => $this->applyInFilter($qb, 'd.device_type_id', $values),
                 'itamUserId' => $this->applyInFilter($qb, 'd.itam_user_id', $values),
+                'locationId' => $this->applyInFilterViaTable($qb, 'd.position_id', 'sfxon_position', 'p.location_id', $values),
+                'manufacturerId' => $this->applyInFilterViaTable($qb, 'd.device_type_id', 'sfxon_device_type', 'p.manufacturer_id', $values),
                 'serialNumber' => $this->applyLikeFilter($qb, 'd.serial_number', $values),
                 'serialNumber2' => $this->applyLikeFilter($qb, 'd.serial_number2', $values),
                 'assetNumber' => $this->applyLikeFilter($qb, 'd.asset_number', $values),
@@ -165,6 +167,47 @@ class DeviceMapper extends QBMapper {
             $column,
             $qb->createNamedParameter(
                 array_map('intval', $values),  // ← String zu Integer
+                IQueryBuilder::PARAM_INT_ARRAY
+            )
+        ));
+    }
+
+    private function applyInFilterViaTable(
+        IQueryBuilder $qb,
+        string $localColumn, // e.g. 'd.position_id'
+        string $lookupTable, // e.g. 'sfxon_position'
+        string $lookupColumn, // e.g. 'p.location_id'
+        array $values
+    ): void {
+        if (empty($values)) {
+            return;
+        }
+
+        $subQb = $this->db->getQueryBuilder();
+        $subQb->select('id')
+            ->from($lookupTable, 'p')
+            ->where($subQb->expr()->in(
+                $lookupColumn,
+                $subQb->createNamedParameter(
+                    array_map('intval', $values),
+                    IQueryBuilder::PARAM_INT_ARRAY
+                )
+            ));
+
+        $ids = array_column(
+            $subQb->executeQuery()->fetchAllAssociative(),
+            'id'
+        );
+
+        if (empty($ids)) {
+            $qb->andWhere('1 = 0');
+            return;
+        }
+
+        $qb->andWhere($qb->expr()->in(
+            $localColumn,
+            $qb->createNamedParameter(
+                array_map('intval', $ids),
                 IQueryBuilder::PARAM_INT_ARRAY
             )
         ));
