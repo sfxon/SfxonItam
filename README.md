@@ -13,6 +13,8 @@ Das Programm richtet sich an **KMU** (kleine und mittelständische Unternehmen) 
 
 ## Roadmap
 
+* Start an devlog instead of twitch streams - because it might be more of an interest. https://www.youtube.com/watch?v=NWOUna4fSEI
+
 * Device Entität umsetzen:
     - ✅ Übersichts-Seite für die Geräte umsetzen:
         - ✅ Tabelle Element für Element in einzelne wiederverwendbare Module aufteilen.
@@ -59,7 +61,8 @@ Das Programm richtet sich an **KMU** (kleine und mittelständische Unternehmen) 
             - ✅ Controller: Filtereinstellungen entgegennehmen und Ergebnis filtern / suchen.
             - ✅ Filter für Standort hinzufügen (doppelte Tiefe)
             - ✅ Filter für Geräte-Typ-Hersteller hinzufügen (doppelte Tiefe)
-            - Menge hinzufügen
+            - ✅ Menge hinzufügen
+            - Filter für Menge hinzufügen
             - Bild hinzufügen
             - QR-Code Generator hinzufügen
 
@@ -88,6 +91,8 @@ Das Programm richtet sich an **KMU** (kleine und mittelständische Unternehmen) 
     - ✅ Einträge verwalten (CRUD)
     - ✅ nur Löschen, wenn ein Status nicht mehr in Device verwendet wird.
     - ✅ DeviceStatus in den Menüpunkten zum Verwalten von Geräten (Device) hinzufügen.
+
+* Optimize UX - make it a little bit more gamy. Get inspiration from games: https://www.youtube.com/watch?v=NWOUna4fSEI
 
 ## Aktuelle Funktionen
 

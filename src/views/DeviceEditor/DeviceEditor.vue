@@ -24,6 +24,7 @@ import { fetchAllItamUsers } from '@/services/ItamUserService'
 import { fetchAllLocations } from '@/services/LocationService'
 import { fetchAllMerchants } from '@/services/MerchantService'
 import { fetchAllPositions } from '@/services/PositionService'
+import { fetchAllQuantityUnits } from '@/services/QuantityUnitService'
 import SfxonMainNavigation from '@/components/SfxonMainNavigation'
 
 
@@ -32,11 +33,13 @@ const assetNumber = ref('')
 const invoiceNumber = ref('')
 const name = ref('')
 const purchaseDate = ref<Date | null>(null)
+const quantity = ref('')
 const selectedDeviceStatus = ref<{ id: string; label: string } | null>(null)
 const selectedDeviceType = ref<{ id: string; label: string } | null>(null)
 const selectedItamUser = ref<{ id: string; label: string } | null>(null)
-const selectedPosition = ref<{ id: string; label: string } | null>(null)
 const selectedMerchant = ref<{ id: string; label: string } | null>(null)
+const selectedPosition = ref<{ id: string; label: string } | null>(null)
+const selectedQuantityUnit = ref<{ id: string; label: string } | null>(null)
 const serialNumber = ref('')
 const serialNumber2 = ref('')
 const savedSuccessfully = ref(false)
@@ -45,11 +48,12 @@ const savedSuccessfully = ref(false)
 const deviceLoading = ref(false)
 const deviceStatisLoading = ref(false)
 const deviceTypesLoading = ref(false)
+const isSaving = ref(false)
 const itamUsersLoading = ref(false)
 const locationsLoading = ref(false)
 const merchantsLoading = ref(false)
 const positionsLoading = ref(false)
-const isSaving = ref(false)
+const quantityUnitsLoading = ref(false)
 
 // Fehlerbehandlung
 const { fieldErrors, generalError, handleApiError, clearErrors, clearFieldError } = useApiErrors()
@@ -72,6 +76,7 @@ const deviceTypes = ref<{ id: string; label: string}[]>([])
 const locations = ref<{ id: string; label: string}[]>([])
 const merchants = ref<{ id: string; label: string }[]>([])
 const positions = ref<{ id: string; label: string}[]>([])
+const quantityUnits = ref<{ id: string; label: string}[]>([])
 
 const toLocalDateString = (date: Date): string => {
     const y = date.getFullYear()
@@ -90,17 +95,19 @@ async function loadDevice(id: number): Promise<void> {
         assetNumber.value = d.assetNumber ?? ''
         invoiceNumber.value = d.invoiceNumber ?? ''
         name.value = d.name ?? ''
+        purchaseDate.value = d.purchaseDate ? new Date(d.purchaseDate + 'T00:00:00') : null
+        quantity.value = d.quantity ?? ''
         selectedDeviceStatus.value = deviceStatis.value.find(s => s.id === d.deviceStatusId) ?? null
         selectedDeviceType.value = deviceTypes.value.find(s => s.id == d.deviceTypeId) ?? null
         selectedItamUser.value = itamUsers.value.find(u => u.id === d.itamUserId) ?? null
         selectedMerchant.value = merchants.value.find(u => u.id === d.merchantId) ?? null
         selectedPosition.value = positions.value.find(s => s.id == d.positionId) ?? null
+        selectedQuantityUnit.value = quantityUnits.value.find(s => s.id === d.quantityUnitId) ?? null
         serialNumber.value = d.serialNumber ?? ''
         serialNumber2.value = d.serialNumber2 ?? ''
-        purchaseDate.value = d.purchaseDate ? new Date(d.purchaseDate + 'T00:00:00') : null
     } catch (e: any) {
-        generalError.value = t('sfxonitam', 'Gerät konnte nicht geladen werden.')
-        console.error('Fehler beim Laden des Geräts:', e)
+        generalError.value = t('sfxonitam', 'Could not load device.')
+        console.error('Error while loading device:', e)
     } finally {
         deviceLoading.value = false
     }
@@ -212,9 +219,26 @@ async function loadPositions() {
         // Sort list alphabetically ASC.
         positions.value.sort((a, b) => a.label.localeCompare(b.label))
     } catch(e) {
-        console.error('Fehler beim Laden der Positionen', e)
+        console.error('Error while loading Quantity Units', e)
     } finally {
         positionsLoading.value = false
+    }
+}
+
+async function loadQuantityUnits() {
+    quantityUnitsLoading.value = true;
+
+    try {
+        const data = await fetchAllQuantityUnits({})
+
+        quantityUnits.value = Object.values(data.quantityUnits).map((quantityUnit: any) => ({
+            id: quantityUnit.id,
+            label: quantityUnit.name
+        }))
+    } catch(e) {
+        console.error('Error while loading Quantity Units', e)
+    } finally {
+        quantityUnitsLoading.value = false
     }
 }
 
@@ -225,13 +249,15 @@ async function submitForm() {
 
     const payload = {
         assetNumber: assetNumber.value,
-        invoiceNumber: invoiceNumber.value,
-        name: name.value,
         deviceStatusId: selectedDeviceStatus.value?.id ?? null,
         deviceTypeId: selectedDeviceType.value?.id ?? null,
         itamUserId: selectedItamUser.value?.id ?? null,
+        invoiceNumber: invoiceNumber.value,
         merchantId: selectedMerchant.value?.id ?? null,
+        name: name.value,
         positionId: selectedPosition.value?.id ?? null,
+        quantity: quantity.value,
+        quantityUnitId: selectedQuantityUnit.value?.id ?? null,
         purchaseDate: purchaseDate.value ? toLocalDateString(purchaseDate.value) : null,
         serialNumber: serialNumber.value,
         serialNumber2: serialNumber2.value
@@ -267,6 +293,7 @@ onMounted(async () => {
     await loadItamUsers()
     await loadMerchants()
     await loadPositions()
+    await loadQuantityUnits()
 
     if (deviceId.value) {
         await loadDevice(deviceId.value)
@@ -279,7 +306,7 @@ onMounted(async () => {
         <NcAppNavigation>
             <NcAppNavigationList>
                 <NcAppNavigationNew
-                :text="t('sfxonitam', 'Neues Gerät')"
+                :text="t('sfxonitam', 'Add Device')"
                 @click="addItem"
                 >
                     <template #icon>
@@ -295,8 +322,8 @@ onMounted(async () => {
             <div :class="$style.form">
                 <h2>
                     {{ isEditMode
-                        ? t('sfxonitam', 'Gerät bearbeiten')
-                        : t('sfxonitam', 'Gerät erfassen') }}
+                        ? t('sfxonitam', 'Edit device')
+                        : t('sfxonitam', 'Create device') }}
                 </h2>
 
                 <!-- Allgemeine Fehlermeldung -->
@@ -312,7 +339,7 @@ onMounted(async () => {
                     v-if="savedSuccessfully"
                     type="success"
                 >
-                    {{ t('sfxonitam', 'Die Änderungen wurden gespeichert.') }}
+                    {{ t('sfxonitam', 'Changes have been saved.') }}
                 </NcNoteCard>
 
                 <!-- name -->
@@ -320,8 +347,8 @@ onMounted(async () => {
                     <NcTextField
                         id="name"
                         v-model="name"
-                        :label="t('sfxonitam', 'Name / Geräte-ID')"
-                        :placeholder="t('sfxonitam', 'z.B. JP001')"
+                        :label="t('sfxonitam', 'Name / Device-ID')"
+                        :placeholder="t('sfxonitam', 'e.g. JP001')"
                         :class="fieldErrors.name ? $style.fieldError : ''"
                         @input="clearFieldError('name')"
                     />
@@ -330,17 +357,51 @@ onMounted(async () => {
                     </span>
                 </div>
 
+                <!-- quantity -->
+                <div :class="$style.field">
+                    <NcTextField
+                        id="quantity"
+                        v-model="quantity"
+                        :label="t('sfxonitam', 'Quantity')"
+                        :class="fieldErrors.name ? $style.fieldError : ''"
+                        @input="clearFieldError('quantity')"
+                        type="number"
+                    />
+                    <span v-if="fieldErrors.quantity" :class="$style.errorText">
+                        {{ fieldErrors.quantity }}
+                    </span>
+                </div>
+
+                <!-- QuantityUnit -->
+                <div :class="$style.field">
+                    <label for="quantity-unit-select" :class="$style.label">
+                        {{ t('sfxonitam', 'Quantity Unit') }}
+                    </label>
+                    <NcSelect
+                        id="quantity-unit-select"
+                        v-model="selectedQuantityUnit"
+                        :options="quantityUnits"
+                        :loading="quantityUnitsLoading"
+                        :label="'label'"
+                        track-by="id"
+                        :class="fieldErrors.quantityUnitId ? $style.fieldError : ''"
+                        @input="clearFieldError('quantityUnitId')"
+                    />
+                    <span v-if="fieldErrors.quantityUnitId" :class="$style.errorText">
+                        {{ fieldErrors.quantityUnitId }}
+                    </span>
+                </div>
+
                 <!-- DeviceStatus -->
                 <div :class="$style.field">
                     <label for="device-status-select" :class="$style.label">
-                        {{ t('sfxonitam', 'Geräte-Status') }}
+                        {{ t('sfxonitam', 'Device Status') }}
                     </label>
                     <NcSelect
                         id="device-status-select"
                         v-model="selectedDeviceStatus"
                         :options="deviceStatis"
                         :loading="deviceStatisLoading"
-                        :placeholder="t('sfxonitam', 'Geräte-Status auswählen')"
                         :label="'label'"
                         track-by="id"
                         :class="fieldErrors.deviceStatusId ? $style.fieldError : ''"
@@ -361,7 +422,6 @@ onMounted(async () => {
                         v-model="selectedPosition"
                         :options="positions"
                         :loading="positionsLoading"
-                        :placeholder="t('sfxonitam', 'Position auswählen')"
                         :label="'label'"
                         track-by="id"
                         :class="fieldErrors.positionId ? $style.fieldError : ''"

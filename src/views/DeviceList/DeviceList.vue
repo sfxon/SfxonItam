@@ -26,6 +26,7 @@ import { fetchAllLocations } from '@/services/LocationService'
 import { fetchAllManufacturers } from '@/services/ManufacturerService'
 import { fetchAllMerchants } from '@/services/MerchantService'
 import { fetchAllPositions } from '@/services/PositionService'
+import { fetchAllQuantityUnits } from '@/services/QuantityUnitService'
 
 const deviceStatisLoading = ref(false)
 const deviceTypesLoading = ref(false)
@@ -36,6 +37,7 @@ const locationsLoading = ref(false)
 const manufacturersLoading = ref(false)
 const merchantsLoading = ref(false)
 const positionsLoading = ref(false)
+const quantityUnitsLoading = ref(false)
 
 const error = ref<string | null>(null)
 const listState = useListState()
@@ -52,11 +54,13 @@ const relatedEntityData = reactive<Record<string, { id: any; label: string }[]>>
     'location': [],
     'manufacturer': [],
     'merchant': [],
-    'position': []
+    'position': [],
+    'quantityUnit': [],
 })
 
 const columns = [
     { key: 'name', label: t('sfxonitam', 'Name'), sortable: true },
+    { type: 'quantityWithUnit', relatedEntityName: 'quantityUnit', key: 'quantity', relatedEntityKey: 'quantityUnitId', label: t('sfxonitam', 'Quantity'), sortable: true },
     { type: 'relatedEntity', relatedEntityName: 'deviceStatus', key: 'deviceStatusId', label: t('sfxonitam', 'DeviceStatus'), sortable: false },
     { type: 'relatedEntity', relatedEntityName: 'position', key: 'positionId', label: t('sfxonitam', 'Position'), sortable: false  },
     { type: 'relatedEntity', relatedEntityName: 'deviceType', key: 'deviceTypeId', label: t('sfxonitam', 'DeviceType'), sortable: false },
@@ -267,6 +271,25 @@ async function loadPositions() {
     }
 }
 
+async function loadQuantityUnits() {
+    quantityUnitsLoading.value = true
+
+    try {
+        const data = await fetchAllQuantityUnits({})
+
+        relatedEntityData['quantityUnit'] = Object.values(data.quantityUnits).map((quantityUnit: any) => ({
+            id: quantityUnit.id,
+            label: quantityUnit.name
+        }))
+    } catch(e) {
+        console.error('Error while loading Quantity Units', e)
+    } finally {
+        quantityUnitsLoading.value = false
+    }
+}
+
+
+
 function onEditDevice(device: Device) {
     window.location.href = generateUrl(`/apps/sfxonitam/device/detail?deviceId=${device.id}`);
 }
@@ -290,6 +313,7 @@ async function reloadDevices() {
     await loadManufacturers()
     await loadMerchants()
     await loadPositions()
+    await loadQuantityUnits()
 
     // Load other entities before Devices.
     await loadDevices()

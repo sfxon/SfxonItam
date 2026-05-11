@@ -32,6 +32,8 @@ class DeviceController extends Controller {
         'name',
         'purchaseDate',
         'positionId',
+        'quantity',
+        'quantityUnitId',
         'serialNumber',
         'serialNumber2'
     ];
@@ -204,6 +206,13 @@ class DeviceController extends Controller {
         
         $purchaseDateRaw = $this->request->getParam('purchaseDate');
         $device->setPurchaseDate($purchaseDateRaw);
+
+        $quantity = $this->request->getParam('quantity');
+        $quantity = is_numeric($quantity) ? (float)$quantity : null;
+        $device->setQuantity($quantity);
+
+        $quantityUnitId = $this->sanitizeForeignKey($this->request->getParam('quantityUnitId') ?? '');
+        $device->setQuantityUnitId($quantityUnitId);
 
         $device->setSerialNumber($this->request->getParam('serialNumber'));
 

@@ -35,6 +35,12 @@ const props = defineProps<{
             }}
         </span>
         <span
+            v-else-if="col.type === 'quantityWithUnit'"
+        >
+            {{ props.dataRow[col.key] != null ? parseFloat(props.dataRow[col.key]) : '' }}
+            {{ relatedEntityData[col.relatedEntityName]?.find(item => item.id === props.dataRow[col.relatedEntityKey])?.label ?? props.dataRow[col.relatedEntityName] }}
+        </span>
+        <span
             v-else-if="col.type === 'relatedEntity'"
         >
             {{ relatedEntityData[col.relatedEntityName]?.find(item => item.id === props.dataRow[col.key])?.label ?? props.dataRow[col.key] }}
