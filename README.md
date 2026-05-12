@@ -63,7 +63,7 @@ Das Programm richtet sich an **KMU** (kleine und mittelständische Unternehmen) 
             - ✅ Filter für Geräte-Typ-Hersteller hinzufügen (doppelte Tiefe)
             - ✅ Menge hinzufügen
             - ✅ Filter für Menge hinzufügen; 3 Felder: von, bis und Mengen-Einheit
-            - Bild hinzufügen
+            - ✅ Bild hinzufügen
             - QR-Code Generator hinzufügen
 
         - Geräteliste auch nach Entitäten sortierbar machen.

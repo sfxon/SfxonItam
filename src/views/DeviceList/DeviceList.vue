@@ -59,6 +59,7 @@ const relatedEntityData = reactive<Record<string, { id: any; label: string }[]>>
 })
 
 const columns = [
+    { type: 'image', label: 'Image', key: 'imageFileId' },
     { key: 'name', label: t('sfxonitam', 'Name'), sortable: true },
     { type: 'quantityWithUnit', relatedEntityName: 'quantityUnit', key: 'quantity', relatedEntityKey: 'quantityUnitId', label: t('sfxonitam', 'Quantity'), sortable: true },
     { type: 'relatedEntity', relatedEntityName: 'deviceStatus', key: 'deviceStatusId', label: t('sfxonitam', 'DeviceStatus'), sortable: false },
@@ -125,7 +126,7 @@ async function loadDevices() {
         const filters = Object.fromEntries(
             Object.entries(filterValues).map(([key, entries]) => [
                 key,
-                entries.map(e => e.value)  // nur den value-Anteil extrahieren
+                entries.map(e => e.value)
             ])
         )
 

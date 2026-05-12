@@ -7,12 +7,11 @@ import NcAppNavigationNew from '@nextcloud/vue/components/NcAppNavigationNew'
 import NcContent from '@nextcloud/vue/components/NcContent'
 import { mdiPlus } from '@mdi/js'
 import { translate as t } from '@nextcloud/l10n'
-import { generateUrl } from '@nextcloud/router'
+import { generateUrl, generateRemoteUrl } from '@nextcloud/router'
 import NcButton from '@nextcloud/vue/components/NcButton'
 import NcTextField from '@nextcloud/vue/components/NcTextField'
 import NcDateTimePickerNative from '@nextcloud/vue/components/NcDateTimePickerNative'
 import NcSelect from '@nextcloud/vue/components/NcSelect'
-import axios from '@nextcloud/axios'
 import NcNoteCard from '@nextcloud/vue/components/NcNoteCard'
 import { useApiErrors } from '@/composables/useApiErrors'
 import { mdiClose } from '@mdi/js'
@@ -26,15 +25,20 @@ import { fetchAllMerchants } from '@/services/MerchantService'
 import { fetchAllPositions } from '@/services/PositionService'
 import { fetchAllQuantityUnits } from '@/services/QuantityUnitService'
 import SfxonMainNavigation from '@/components/SfxonMainNavigation'
+import { getCurrentUser } from '@nextcloud/auth'
 
 // Formulardaten
 const assetNumber = ref('')
+const imageFileId = ref<number | null>(null)
+const imagePreviewUrl = ref<string | null>(null)
 const invoiceNumber = ref('')
 const name = ref('')
 const purchaseDate = ref<Date | null>(null)
 const quantity = ref('')
 const selectedDeviceStatus = ref<{ id: string; label: string } | null>(null)
 const selectedDeviceType = ref<{ id: string; label: string } | null>(null)
+const selectedImageFile = ref<File | null>(null)
+const selectedRemoteFile = ref<{ id: number; name: string; path: string } | null>(null)
 const selectedItamUser = ref<{ id: string; label: string } | null>(null)
 const selectedMerchant = ref<{ id: string; label: string } | null>(null)
 const selectedPosition = ref<{ id: string; label: string } | null>(null)
@@ -84,7 +88,17 @@ const toLocalDateString = (date: Date): string => {
     return `${y}-${m}-${d}`
 }
 
-// Funktionen definieren.
+const selectedImageLabel = computed(() => {
+    if (selectedImageFile.value) {
+        return selectedImageFile.value.name
+    }
+    if (selectedRemoteFile.value) {
+        return selectedRemoteFile.value.name
+    }
+    return ''
+})
+
+// Define functions.
 async function loadDevice(id: number): Promise<void> {
     deviceLoading.value = true
 
@@ -92,6 +106,7 @@ async function loadDevice(id: number): Promise<void> {
         const d = await fetchDevice(id)
 
         assetNumber.value = d.assetNumber ?? ''
+        imageFileId.value = d.imageFileId ?? null
         invoiceNumber.value = d.invoiceNumber ?? ''
         name.value = d.name ?? ''
         purchaseDate.value = d.purchaseDate ? new Date(d.purchaseDate + 'T00:00:00') : null
@@ -104,6 +119,11 @@ async function loadDevice(id: number): Promise<void> {
         selectedQuantityUnit.value = quantityUnits.value.find(s => s.id === d.quantityUnitId) ?? null
         serialNumber.value = d.serialNumber ?? ''
         serialNumber2.value = d.serialNumber2 ?? ''
+
+        // Load image preview.
+        if (imageFileId.value) {
+            imagePreviewUrl.value = generateUrl(`/core/preview?fileId=${imageFileId.value}&x=300&y=300&a=1`)
+        }
     } catch (e: any) {
         generalError.value = t('sfxonitam', 'Could not load device.')
         console.error('Error while loading device:', e)
@@ -241,17 +261,168 @@ async function loadQuantityUnits() {
     }
 }
 
+function onLocalFileChange(event: Event) {
+    const files = Array.from((event.target as HTMLInputElement).files ?? [])
+    onLocalImageSelected(files)
+}
+
+function onLocalImageSelected(files: File[]) {
+    const file = files?.[0] ?? null
+    if (!file) {
+        return
+    }
+
+    if (imagePreviewUrl.value) {
+        URL.revokeObjectURL(imagePreviewUrl.value)
+    }
+
+    selectedImageFile.value = file
+    selectedRemoteFile.value = null
+    imageFileId.value = null
+    imagePreviewUrl.value = URL.createObjectURL(file)
+}
+
+async function openNextcloudFilePicker(): Promise<void> {
+    return new Promise((resolve) => {
+        // @ts-ignore : OC is globally available in every NC-Instance.
+        OC.dialogs.filepicker(
+            t('sfxonitam', 'Select device image'),
+            async (path: string) => {
+                try {
+                    const user = getCurrentUser()
+                    const davUrl = generateRemoteUrl(`dav/files/${user?.uid}${path}`)
+
+                    const res = await fetch(davUrl, {
+                        method: 'PROPFIND',
+                        credentials: 'include',
+                        headers: {
+                            'Depth': '0',
+                            'Content-Type': 'application/xml',
+                            'requesttoken': (window as any).oc_requesttoken,
+                        },
+                        body: `<?xml version="1.0"?>
+                            <d:propfind xmlns:d="DAV:" xmlns:oc="http://owncloud.org/ns">
+                                <d:prop><oc:fileid/></d:prop>
+                            </d:propfind>`,
+                    })
+
+                    const xml = new DOMParser().parseFromString(await res.text(), 'application/xml')
+                    const fileIdEl = xml.getElementsByTagNameNS('http://owncloud.org/ns', 'fileid')[0]
+                    const fileId = Number(fileIdEl?.textContent ?? 0) || null
+
+                    if (!fileId) {
+                        console.error('PROPFIND returned no fileId, status:', res.status)
+                        generalError.value = t('sfxonitam', 'Could not resolve file ID.')
+                        resolve()
+                        return
+                    }
+
+                    if (imagePreviewUrl.value) {
+                        URL.revokeObjectURL(imagePreviewUrl.value)
+                        imagePreviewUrl.value = null
+                    }
+
+                    selectedRemoteFile.value = {
+                        id: fileId,
+                        name: path.split('/').pop() ?? path,
+                        path,
+                    }
+                    imageFileId.value = fileId
+                    imagePreviewUrl.value = generateUrl(`/core/preview?fileId=${fileId}&x=300&y=300&a=1`)
+                    selectedImageFile.value = null
+                } catch (e) {
+                    console.error('Error resolving fileId:', e)
+                    generalError.value = t('sfxonitam', 'Could not select a file.')
+                } finally {
+                    resolve()
+                }
+            },
+            false, // multiselect
+            ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/svg+xml'],
+            true, // modal
+            1, // OC.dialogs.FILEPICKER_TYPE_CHOOSE
+        )
+    })
+}
+
+async function uploadImageIfNeeded(): Promise<void> {
+    if (!selectedImageFile.value) return
+
+    const user = getCurrentUser()
+    const filename = selectedImageFile.value.name
+    const davUrl = generateRemoteUrl(`dav/files/${user?.uid}/ITAM-Images/${filename}`)
+
+    // Ordner sicherstellen (MKCOL – ignoriert 405 wenn schon vorhanden)
+    await fetch(generateRemoteUrl(`dav/files/${user?.uid}/ITAM-Images`), {
+        method: 'MKCOL',
+        credentials: 'include',
+        headers: { 'requesttoken': (window as any).oc_requesttoken },
+    })
+
+    // Datei hochladen
+    const putRes = await fetch(davUrl, {
+        method: 'PUT',
+        credentials: 'include',
+        headers: {
+            'requesttoken': (window as any).oc_requesttoken,
+            'Content-Type': selectedImageFile.value.type,
+        },
+        body: selectedImageFile.value,
+    })
+
+    if (!putRes.ok) {
+        throw new Error(`Upload failed: ${putRes.status}`)
+    }
+
+    // fileId per PROPFIND holen
+    const propRes = await fetch(davUrl, {
+        method: 'PROPFIND',
+        credentials: 'include',
+        headers: {
+            'Depth': '0',
+            'Content-Type': 'application/xml',
+            'requesttoken': (window as any).oc_requesttoken,
+        },
+        body: `<?xml version="1.0"?>
+            <d:propfind xmlns:d="DAV:" xmlns:oc="http://owncloud.org/ns">
+                <d:prop><oc:fileid/></d:prop>
+            </d:propfind>`,
+    })
+
+    const text = await propRes.text()
+    const xml = new DOMParser().parseFromString(text, 'application/xml')
+    const fileIdEl = xml.getElementsByTagNameNS('http://owncloud.org/ns', 'fileid')[0]
+    const fileId = Number(fileIdEl?.textContent ?? 0) || null
+
+    if (!fileId) {
+        throw new Error('Could not resolve fileId after upload')
+    }
+
+    imageFileId.value = fileId
+    selectedImageFile.value = null
+}
+
 async function submitForm() {
     clearErrors()
     savedSuccessfully.value = false;
     isSaving.value = true
 
+    try {
+        await uploadImageIfNeeded()
+    } catch (e) {
+        console.error('Image upload failed:', e)
+        generalError.value = t('sfxonitam', 'Image upload failed.')
+        isSaving.value = false
+        return
+    }
+
     const payload = {
         assetNumber: assetNumber.value,
         deviceStatusId: selectedDeviceStatus.value?.id ?? null,
         deviceTypeId: selectedDeviceType.value?.id ?? null,
-        itamUserId: selectedItamUser.value?.id ?? null,
+        imageFileId: imageFileId.value,
         invoiceNumber: invoiceNumber.value,
+        itamUserId: selectedItamUser.value?.id ?? null,
         merchantId: selectedMerchant.value?.id ?? null,
         name: name.value,
         positionId: selectedPosition.value?.id ?? null,
@@ -340,6 +511,31 @@ onMounted(async () => {
                 >
                     {{ t('sfxonitam', 'Changes have been saved.') }}
                 </NcNoteCard>
+
+                <div :class="$style.field">
+                    <label class="label">{{ t('sfxonitam', 'Device Image') }}</label>
+                    <div :class="$style.fileChooserRow">
+                        <input
+                            accept="image/*"
+                            @change="onLocalFileChange"
+                            :class="$style.fileUploadInput"
+                            :label="t('sfxonitam', 'Upload image')"
+                            type="file"
+                        />
+                        <NcButton type="button" variant="secondary" @click="openNextcloudFilePicker">
+                            {{ t('sfxonitam', 'Select existing file') }}
+                        </NcButton>
+                    </div>
+                    <div v-if="selectedImageLabel" :class="$style.selectedFileLabel">
+                        {{ selectedImageLabel }}
+                    </div>
+                    <img
+                        v-if="imagePreviewUrl"
+                        :src="imagePreviewUrl"
+                        :alt="t('sfxonitam', 'Device image preview')"
+                        :class="$style.imagePreview"
+                    />
+                </div>
 
                 <!-- name -->
                 <div :class="$style.field">
@@ -604,6 +800,10 @@ onMounted(async () => {
     margin: 16px;
 }
 
+.fileUploadInput {
+    padding-top: 3px!important;
+}
+
 .form {
     width: 100%;
     max-width: 480px;
@@ -650,6 +850,26 @@ onMounted(async () => {
     max-height: 1rem;
     margin-left: 6px;
     margin-top: 1px;
+}
+
+.fileChooserRow {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    align-items: center;
+}
+
+.selectedFileLabel {
+    color: var(--color-text-secondary);
+    font-size: 0.875rem;
+    margin-top: 4px;
+}
+
+.imagePreview {
+    max-width: 100%;
+    border-radius: 6px;
+    margin-top: 8px;
+    object-fit: contain;
 }
 
 .dateRow :global(.native-datetime-picker) {

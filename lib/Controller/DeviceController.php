@@ -26,6 +26,7 @@ class DeviceController extends Controller {
         'assetNumber',
         'deviceStatusId',
         'deviceTypeId',
+        'imageFileId',
         'invoiceNumber',
         'itamUserId',
         'merchantId',
@@ -190,6 +191,9 @@ class DeviceController extends Controller {
 
         $deviceTypeId = $this->sanitizeForeignKey($this->request->getParam('deviceTypeId') ?? '');
         $device->setDeviceTypeId($deviceTypeId);
+
+        $imageFileId = $this->sanitizeForeignKey($this->request->getParam('imageFileId') ?? '');
+        $device->setImageFileId($imageFileId);
 
         $device->setInvoiceNumber($this->request->getParam('invoiceNumber'));
 

@@ -1,5 +1,6 @@
 <script setup lang="ts" generic="T">
 
+import { generateUrl } from '@nextcloud/router'
 import { mdiDelete, mdiPencil } from '@mdi/js'
 import NcActions from '@nextcloud/vue/components/NcActions'
 import NcActionButton from '@nextcloud/vue/components/NcActionButton'
@@ -44,6 +45,15 @@ const props = defineProps<{
             v-else-if="col.type === 'relatedEntity'"
         >
             {{ relatedEntityData[col.relatedEntityName]?.find(item => item.id === props.dataRow[col.key])?.label ?? props.dataRow[col.key] }}
+        </span>
+        <span v-else-if="col.type === 'image'">
+            <img
+                v-if="props.dataRow[col.key]"
+                :src="generateUrl(`/core/preview?fileId=${props.dataRow[col.key]}&x=48&y=48&a=1`)"
+                :alt="col.label ?? ''"
+                style="width: 48px; height: 48px; object-fit: cover; border-radius: 4px; display: block;"
+            />
+            <span v-else>&nbsp;</span>
         </span>
         <span v-else-if="col.type === 'actions'">
             <NcActions>

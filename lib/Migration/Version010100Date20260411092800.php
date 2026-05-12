@@ -44,6 +44,12 @@ class Version010100Date20260411092800 extends SimpleMigrationStep {
                 'length' => 300,
             ]);
 
+            $table->addColumn('image_file_id', Types::BIGINT, [
+                'notnull' => false,
+                'default' => null,
+                'unsigned' => true,
+            ]);
+
             $table->addColumn('quantity', Types::DECIMAL, [
                 'precision' => 10,
                 'scale' => 4,
@@ -53,22 +59,32 @@ class Version010100Date20260411092800 extends SimpleMigrationStep {
 
             $table->addColumn('quantity_unit_id', Types::BIGINT, [
                 'notnull' => false,
+                'default' => null,
+                'unsigned' => true,
             ]);
 
             $table->addColumn('device_status_id', Types::BIGINT, [
                 'notnull' => false,
+                'default' => null,
+                'unsigned' => true,
             ]);
 
             $table->addColumn('position_id', Types::BIGINT, [
                 'notnull' => false,
+                'default' => null,
+                'unsigned' => true,
             ]);
 
             $table->addColumn('device_type_id', Types::BIGINT, [
                 'notnull' => false,
+                'default' => null,
+                'unsigned' => true,
             ]);
 
             $table->addColumn('itam_user_id', Types::BIGINT, [
                 'notnull' => false,
+                'default' => null,
+                'unsigned' => true,
             ]);
 
             $table->addColumn('serial_number', Types::STRING, [
@@ -88,6 +104,8 @@ class Version010100Date20260411092800 extends SimpleMigrationStep {
 
             $table->addColumn('merchant_id', Types::BIGINT, [
                 'notnull' => false,
+                'default' => null,
+                'unsigned' => true,
             ]);
 
             $table->addColumn('invoice_number', Types::STRING, [

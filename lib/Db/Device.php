@@ -17,6 +17,8 @@ use OCP\AppFramework\Db\Entity;
  * @method void setPositionId(int|null $positionId)
  * @method int|null getDeviceTypeId()
  * @method void setDeviceTypeId(int|null $deviceTypeId)
+ * @method int getImageFileId()
+ * @method void setImageFileId(int $imageFileId)
  * @method int getItamUserId()
  * @method void setItamUserId(int $itamUserId)
  * @method string|null getSerialNumber()
@@ -37,49 +39,52 @@ use OCP\AppFramework\Db\Entity;
  * @method void setComment(string|null $comment)
  */
 class Device extends Entity implements \JsonSerializable {
-    protected ?string $name = null;
-    protected ?string $quantity = null;
-    protected ?int $quantityUnitId = null;
-    protected ?int $deviceStatusId = null;
-    protected ?int $positionId = null;
-    protected ?int $deviceTypeId = null;
-    protected ?int  $itamUserId = null;
-    protected ?string $serialNumber = null;
-    protected ?string $serialNumber2 = null;
     protected ?string $assetNumber = null;
-    protected ?int $merchantId = null;
-    protected ?string $invoiceNumber = null;
-    protected ?string $purchaseDate = null;
     protected ?string $customFields = null;
     protected ?string $comment = null;
+    protected ?int $deviceStatusId = null;
+    protected ?int $deviceTypeId = null;
+    protected ?int $imageFileId = null;
+    protected ?string $invoiceNumber = null;
+    protected ?int  $itamUserId = null;
+    protected ?int $merchantId = null;
+    protected ?string $name = null;
+    protected ?int $positionId = null;
+    protected ?string $purchaseDate = null;
+    protected ?string $quantity = null;
+    protected ?int $quantityUnitId = null;
+    protected ?string $serialNumber = null;
+    protected ?string $serialNumber2 = null;
 
     public function __construct() {
         $this->addType('id', 'integer');
         $this->addType('deviceStatusId', 'integer');
         $this->addType('positionId', 'integer');
-        $this->addType('quantityUnitId', 'integer');
         $this->addType('deviceTypeId', 'integer');
+        $this->addType('imageFileId', 'integer');
         $this->addType('merchantId', 'integer');
+        $this->addType('quantityUnitId', 'integer');
     }
 
     public function jsonSerialize(): array {
         return [
-            'id' => $this->getId(),
-            'name' => $this->getName(),
-            'quantity' => $this->getQuantity(),
-            'quantityUnitId' => $this->getQuantityUnitId(),
+            'assetNumber' => $this->getAssetNumber(),
+            'comment' => $this->getComment(),
+            'customFields' => $this->getCustomFields(),
             'deviceStatusId' => $this->getDeviceStatusId(),
             'deviceTypeId' => $this->getDeviceTypeId(),
-            'positionId' => $this->getPositionId(),
+            'id' => $this->getId(),
+            'imageFileId' => $this->getImageFileId(),
+            'invoiceNumber' => $this->getInvoiceNumber(),
             'itamUserId' => $this->getItamUserId(),
+            'merchantId' => $this->getMerchantId(),
+            'name' => $this->getName(),
+            'positionId' => $this->getPositionId(),
+            'purchaseDate' => $this->getPurchaseDate(),
+            'quantity' => $this->getQuantity(),
+            'quantityUnitId' => $this->getQuantityUnitId(),
             'serialNumber' => $this->getSerialNumber(),
             'serialNumber2' => $this->getSerialNumber2(),
-            'assetNumber' => $this->getAssetNumber(),
-            'merchantId' => $this->getMerchantId(),
-            'invoiceNumber' => $this->getInvoiceNumber(),
-            'purchaseDate' => $this->getPurchaseDate(),
-            'customFields' => $this->getCustomFields(),
-            'comment' => $this->getComment()
         ];
     }
 }
