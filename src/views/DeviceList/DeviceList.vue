@@ -76,6 +76,8 @@ const columns = [
 
 const filterFields = [
     { key: 'name', label: t('sfxonitam', 'Name'), },
+    { type: 'numericFromTo', key: 'quantity', labelFrom: t('sfxonitam', 'Quantity from'), labelTo: t('sfxonitam', 'Quantity to'), },
+    { type: 'relatedEntity', relatedEntityName: 'quantityUnit', key: 'quantityUnitId', label: t('sfxonitam', 'QuantityUnit'), },
     { type: 'relatedEntity', relatedEntityName: 'deviceStatus', key: 'deviceStatusId', label: t('sfxonitam', 'DeviceStatus'), },
     { type: 'relatedEntity', relatedEntityName: 'position', key: 'positionId', label: t('sfxonitam', 'Position'), },
     { type: 'relatedEntity', relatedEntityName: 'location', key: 'locationId', label: t('sfxonitam', 'Location'), },

@@ -27,7 +27,6 @@ import { fetchAllPositions } from '@/services/PositionService'
 import { fetchAllQuantityUnits } from '@/services/QuantityUnitService'
 import SfxonMainNavigation from '@/components/SfxonMainNavigation'
 
-
 // Formulardaten
 const assetNumber = ref('')
 const invoiceNumber = ref('')

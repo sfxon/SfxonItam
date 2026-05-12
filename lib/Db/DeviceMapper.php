@@ -15,7 +15,14 @@ class DeviceMapper extends QBMapper {
     }
 
     public function isEntityValueInUse($entityFieldName, $id) {
-        $allowedEntityIdFields = ['device_status_id', 'position_id', 'device_type_id', 'itam_user_id', 'merchant_id'];
+        $allowedEntityIdFields = [
+            'device_status_id',
+            'device_type_id',
+            'itam_user_id',
+            'merchant_id',
+            'position_id',
+            'quantity_unit_id'
+        ];
 
         if(!in_array($entityFieldName, $allowedEntityIdFields)) {
             throw new \Exception('Entity field name \'' . $entityFieldName . '\' is not allowed.');
@@ -60,15 +67,16 @@ class DeviceMapper extends QBMapper {
         int $offset = 0,
         ?array $filters = null
     ): array {
-        $allowedColumns = [
+        $allowedSortColumns = [
             'assetNumber',
             'invoiceNumber',
             'name',
             'purchaseDate',
+            'quantity',
             'serialNumber',
             'serialNumber2',
         ];
-        $col = in_array($orderBy, $allowedColumns, true) ? 'd.' . $orderBy : 'd.name';
+        $col = in_array($orderBy, $allowedSortColumns, true) ? 'd.' . $orderBy : 'd.name';
         $col = strtolower(preg_replace('/[A-Z]/', '_$0', $col)); // CamelCase to SnakeCase umwandeln.
         $dir = strtoupper($direction) === 'DESC' ? 'DESC' : 'ASC';
 
@@ -106,6 +114,8 @@ class DeviceMapper extends QBMapper {
 
             match ($key) {
                 'name' => $this->applyLikeFilter($qb, 'd.name', $values),
+                'quantity' => $this->applyNumericFromToFilter($qb, 'd.quantity', $values),
+                'quantityUnitId' => $this->applyInFilter($qb, 'd.quantity_unit_id', $values),
                 'deviceStatusId' => $this->applyInFilter($qb, 'd.device_status_id', $values),
                 'positionId' => $this->applyInFilter($qb, 'd.position_id', $values),
                 'deviceTypeId' => $this->applyInFilter($qb, 'd.device_type_id', $values),
@@ -226,5 +236,40 @@ class DeviceMapper extends QBMapper {
         }
 
         $qb->andWhere($orX);
+    }
+
+    private function applyNumericFromToFilter(IQueryBuilder $qb, string $column, array $values): void {
+        $from = null;
+        $to = null;
+
+        if (isset($values[0]) && $values[0] !== '') {
+            $parsed = filter_var($values[0], FILTER_VALIDATE_FLOAT);
+            if ($parsed !== false) {
+                $from = $parsed;
+            }
+        }
+
+        if (isset($values[1]) && $values[1] !== '') {
+            $parsed = filter_var($values[1], FILTER_VALIDATE_FLOAT);
+            if ($parsed !== false) {
+                $to = $parsed;
+            }
+        }
+
+        if ($from === null && $to === null) {
+            return;
+        }
+
+        if ($from !== null) {
+            $qb->andWhere(
+                $qb->expr()->gte($column, $qb->createNamedParameter($from, IQueryBuilder::PARAM_STR))
+            );
+        }
+
+        if ($to !== null) {
+            $qb->andWhere(
+                $qb->expr()->lte($column, $qb->createNamedParameter($to, IQueryBuilder::PARAM_STR))
+            );
+        }
     }
 }

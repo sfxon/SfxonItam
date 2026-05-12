@@ -62,7 +62,7 @@ Das Programm richtet sich an **KMU** (kleine und mittelständische Unternehmen) 
             - ✅ Filter für Standort hinzufügen (doppelte Tiefe)
             - ✅ Filter für Geräte-Typ-Hersteller hinzufügen (doppelte Tiefe)
             - ✅ Menge hinzufügen
-            - Filter für Menge hinzufügen
+            - ✅ Filter für Menge hinzufügen; 3 Felder: von, bis und Mengen-Einheit
             - Bild hinzufügen
             - QR-Code Generator hinzufügen
 

@@ -5,6 +5,7 @@ import NcAppSidebarTab from '@nextcloud/vue/components/NcAppSidebarTab'
 import NcButton from '@nextcloud/vue/components/NcButton'
 import SfxonFilterFieldDate from './SfxonFilterFieldDate.vue'
 import SfxonFilterFieldEntity from './SfxonFilterFieldEntity.vue'
+import SfxonFilterFieldNumericFromTo from './SfxonFilterFieldNumericFromTo.vue'
 import SfxonFilterFieldText from './SfxonFilterFieldText.vue'
 
 type FilterField = {
@@ -47,6 +48,13 @@ const emit = defineEmits<{ 'update:filterSidebarOpen': [value: boolean] }>()
                     </template>
                     <template v-else-if="filterField.type == 'date'">
                         <SfxonFilterFieldDate
+                            :labelFrom="filterField.labelFrom"
+                            :labelTo="filterField.labelTo"
+                            v-model="filterValues[filterField.key]"
+                        />
+                    </template>
+                    <template v-else-if="filterField.type == 'numericFromTo'">
+                        <SfxonFilterFieldNumericFromTo
                             :labelFrom="filterField.labelFrom"
                             :labelTo="filterField.labelTo"
                             v-model="filterValues[filterField.key]"
