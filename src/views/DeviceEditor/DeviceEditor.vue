@@ -27,6 +27,8 @@ import { fetchAllQuantityUnits } from '@/services/QuantityUnitService'
 import SfxonMainNavigation from '@/components/SfxonMainNavigation'
 import { getCurrentUser } from '@nextcloud/auth'
 
+declare function qrcode(typeNumber: number, errorCorrectionLevel: string): any
+
 // Formulardaten
 const assetNumber = ref('')
 const imageFileId = ref<number | null>(null)
@@ -34,6 +36,7 @@ const imagePreviewUrl = ref<string | null>(null)
 const invoiceNumber = ref('')
 const name = ref('')
 const purchaseDate = ref<Date | null>(null)
+const qrCodeSvg = ref<string | null>(null)
 const quantity = ref('')
 const selectedDeviceStatus = ref<{ id: string; label: string } | null>(null)
 const selectedDeviceType = ref<{ id: string; label: string } | null>(null)
@@ -99,6 +102,13 @@ const selectedImageLabel = computed(() => {
 })
 
 // Define functions.
+function generateQrCode(id: number) {
+    const qr = qrcode(0, 'M')
+    qr.addData(generateUrl(`/apps/sfxonitam/device/detail?deviceId=${id}`))
+    qr.make()
+    qrCodeSvg.value = qr.createSvgTag(4, 0)
+}
+
 async function loadDevice(id: number): Promise<void> {
     deviceLoading.value = true
 
@@ -467,6 +477,7 @@ onMounted(async () => {
 
     if (deviceId.value) {
         await loadDevice(deviceId.value)
+        generateQrCode(deviceId.value)
     }
 })
 </script>
@@ -536,6 +547,9 @@ onMounted(async () => {
                         :class="$style.imagePreview"
                     />
                 </div>
+
+                <!-- QR Code -->
+                <div v-if="isEditMode && qrCodeSvg" v-html="qrCodeSvg" :class="$style.qrCode" />
 
                 <!-- name -->
                 <div :class="$style.field">
@@ -874,5 +888,16 @@ onMounted(async () => {
 
 .dateRow :global(.native-datetime-picker) {
     flex-grow: 1;
+}
+
+.qrCode {
+    margin-top: 8px;
+    width: 120px;
+    height: 120px;
+}
+
+.qrCode :global(svg) {
+    width: 100%;
+    height: 100%;
 }
 </style>

@@ -64,7 +64,8 @@ Das Programm richtet sich an **KMU** (kleine und mittelständische Unternehmen) 
             - ✅ Menge hinzufügen
             - ✅ Filter für Menge hinzufügen; 3 Felder: von, bis und Mengen-Einheit
             - ✅ Bild hinzufügen
-            - QR-Code Generator hinzufügen
+            - QR-Code Generator hinzufügen (https://github.com/kazuhikoarase/qrcode-generator, by Kazuhiko Arase (https://github.com/kazuhikoarase))
+            - Barcodes hinzufügen, Schema: DEVICE:JP001 oder LICENC:623498-23434-sdj 
 
         - Geräteliste auch nach Entitäten sortierbar machen.
     - Menü hinzufügen, mit dem die Reihenfolge der Spalten geändert werden kann, sowie eingestellt werden kann, in welcher Reihenfolge gefiltert werden kann.
@@ -167,7 +168,7 @@ Es werden 2 Export-Formate unterstützt: druckbare HTML-Seiten und CSV-Dateien.
 # Entwickler Dokumentation
 
 
-## Verwendete Technologien während der Entwicklung
+## Verwendete Technologien während der Entwicklung und eingebundene Bibliotheken.cla
 
 * Docker Container (Beispiel docker-compose.yml siehe unten)
 
@@ -176,6 +177,8 @@ Es werden 2 Export-Formate unterstützt: druckbare HTML-Seiten und CSV-Dateien.
 * Vue.js
 
 * PHP
+
+* QR-Code Generator (Kazuhiko Arase, https://github.com/kazuhikoarase/qrcode-generator)
 
 ## Beispiel der Installation der Entwicklungsumgebung
 
@@ -584,4 +587,107 @@ Sie muss kurz vor das Ende der Datei hier:
     </IfModule>
   </IfModule>
 </IfModule>
+```
+
+9. Statische Javascript-Dateien und andere Assets einbinden.
+
+Die Datei vite.config.js anpassen. Ich habe alle relevanten Stellen mit <-- Neu markiert.
+
+```js
+import { createAppConfig } from '@nextcloud/vite-config'
+import { join, resolve } from 'path'
+import { copyFileSync, mkdirSync } from 'fs'    <-- Neu
+
+// Neu
+const copyStaticAssets = () => ({
+    name: 'copy-static-assets',
+    closeBundle() {
+        mkdirSync('js/vendor/qrcode-generator-kazuhiko-arase', { recursive: true })
+        copyFileSync(
+            'static/qrcode-generator-kazuhiko-arase/qrcode.js',
+            'js/vendor/qrcode-generator-kazuhiko-arase/qrcode.js'
+        )
+    }
+})
+// Ende Neu
+
+export default createAppConfig(
+    {
+        // deine Entries...
+    },
+    {
+        createEmptyCSSEntryPoints: true,
+        extractLicenseInformation: true,
+        thirdPartyLicense: false,
+        config: {
+            plugins: [copyStaticAssets()],    <-- Neu
+            resolve: {
+                alias: {
+                    '@': resolve('src'),
+                },
+            },
+        },
+    },
+)
+```
+
+Dadurch sollte die Datei dann in den Ordner ./js/vendor/qrcode-generator-kazuhiko-arase/qrcode kopiert werden.
+
+Dann kann man sie in allen benötigten Templates einbinden,
+also bspw. in ```./templates/device/editor.php``` so hinzufügen:
+
+```php
+Util::addScript(Application::APP_ID, 'vendor/qrcode-generator-kazuhiko-arase/qrcode');
+```
+
+In vue ist sie dann automatisch als globales Script geladen.
+Es kann dann auf diese Art verwendet werden:
+
+```js
+// Ganz oben das hier einbinden:
+declare function qrcode(typeNumber: number, errorCorrectionLevel: string): any
+
+// Die Komponente definieren:
+const qrCodeSvg = ref<string | null>(null)
+
+// Funktion zum Generieren der QR-Codes schreiben
+function generateQrCode(id: number) {
+    const qr = qrcode(0, 'M')
+    qr.addData(generateUrl(`/apps/sfxonitam/device/detail?deviceId=${id}`))
+    qr.make()
+    qrCodeSvg.value = qr.createSvgTag(4, 0)
+}
+
+// Zum Ausführen bspw. nach dem Laden der Geräte-Daten das hier hinzufügen:
+generateQrCode(id)
+
+// also so hier bspw.:
+onMounted(async () => {
+    await loadDeviceStatis()
+    await loadDeviceTypes()
+    await loadItamUsers()
+    await loadMerchants()
+    await loadPositions()
+    await loadQuantityUnits()
+
+    if (deviceId.value) {
+        await loadDevice(deviceId.value)
+        generateQrCode(deviceId.value)
+    }
+})
+
+// An der richtigen Stelle ausgeben lassen:
+<div v-if="isEditMode && qrCodeSvg" v-html="qrCodeSvg" :class="$style.qrCode" />
+
+// Ggf. noch mit Style/CSS gestalten:
+.qrCode {
+    margin-top: 8px;
+    width: 120px;
+    height: 120px;
+}
+
+.qrCode :global(svg) {
+    width: 100%;
+    height: 100%;
+}
 ```
