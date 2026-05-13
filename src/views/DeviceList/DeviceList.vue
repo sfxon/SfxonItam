@@ -59,7 +59,8 @@ const relatedEntityData = reactive<Record<string, { id: any; label: string }[]>>
 })
 
 const columns = [
-    { type: 'image', label: 'Image', key: 'imageFileId' },
+    { type: 'image', label: t('sfxonitam', 'Image'), key: 'imageFileId' },
+    { type: 'qrCode', label: t('sfxonitam', 'QR-Code'), key: 'id' },
     { key: 'name', label: t('sfxonitam', 'Name'), sortable: true },
     { type: 'quantityWithUnit', relatedEntityName: 'quantityUnit', key: 'quantity', relatedEntityKey: 'quantityUnitId', label: t('sfxonitam', 'Quantity'), sortable: true },
     { type: 'relatedEntity', relatedEntityName: 'deviceStatus', key: 'deviceStatusId', label: t('sfxonitam', 'DeviceStatus'), sortable: false },

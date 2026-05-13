@@ -5,6 +5,7 @@ import { mdiDelete, mdiPencil } from '@mdi/js'
 import NcActions from '@nextcloud/vue/components/NcActions'
 import NcActionButton from '@nextcloud/vue/components/NcActionButton'
 import NcIconSvgWrapper from '@nextcloud/vue/components/NcIconSvgWrapper'
+import SfxonQrCodeView from '@/components/SfxonQrCodeView'
 
 const props = defineProps<{
     columns: T[],
@@ -54,6 +55,12 @@ const props = defineProps<{
                 style="width: 48px; height: 48px; object-fit: cover; border-radius: 4px; display: block;"
             />
             <span v-else>&nbsp;</span>
+        </span>
+        <span v-else-if="col.type === 'qrCode'">
+            <SfxonQrCodeView
+                :deviceId="props.dataRow[col.key]"
+                customStyle="width: 24px; height: 24px;"
+            />
         </span>
         <span v-else-if="col.type === 'actions'">
             <NcActions>

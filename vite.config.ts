@@ -2,17 +2,6 @@ import { createAppConfig } from '@nextcloud/vite-config'
 import { join, resolve } from 'path'
 import { copyFileSync, mkdirSync } from 'fs'
 
-const copyStaticAssets = () => ({
-    name: 'copy-static-assets',
-    closeBundle() {
-        mkdirSync('js/vendor/qrcode-generator-kazuhiko-arase', { recursive: true })
-        copyFileSync(
-            'static/qrcode-generator-kazuhiko-arase/qrcode.js',
-            'js/vendor/qrcode-generator-kazuhiko-arase/qrcode.js'
-        )
-    }
-})
-
 export default createAppConfig(
     {
         deviceList: resolve(join('src', 'views', 'DeviceList', 'index.ts')),
@@ -39,7 +28,6 @@ export default createAppConfig(
         extractLicenseInformation: true,
         thirdPartyLicense: false,
         config: {
-            plugins: [copyStaticAssets()],
             resolve: {
                 alias: {
                     '@': resolve('src'),

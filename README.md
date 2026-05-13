@@ -65,7 +65,13 @@ Das Programm richtet sich an **KMU** (kleine und mittelständische Unternehmen) 
             - ✅ Filter für Menge hinzufügen; 3 Felder: von, bis und Mengen-Einheit
             - ✅ Bild hinzufügen
             - QR-Code Generator hinzufügen (https://github.com/kazuhikoarase/qrcode-generator, by Kazuhiko Arase (https://github.com/kazuhikoarase))
+                - ✅ Add it to the the editor.
+                - ✅ Add it to the list view.
+            - Add Image preview and qr code preview to the list.
             - Barcodes hinzufügen, Schema: DEVICE:JP001 oder LICENC:623498-23434-sdj 
+                - Add it to the editor.
+                - Add it to the list.
+                - Add barcode preview to the list.
 
         - Geräteliste auch nach Entitäten sortierbar machen.
     - Menü hinzufügen, mit dem die Reihenfolge der Spalten geändert werden kann, sowie eingestellt werden kann, in welcher Reihenfolge gefiltert werden kann.
@@ -590,6 +596,15 @@ Sie muss kurz vor das Ende der Datei hier:
 ```
 
 9. Statische Javascript-Dateien und andere Assets einbinden.
+
+I did it like this before,
+but now I altered the file a bit,
+and added it as a static file with an import.
+
+I had to change the bottom part of the original library:
+
+```export default qrcode;```
+
 
 Die Datei vite.config.js anpassen. Ich habe alle relevanten Stellen mit <-- Neu markiert.
 
