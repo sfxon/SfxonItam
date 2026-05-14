@@ -23,13 +23,31 @@ onMounted(async () => {
 })
 </script>
 <template>
-    <div v-if="qrCodeSvg" v-html="qrCodeSvg" :class="$style.qrCode" :style="props.customStyle !== null ? props.customStyle : ''" />
+    <div
+        v-if="qrCodeSvg"
+        :class="$style.qrCodeWrapper"
+    >
+        <div 
+            v-html="qrCodeSvg"
+            :class="$style.qrCode"
+            :style="props.customStyle !== null ? props.customStyle : ''"
+        />
+    </div>
 </template>
 
 <style module>
+.qrCodeWrapper {
+    display: flex;
+    justify-content: center;
+    width: 100%;
+}
+
 .qrCode {
-    width: 120px;
-    height: 120px;
+    height: 100%;
+    margin: 0 auto;
+    max-height: 220px;
+    max-width: 220px;
+    width: 100%;
 }
 
 .qrCode :global(svg) {

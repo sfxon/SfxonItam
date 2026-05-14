@@ -15,6 +15,7 @@ import { generateUrl } from '@nextcloud/router'
 import SfxonFilterBar from '@/components/SfxonFilterBar'
 import SfxonMainNavigation from '@/components/SfxonMainNavigation'
 import SfxonPagination from '@/components/SfxonPagination'
+import SfxonQrCodeView from '@/components/SfxonQrCodeView'
 import SfxonTable from '@/components/SfxonTable'
 import { useListState } from '@/composables/useListState'
 import { fetchDevices, deleteDevice} from '@/services/DeviceService'
@@ -57,42 +58,13 @@ const relatedEntityData = reactive<Record<string, { id: any; label: string }[]>>
     'position': [],
     'quantityUnit': [],
 })
-
-const columns = [
-    { type: 'image', label: t('sfxonitam', 'Image'), key: 'imageFileId' },
-    { type: 'qrCode', label: t('sfxonitam', 'QR-Code'), key: 'id' },
-    { key: 'name', label: t('sfxonitam', 'Name'), sortable: true },
-    { type: 'quantityWithUnit', relatedEntityName: 'quantityUnit', key: 'quantity', relatedEntityKey: 'quantityUnitId', label: t('sfxonitam', 'Quantity'), sortable: true },
-    { type: 'relatedEntity', relatedEntityName: 'deviceStatus', key: 'deviceStatusId', label: t('sfxonitam', 'DeviceStatus'), sortable: false },
-    { type: 'relatedEntity', relatedEntityName: 'position', key: 'positionId', label: t('sfxonitam', 'Position'), sortable: false  },
-    { type: 'relatedEntity', relatedEntityName: 'deviceType', key: 'deviceTypeId', label: t('sfxonitam', 'DeviceType'), sortable: false },
-    { type: 'relatedEntity', relatedEntityName: 'itamUser', key: 'itamUserId', label: t('sfxonitam', 'User'), sortable: false },
-    { key: 'serialNumber', label: t('sfxonitam', 'Serial Number'), sortable: true },
-    { key: 'serialNumber2', label: t('sfxonitam', 'Serial Number 2'), sortable: true },
-    { key: 'assetNumber', label: t('sfxonitam', 'Asset Number'), sortable: true },
-    { type: 'relatedEntity', relatedEntityName: 'merchant', key: 'merchantId', label: t('sfxonitam', 'Händler'), sortable: false },
-    { key: 'invoiceNumber', label: t('sfxonitam', 'Rechnungs-Nummer'), sortable: true },
-    { type: 'date', key: 'purchaseDate', label: t('sfxonitam', 'Purchase Date'), sortable: true },
-    { type: 'actions', label: t('sfxonitam', 'Aktion'), sortable: false },
-]
-
-const filterFields = [
-    { key: 'name', label: t('sfxonitam', 'Name'), },
-    { type: 'numericFromTo', key: 'quantity', labelFrom: t('sfxonitam', 'Quantity from'), labelTo: t('sfxonitam', 'Quantity to'), },
-    { type: 'relatedEntity', relatedEntityName: 'quantityUnit', key: 'quantityUnitId', label: t('sfxonitam', 'QuantityUnit'), },
-    { type: 'relatedEntity', relatedEntityName: 'deviceStatus', key: 'deviceStatusId', label: t('sfxonitam', 'DeviceStatus'), },
-    { type: 'relatedEntity', relatedEntityName: 'position', key: 'positionId', label: t('sfxonitam', 'Position'), },
-    { type: 'relatedEntity', relatedEntityName: 'location', key: 'locationId', label: t('sfxonitam', 'Location'), },
-    { type: 'relatedEntity', relatedEntityName: 'deviceType', key: 'deviceTypeId', label: t('sfxonitam', 'DeviceType'), },
-    { type: 'relatedEntity', relatedEntityName: 'manufacturer', key: 'manufacturerId', label: t('sfxonitam', 'Manufacturer'), },
-    { type: 'relatedEntity', relatedEntityName: 'itamUser', key: 'itamUserId', label: t('sfxonitam', 'User'), },
-    { key: 'serialNumber', label: t('sfxonitam', 'Serial Number'), },
-    { key: 'serialNumber2', label: t('sfxonitam', 'Serial Number 2'), },
-    { key: 'assetNumber', label: t('sfxonitam', 'Asset Number'), },
-    { type: 'relatedEntity', relatedEntityName: 'merchant', key: 'merchantId', label: t('sfxonitam', 'Merchant'), },
-    { key: 'invoiceNumber', label: t('sfxonitam', 'Invoice Number'), },
-    { type: 'date', key: 'purchaseDate', labelFrom: t('sfxonitam', 'Purchase Date from'), labelTo: t('sfxonitam', 'Purchase Date to') },
-]
+const previewState = reactive<{
+    dataRow: any | null,
+    type: 'image' | 'qrCode'
+}>({
+    dataRow: null,
+    type: 'image',
+})
 
 function addItem() {
     window.location.href = generateUrl('/apps/sfxonitam/device/detail')
@@ -292,8 +264,6 @@ async function loadQuantityUnits() {
     }
 }
 
-
-
 function onEditDevice(device: Device) {
     window.location.href = generateUrl(`/apps/sfxonitam/device/detail?deviceId=${device.id}`);
 }
@@ -306,6 +276,21 @@ function onFilterBtn() {
     clearData()
     listState.page = 1;
     reloadDevices()
+}
+
+function previewImage(dataRow: any) {
+    previewState.dataRow = dataRow
+    previewState.type = 'image'
+}
+
+function previewQrCode(dataRow: any) {
+    previewState.dataRow = dataRow
+    previewState.type = 'qrCode'
+    return true
+}
+
+function previewClear(_dataRow: any) {
+    previewState.dataRow = null
 }
 
 async function reloadDevices() {
@@ -325,6 +310,44 @@ async function reloadDevices() {
     loading.value = false
 }
 
+// Must be defined after the eventHandlers (previewQrCode, previewImage, rowLeave),
+// because const with ref/reactive depend on the order of the declaration.
+const columns = [
+    { type: 'image', label: t('sfxonitam', 'Image'), key: 'imageFileId', rowHandler: previewImage, rowLeaveHandler: previewClear, },
+    { type: 'qrCode', label: t('sfxonitam', 'QR-Code'), key: 'id', colHandler: previewQrCode, rowHandler: previewImage, rowLeaveHandler: previewClear, },
+    { key: 'name', label: t('sfxonitam', 'Name'), sortable: true, rowHandler: previewImage, rowLeaveHandler: previewClear, },
+    { type: 'quantityWithUnit', relatedEntityName: 'quantityUnit', key: 'quantity', relatedEntityKey: 'quantityUnitId', label: t('sfxonitam', 'Quantity'), sortable: true, rowHandler: previewImage, rowLeaveHandler: previewClear, },
+    { type: 'relatedEntity', relatedEntityName: 'deviceStatus', key: 'deviceStatusId', label: t('sfxonitam', 'DeviceStatus'), sortable: false, rowHandler: previewImage, rowLeaveHandler: previewClear, },
+    { type: 'relatedEntity', relatedEntityName: 'position', key: 'positionId', label: t('sfxonitam', 'Position'), sortable: false, rowHandler: previewImage, rowLeaveHandler: previewClear, },
+    { type: 'relatedEntity', relatedEntityName: 'deviceType', key: 'deviceTypeId', label: t('sfxonitam', 'DeviceType'), sortable: false, rowHandler: previewImage, rowLeaveHandler: previewClear, },
+    { type: 'relatedEntity', relatedEntityName: 'itamUser', key: 'itamUserId', label: t('sfxonitam', 'User'), sortable: false, rowHandler: previewImage, rowLeaveHandler: previewClear, },
+    { key: 'serialNumber', label: t('sfxonitam', 'Serial Number'), sortable: true, rowHandler: previewImage, rowLeaveHandler: previewClear, },
+    { key: 'serialNumber2', label: t('sfxonitam', 'Serial Number 2'), sortable: true, rowHandler: previewImage, rowLeaveHandler: previewClear, },
+    { key: 'assetNumber', label: t('sfxonitam', 'Asset Number'), sortable: true, rowHandler: previewImage, rowLeaveHandler: previewClear, },
+    { type: 'relatedEntity', relatedEntityName: 'merchant', key: 'merchantId', label: t('sfxonitam', 'Händler'), sortable: false, rowHandler: previewImage, rowLeaveHandler: previewClear, },
+    { key: 'invoiceNumber', label: t('sfxonitam', 'Rechnungs-Nummer'), sortable: true, rowHandler: previewImage, rowLeaveHandler: previewClear, },
+    { type: 'date', key: 'purchaseDate', label: t('sfxonitam', 'Purchase Date'), sortable: true, rowHandler: previewImage, rowLeaveHandler: previewClear, },
+    { type: 'actions', label: t('sfxonitam', 'Aktion'), sortable: false, rowHandler: previewImage, rowLeaveHandler: previewClear, },
+]
+
+const filterFields = [
+    { key: 'name', label: t('sfxonitam', 'Name'), },
+    { type: 'numericFromTo', key: 'quantity', labelFrom: t('sfxonitam', 'Quantity from'), labelTo: t('sfxonitam', 'Quantity to'), },
+    { type: 'relatedEntity', relatedEntityName: 'quantityUnit', key: 'quantityUnitId', label: t('sfxonitam', 'QuantityUnit'), },
+    { type: 'relatedEntity', relatedEntityName: 'deviceStatus', key: 'deviceStatusId', label: t('sfxonitam', 'DeviceStatus'), },
+    { type: 'relatedEntity', relatedEntityName: 'position', key: 'positionId', label: t('sfxonitam', 'Position'), },
+    { type: 'relatedEntity', relatedEntityName: 'location', key: 'locationId', label: t('sfxonitam', 'Location'), },
+    { type: 'relatedEntity', relatedEntityName: 'deviceType', key: 'deviceTypeId', label: t('sfxonitam', 'DeviceType'), },
+    { type: 'relatedEntity', relatedEntityName: 'manufacturer', key: 'manufacturerId', label: t('sfxonitam', 'Manufacturer'), },
+    { type: 'relatedEntity', relatedEntityName: 'itamUser', key: 'itamUserId', label: t('sfxonitam', 'User'), },
+    { key: 'serialNumber', label: t('sfxonitam', 'Serial Number'), },
+    { key: 'serialNumber2', label: t('sfxonitam', 'Serial Number 2'), },
+    { key: 'assetNumber', label: t('sfxonitam', 'Asset Number'), },
+    { type: 'relatedEntity', relatedEntityName: 'merchant', key: 'merchantId', label: t('sfxonitam', 'Merchant'), },
+    { key: 'invoiceNumber', label: t('sfxonitam', 'Invoice Number'), },
+    { type: 'date', key: 'purchaseDate', labelFrom: t('sfxonitam', 'Purchase Date from'), labelTo: t('sfxonitam', 'Purchase Date to') },
+]
+
 watch(
     () => [listState.orderBy, listState.orderDirection, listState.page, listState.limit],
     loadDevices
@@ -339,7 +362,7 @@ onMounted(async () => {
 <template>
     <NcContent app-name="sfxonitam">
         <NcAppNavigation>
-            <NcAppNavigationList>
+            <NcAppNavigationList :class="$style.sfxonNavList">
                 <NcAppNavigationNew
                 :text="t('sfxonitam', 'Neues Gerät')"
                 @click="addItem"
@@ -349,7 +372,42 @@ onMounted(async () => {
                     </template>
                 </NcAppNavigationNew>
             </NcAppNavigationList>
+
             <SfxonMainNavigation :currentPage="'devices'" />
+
+            <!-- Preview Image on the sidebar -->
+            <template #footer>
+                <Transition name="sfxon-preview">
+                    <div
+                        v-if="previewState.dataRow"
+                        :class="$style.sfxonNavPreview"
+                    >
+                        <template v-if="previewState.type === 'qrCode'">
+                            <SfxonQrCodeView
+                                :deviceId="previewState.dataRow.id"
+                                customStyle="width: 100%; height: 100%; max-height: 220px;"
+                            />
+                        </template>
+                        <template v-else>
+                            <img
+                                v-if="previewState.dataRow.imageFileId"
+                                :src="generateUrl(`/core/preview?fileId=${previewState.dataRow.imageFileId}&x=220&y=220&a=1`)"
+                                :alt="previewState.dataRow.name ?? ''"
+                                :class="$style.sfxonNavPreviewImg"
+                            />
+                            <span
+                                v-else
+                                :class="$style.sfxonNavPreviewNoImage"
+                            >
+                                {{ t('sfxonitam', 'No image') }}
+                            </span>
+                        </template>
+                        <span :class="$style.sfxonNavPreviewLabel">
+                            {{ previewState.dataRow.name }}
+                        </span>
+                    </div>
+                </Transition>
+            </template>
         </NcAppNavigation>
 
         <!-- Inhaltsbereich -->
@@ -445,5 +503,49 @@ onMounted(async () => {
     .sfxonItamHeaderSidebarToggleBtn {
         margin-left: auto;
         margin-right: 0;
+    }
+
+    .sfxonNavList {
+        flex: 1 1 auto;
+        overflow-y: auto;
+        min-height: 0; /* wichtig für flex-shrink */
+    }
+
+    .sfxonNavPreview {
+        flex: 0 0 auto;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 6px;
+        padding: 8px;
+        border-top: 1px solid var(--color-border);
+        background: var(--color-main-background);
+    }
+
+    .sfxonNavPreviewImg {
+        width: 100%;
+        max-height: 220px;
+        object-fit: contain;
+        border-radius: 6px;
+        display: block;
+    }
+
+    .sfxonNavPreviewLabel {
+        font-size: 0.8rem;
+        color: var(--color-text-lighter);
+        text-align: center;
+        word-break: break-word;
+    }
+
+    .sfxonNavPreviewNoImage {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 100%;
+        height: 220px;
+        color: var(--color-text-lighter);
+        font-size: 0.85rem;
+        border: 1px dashed var(--color-border);
+        border-radius: 6px;
     }
 </style>

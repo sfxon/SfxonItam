@@ -64,14 +64,20 @@ Das Programm richtet sich an **KMU** (kleine und mittelständische Unternehmen) 
             - ✅ Menge hinzufügen
             - ✅ Filter für Menge hinzufügen; 3 Felder: von, bis und Mengen-Einheit
             - ✅ Bild hinzufügen
-            - QR-Code Generator hinzufügen (https://github.com/kazuhikoarase/qrcode-generator, by Kazuhiko Arase (https://github.com/kazuhikoarase))
+            - ✅ QR-Code Generator hinzufügen (https://github.com/kazuhikoarase/qrcode-generator, by Kazuhiko Arase (https://github.com/kazuhikoarase))
                 - ✅ Add it to the the editor.
                 - ✅ Add it to the list view.
-            - Add Image preview and qr code preview to the list.
+            - ✅ Add Image preview and qr code preview to the list.
+            - Add Image and Qr Code Popup, that opens, when an image or qr code is clicked in the list. Should close on next left click in free room, for easy handling. But should also show a close button, just to indicate, it can be closed.
+            - Make Elements in list clickable:
+                - a) Every elements text should lead to the detail page, but as a link, so it can be opened in a new tab by clicking the middle mouse button.
+                - b) Behind related entities i would like to have the forward button, that directly leads to the entities edit page, as a link, so that it can be opened in a new tab with a click on the middle mouse button.
             - Barcodes hinzufügen, Schema: DEVICE:JP001 oder LICENC:623498-23434-sdj 
                 - Add it to the editor.
                 - Add it to the list.
                 - Add barcode preview to the list.
+            - Geräte-Editor Darstellung optimieren. Mehrspaltig, wo möglich. Bild und QR-Code nach rechts. Inspiration bei Xanario holen - die haben imho den besten Editor für sowas gebaut (Übersichtlichkeit): https://www.xanario.de/naehere-informationen-software/ct-314.html.
+            - Add a results per page dropdown/input, so we can also show 100 results or 1000 results on one page. Load data paged then too - meaning to not overload the server - so the loading should be junked to junks of size 20 (configurable in code).
 
         - Geräteliste auch nach Entitäten sortierbar machen.
     - Menü hinzufügen, mit dem die Reihenfolge der Spalten geändert werden kann, sowie eingestellt werden kann, in welcher Reihenfolge gefiltert werden kann.
@@ -81,6 +87,18 @@ Das Programm richtet sich an **KMU** (kleine und mittelständische Unternehmen) 
 * Rechte-Verwaltung integrieren. Die Bestandteile dürfen nur mit der notwendigen Berechtigung verwendet werden dürfen.
 
 * Lizenz-Management integrieren.
+
+* Farbige Badges, bspw. bei Geräte-Status verwenden. Farbige Punkte überall dort, wo der Badge nicht direkt dargestellt werden kann/wird.
+
+* Die Menü-Leiste links verbessern:
+    - Jedem Element eine Farbe und ein Icon zuweisen?
+    - Die Abschnitte Bereiche und Stammdaten mit einem Icon versehen (rechts vom Text - rechtsbündig), mit dem sich über der Ansicht oben eine Leiste einblenden/ausblenden lässt - in der die Icons für einen Schnellzugriff angezeigt werden.
+    Ist diese Leiste aktiv, soll der "Neu"-Button der einzelnen Seiten immer nach oben rutschen, damit er auch immer verfügbar ist.
+    Ggf. muss man dazu diese Komponente auslagern, und auch für die Top-Bar eine Komponente erstellen.
+    Design dann auch Xanario inspiriert - die haben im Admin so ein schönes farbiges Menü on top (siehe deren Screenshots).
+    Vielleicht auch so bauen, das man mit Klicks durchschalten kann (oben anheften, unten anheften, gar nicht anheften. Büroklammer wäre sinnvoll dafür, die beim ersten mal aktiviert, beim zweiten mal gespiegelt, und beim dritten mal wieder deaktiviert ist. UX Genius. Hahaha. :D )
+
+* Light Mode, Dark Mode debuggen.
 
 * ✅ Alle weiteren Entitäten umsetzen:
     - ✅ Location
@@ -706,3 +724,61 @@ onMounted(async () => {
     height: 100%;
 }
 ```
+
+## Komponenten
+
+### SfxonTable
+
+* Mit dieser Komponente können Tabellen erstellt werden.
+
+* SfxonTable wurde so konzipiert, dass sie unabhängig vom Datentypen funktioniert, und über Definitionen ganze Listen von Datensätzen darstellen kann.
+
+* Die Komponente besteht aus diesen Unter-Komponenten:
+    - SfxonTableHeader
+    - SfxonTableBody
+    - SfxonTableRow
+
+#### Event Handler
+
+Es gibt drei Event-Handler, die verwendet werden können, um auf den Hover-Status von Zeilen und Spalten zu reagieren:
+
+Callback-Name | Signatur                              | Priorität
+--------------|---------------------------------------|-----------
+onColHover    | (dataRow, col) => boolean | void      | Hoch - wenn sie true zurück gibt, wird onRowHandler unterdrückt.
+onRowHover    | (dataRow) => void                     | Niedrig - feuert nur, wenn kein onColHover definiert oder dieser false/void zurückgibt
+onRowLeave    | (dataRow) => void                     | Immer beim Verlassen der Zeile
+
+**Einsatz der Event Handler:**
+
+```js
+// Define Event Handlers in calling vue Element, Component or View:
+function onColHover(dataRow: any, col: any): boolean | void {
+    // do something, return true to suppress on RowHover
+}
+
+function onRowHover(dataRow: any) {
+    // do something
+}
+
+function onRowLeave(_dataRow: any) {
+    // do something
+}
+
+// Assign the Event Handlers in the col definition:
+const columns = [
+    {
+        type: 'image',
+        label: t('sfxonitam', 'Image'),
+        key: 'imageFileId', 
+        colHandler: onColHover,
+        rowHandler: previewImage,
+        rowLeaveHandler: previewClear
+    },
+]
+```
+
+Eingesetzt wird das bspw. im View *DeviceList.vue*. Dort werden die Events verwendet, um:
+
+* in der Seitenleiste eine Bild-Vorschau darzustellen wenn man über die Zeile hovert
+* falls man aber über der Spalte QR-Code hovert, wird der QR-Code statt des Bildes an dieser Stelle angezeigt.
+* eine Besonderheit ist, dass der colHandler aktuell nur beim QR-Code Einsatz findet. Dieser wird also nur ausgelöst, wenn man über der QR-Code Spalte hovert - ansonsten wird dort immer der Row-Handler bei jeder Zeile ausgelöst. Dadurch ist in der Regel das Bild des Eintrages zu sehen, und nur der QR-Code, wenn man auch wirklich über der QR-Code Zeile hovert.

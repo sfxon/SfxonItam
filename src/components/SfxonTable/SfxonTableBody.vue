@@ -14,10 +14,19 @@ const props = defineProps<{
     relatedEntityData: T[],
 }>()
 
+function handleRowLeave(dataRow: any) {
+    for (const col of props.columns) {
+        col.rowLeaveHandler?.(dataRow)
+    }
+}
 </script>
 <template>
     <tbody>
-        <tr v-for="dataRow in props.dataArray" :key="dataRow[props.dataArrayKey]">
+        <tr
+            v-for="dataRow in props.dataArray"
+            :key="dataRow[props.dataArrayKey]"
+            @mouseleave="handleRowLeave(dataRow)"
+        >
             <SfxonTableRow
                 :columns="props.columns"
                 :dataArray="props.dataArray"

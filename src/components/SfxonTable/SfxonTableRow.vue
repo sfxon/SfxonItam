@@ -20,12 +20,21 @@ const props = defineProps<{
     relatedEntityData: T[]
 }>()
 
+function handleCellEnter(col: any) {
+    const handled = col.colHandler?.(props.dataRow, col)
+
+    if (!handled) {
+        col.rowHandler?.(props.dataRow, col)
+    }
+}
+
 </script>
 <template>
     <td
         v-for="col in columns"
         :key="col.key"
         :class="col.type === 'actions' ? 'action-col' : ''"
+        @mouseenter="handleCellEnter(col)"
     >
         <span v-if="col.type == null">
             {{ props.dataRow[col.key] }}
