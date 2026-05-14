@@ -9,6 +9,13 @@ Das Programm richtet sich an **KMU** (kleine und mittelständische Unternehmen) 
 * Release im Nextcloud Appstore zur einfacheren Installation ist geplant.
 
 <img alt="IT-Asset-Management - Device List View" src="https://github.com/user-attachments/assets/7776981c-8e5f-403b-8719-463a43a21843" /><br><br>
+
+Dark Mode:
+
+<img alt="IT-Asset-Management - Device List View in Dark Mode" src="https://github.com/user-attachments/assets/1946c652-8f06-4311-8641-45ce03446bb7" /><br><br>
+
+Editor:
+
 <img alt="IT-Asset-Management - Device Editor" src="https://github.com/user-attachments/assets/63ddb78e-07e3-4dfd-84cb-b56211382cb3" /><br><br>
 
 ## Roadmap
