@@ -162,11 +162,11 @@ Es werden 2 Export-Formate unterstützt: druckbare HTML-Seiten und CSV-Dateien.
 
 ## Feature Requests
 
-* QR-Codes als URLs (Chlorophylllius - Twitch)<br/>QR-Codes als URLs, welche direkt ins Asset-Maanagement verlinken.
+* ✅ QR-Codes als URLs (Chlorophylllius - Twitch)<br/>QR-Codes als URLs, welche direkt ins Asset-Maanagement verlinken.
 
-* Bilder der Assets hinterlegen (Chlorophylllius - Twitch)
+* ✅ Bilder der Assets hinterlegen (Chlorophylllius - Twitch)
 
-* Mengen-Angaben (bspw. bei Kabeln und Displays) (Chlorophylllius - Twitch)
+* ✅ Mengen-Angaben (bspw. bei Kabeln und Displays) (Chlorophylllius - Twitch)
 
 * Custom-Fields
 
@@ -174,6 +174,22 @@ Es werden 2 Export-Formate unterstützt: druckbare HTML-Seiten und CSV-Dateien.
     - E-Mail Bestätigung / Ausgeliehen, zurückgegeben.
 
 * Bearbeitungs-Historie (Chlorophylllius - Twitch)
+
+* Vor-Ort-Protokolle für Standorte:
+    - Es kmomt wohl häufiger vor, dass Administratoren Standorte direkt betreuen.
+    - Dabei kommt es zu dem Bedarf, dass diese regelmäßig besucht werden  müssen.
+    - Es wäre super, wenn man dazu Protokolle führen könnte.
+      Einzelne erledigte Wartungsaufgaben sollten in diesen Protokollen festgehalten werden können.
+      Hier ist allerdings eine Überschneidung zwischen Aufgaben/Tickets und ITAM bemerkbar.
+      Es wäre also interessant, hier Community-Feedback zu haben:
+          - Wo wäre das wirklich gut aufgehoben?
+          - Wäre es sinnvoll, Ticket-System und ITAM zu verknüpfen?
+          - Alternativ kann man ja erstmal einfach nir mit Text-Protokollen oder Protokoll-Listen arbeiten,
+            und an diese Links oder Ticket-Nummern mit anheften. Wenn das Zielsystem URLs auflösen kann über Ticket-Nummern,
+            könnte man auch so eine Funktion nutzen.
+          - Ein Ticket System für Nextcloud kommt ja geplant später auch noch,
+            aber ich hätte die Dinge gern flexibel und nicht zwingend gebunden,
+            auf der anderen Seite hätte ich sie auch gern so komfortabel wie irgendwie möglich.
 
 
 ## Systemvoraussetzungen
