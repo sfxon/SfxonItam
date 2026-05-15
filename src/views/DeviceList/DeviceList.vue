@@ -113,6 +113,14 @@ function defaultCellMounted(el: HTMLElement, dataRow: any) {
     }
 }
 
+function generateDeviceUrl(device: Device) {
+    return generateUrl(`/apps/sfxonitam/device/detail?deviceId=${device.id}`)
+}
+
+function onGetDeviceUrl(dataRow: any) {
+    return generateDeviceUrl(dataRow)
+}
+
 function imageCellMounted(el: HTMLElement, dataRow: any) {
     const onEnter = previewImage.bind(null, dataRow)
     const onClick = openModal.bind(null, dataRow, 'image')
@@ -299,7 +307,7 @@ async function loadQuantityUnits() {
 }
 
 function onEditDevice(device: Device) {
-    window.location.href = generateUrl(`/apps/sfxonitam/device/detail?deviceId=${device.id}`);
+    window.location.href = generateDeviceUrl(device)
 }
 
 async function onDeleteDevice(device: Device) {
@@ -367,18 +375,18 @@ async function reloadDevices() {
 const columns = [
     { type: 'image', label: t('sfxonitam', 'Image'), key: 'imageFileId', cellMounted: imageCellMounted, },
     { type: 'qrCode', label: t('sfxonitam', 'QR-Code'), key: 'id', cellMounted: qrCodeCellMounted, },
-    { key: 'name', label: t('sfxonitam', 'Name'), sortable: true, cellMounted: defaultCellMounted, },
-    { type: 'quantityWithUnit', relatedEntityName: 'quantityUnit', key: 'quantity', relatedEntityKey: 'quantityUnitId', label: t('sfxonitam', 'Quantity'), sortable: true, cellMounted: defaultCellMounted, },
-    { type: 'relatedEntity', relatedEntityName: 'deviceStatus', key: 'deviceStatusId', label: t('sfxonitam', 'DeviceStatus'), sortable: false, cellMounted: defaultCellMounted, },
-    { type: 'relatedEntity', relatedEntityName: 'position', key: 'positionId', label: t('sfxonitam', 'Position'), sortable: false, cellMounted: defaultCellMounted, },
-    { type: 'relatedEntity', relatedEntityName: 'deviceType', key: 'deviceTypeId', label: t('sfxonitam', 'DeviceType'), sortable: false, cellMounted: defaultCellMounted, },
-    { type: 'relatedEntity', relatedEntityName: 'itamUser', key: 'itamUserId', label: t('sfxonitam', 'User'), sortable: false, cellMounted: defaultCellMounted, },
-    { key: 'serialNumber', label: t('sfxonitam', 'Serial Number'), sortable: true, cellMounted: defaultCellMounted, },
-    { key: 'serialNumber2', label: t('sfxonitam', 'Serial Number 2'), sortable: true, cellMounted: defaultCellMounted, },
-    { key: 'assetNumber', label: t('sfxonitam', 'Asset Number'), sortable: true, cellMounted: defaultCellMounted, },
-    { type: 'relatedEntity', relatedEntityName: 'merchant', key: 'merchantId', label: t('sfxonitam', 'Händler'), sortable: false, cellMounted: defaultCellMounted, },
-    { key: 'invoiceNumber', label: t('sfxonitam', 'Rechnungs-Nummer'), sortable: true, cellMounted: defaultCellMounted, },
-    { type: 'date', key: 'purchaseDate', label: t('sfxonitam', 'Purchase Date'), sortable: true, cellMounted: defaultCellMounted, },
+    { key: 'name', label: t('sfxonitam', 'Name'), sortable: true, cellMounted: defaultCellMounted, colLinkCallback: onGetDeviceUrl, },
+    { type: 'quantityWithUnit', relatedEntityName: 'quantityUnit', key: 'quantity', relatedEntityKey: 'quantityUnitId', label: t('sfxonitam', 'Quantity'), sortable: true, cellMounted: defaultCellMounted, colLinkCallback: onGetDeviceUrl, },
+    { type: 'relatedEntity', relatedEntityName: 'deviceStatus', key: 'deviceStatusId', label: t('sfxonitam', 'DeviceStatus'), sortable: false, cellMounted: defaultCellMounted, colLinkCallback: onGetDeviceUrl, },
+    { type: 'relatedEntity', relatedEntityName: 'position', key: 'positionId', label: t('sfxonitam', 'Position'), sortable: false, cellMounted: defaultCellMounted, colLinkCallback: onGetDeviceUrl, },
+    { type: 'relatedEntity', relatedEntityName: 'deviceType', key: 'deviceTypeId', label: t('sfxonitam', 'DeviceType'), sortable: false, cellMounted: defaultCellMounted, colLinkCallback: onGetDeviceUrl, },
+    { type: 'relatedEntity', relatedEntityName: 'itamUser', key: 'itamUserId', label: t('sfxonitam', 'User'), sortable: false, cellMounted: defaultCellMounted, colLinkCallback: onGetDeviceUrl, },
+    { key: 'serialNumber', label: t('sfxonitam', 'Serial Number'), sortable: true, cellMounted: defaultCellMounted, colLinkCallback: onGetDeviceUrl, },
+    { key: 'serialNumber2', label: t('sfxonitam', 'Serial Number 2'), sortable: true, cellMounted: defaultCellMounted, colLinkCallback: onGetDeviceUrl, },
+    { key: 'assetNumber', label: t('sfxonitam', 'Asset Number'), sortable: true, cellMounted: defaultCellMounted, colLinkCallback: onGetDeviceUrl, },
+    { type: 'relatedEntity', relatedEntityName: 'merchant', key: 'merchantId', label: t('sfxonitam', 'Händler'), sortable: false, cellMounted: defaultCellMounted, colLinkCallback: onGetDeviceUrl, },
+    { key: 'invoiceNumber', label: t('sfxonitam', 'Rechnungs-Nummer'), sortable: true, cellMounted: defaultCellMounted, colLinkCallback: onGetDeviceUrl, },
+    { type: 'date', key: 'purchaseDate', label: t('sfxonitam', 'Purchase Date'), sortable: true, cellMounted: defaultCellMounted, colLinkCallback: onGetDeviceUrl, },
     { type: 'actions', label: t('sfxonitam', 'Aktion'), sortable: false, cellMounted: defaultCellMounted, },
 ]
 

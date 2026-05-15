@@ -42,24 +42,58 @@ function onCellRef(col: any, el: HTMLElement | null) {
         :ref="(el) => onCellRef(col, el as HTMLElement | null)"
     >
         <span v-if="col.type == null">
-            {{ props.dataRow[col.key] }}
+            <template v-if="col.colLinkCallback">
+                <a :href="col.colLinkCallback(props.dataRow)" :class="$style.sfxonRowEditLink">
+                    {{ props.dataRow[col.key] }}
+                </a>
+            </template>
+            <template
+                v-else
+            >
+                {{ props.dataRow[col.key] }}
+            </template>
         </span>
         <span v-else-if="col.type == 'date'">
-            {{ props.dataRow[col.key]
-                ? new Intl.DateTimeFormat(undefined, { dateStyle: 'medium' }).format(new Date(props.dataRow[col.key]))
-                : '&nbsp;'
-            }}
+            <template v-if="col.colLinkCallback">
+                <a :href="col.colLinkCallback(props.dataRow)" :class="$style.sfxonRowEditLink">
+                    {{ props.dataRow[col.key]
+                        ? new Intl.DateTimeFormat(undefined, { dateStyle: 'medium' }).format(new Date(props.dataRow[col.key]))
+                        : '&nbsp;'
+                    }}
+                </a>
+            </template>
+            <template v-else>
+                    {{ props.dataRow[col.key]
+                        ? new Intl.DateTimeFormat(undefined, { dateStyle: 'medium' }).format(new Date(props.dataRow[col.key]))
+                        : '&nbsp;'
+                    }}
+            </template>
         </span>
         <span
             v-else-if="col.type === 'quantityWithUnit'"
         >
-            {{ props.dataRow[col.key] != null ? parseFloat(props.dataRow[col.key]) : '' }}
-            {{ relatedEntityData[col.relatedEntityName]?.find(item => item.id === props.dataRow[col.relatedEntityKey])?.label ?? props.dataRow[col.relatedEntityName] }}
+            <template v-if="col.colLinkCallback">
+                <a :href="col.colLinkCallback(props.dataRow)" :class="$style.sfxonRowEditLink">
+                    {{ props.dataRow[col.key] != null ? parseFloat(props.dataRow[col.key]) : '' }}
+                    {{ relatedEntityData[col.relatedEntityName]?.find(item => item.id === props.dataRow[col.relatedEntityKey])?.label ?? props.dataRow[col.relatedEntityName] }}
+                </a>
+            </template>
+            <template v-else>
+                {{ props.dataRow[col.key] != null ? parseFloat(props.dataRow[col.key]) : '' }}
+                {{ relatedEntityData[col.relatedEntityName]?.find(item => item.id === props.dataRow[col.relatedEntityKey])?.label ?? props.dataRow[col.relatedEntityName] }}
+            </template>
         </span>
         <span
             v-else-if="col.type === 'relatedEntity'"
         >
-            {{ relatedEntityData[col.relatedEntityName]?.find(item => item.id === props.dataRow[col.key])?.label ?? props.dataRow[col.key] }}
+            <template v-if="col.colLinkCallback">
+                <a :href="col.colLinkCallback(props.dataRow)" :class="$style.sfxonRowEditLink">
+                    {{ relatedEntityData[col.relatedEntityName]?.find(item => item.id === props.dataRow[col.key])?.label ?? props.dataRow[col.key] }}
+                </a>
+            </template>
+            <template v-else>
+                {{ relatedEntityData[col.relatedEntityName]?.find(item => item.id === props.dataRow[col.key])?.label ?? props.dataRow[col.key] }}
+            </template>
         </span>
         <span v-else-if="col.type === 'image'">
             <img
@@ -94,3 +128,9 @@ function onCellRef(col: any, el: HTMLElement | null) {
         </span>
     </td>
 </template>
+
+<style module>
+    .sfxonRowEditLink {
+        color: var(--color-primary-element-light-text);
+    }
+</style>
