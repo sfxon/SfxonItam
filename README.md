@@ -7,8 +7,16 @@ Das Programm richtet sich an **KMU** (kleine und mittelständische Unternehmen) 
 * Lizenz-Verwaltung (Software-Lizenzen)
 * Open Source + kostenfreie Nutzung (MIT-Lizenz)
 * Release im Nextcloud Appstore zur einfacheren Installation ist geplant.
+* All your data now belongs to you.
 
-<img alt="IT-Asset-Management - Device List View" src="https://github.com/user-attachments/assets/d1b2d377-556a-418e-ba6a-4bd4c00f6cf0" /><br><br>
+<img alt="IT-Asset-Management - Device List View" src="https://github.com/user-attachments/assets/7776981c-8e5f-403b-8719-463a43a21843" /><br><br>
+
+Dark Mode:
+
+<img alt="IT-Asset-Management - Device List View in Dark Mode" src="https://github.com/user-attachments/assets/1946c652-8f06-4311-8641-45ce03446bb7" /><br><br>
+
+Editor:
+
 <img alt="IT-Asset-Management - Device Editor" src="https://github.com/user-attachments/assets/63ddb78e-07e3-4dfd-84cb-b56211382cb3" /><br><br>
 
 ## Roadmap
