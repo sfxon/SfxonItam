@@ -20,7 +20,7 @@ import SfxonTable from '@/components/SfxonTable'
 import { useListState } from '@/composables/useListState'
 import { fetchDevices, deleteDevice} from '@/services/DeviceService'
 import type { Device } from '@/services/DeviceService'
-import { fetchAllDeviceStatis } from '@/services/DeviceStatusService'
+import { fetchAllDeviceStatis, getDeviceStatusDetailLink } from '@/services/DeviceStatusService'
 import { fetchAllDeviceTypes } from '@/services/DeviceTypeService'
 import { fetchAllItamUsers } from '@/services/ItamUserService'
 import { fetchAllLocations } from '@/services/LocationService'
@@ -375,9 +375,9 @@ async function reloadDevices() {
 const columns = [
     { type: 'image', label: t('sfxonitam', 'Image'), key: 'imageFileId', cellMounted: imageCellMounted, },
     { type: 'qrCode', label: t('sfxonitam', 'QR-Code'), key: 'id', cellMounted: qrCodeCellMounted, },
-    { key: 'name', label: t('sfxonitam', 'Name'), sortable: true, cellMounted: defaultCellMounted, colLinkCallback: onGetDeviceUrl, },
+    { key: 'name', label: t('sfxonitam', 'Name'), sortable: true, cellMounted: defaultCellMounted, colLinkCallback: onGetDeviceUrl,  },
     { type: 'quantityWithUnit', relatedEntityName: 'quantityUnit', key: 'quantity', relatedEntityKey: 'quantityUnitId', label: t('sfxonitam', 'Quantity'), sortable: true, cellMounted: defaultCellMounted, colLinkCallback: onGetDeviceUrl, },
-    { type: 'relatedEntity', relatedEntityName: 'deviceStatus', key: 'deviceStatusId', label: t('sfxonitam', 'DeviceStatus'), sortable: false, cellMounted: defaultCellMounted, colLinkCallback: onGetDeviceUrl, },
+    { type: 'relatedEntity', relatedEntityName: 'deviceStatus', key: 'deviceStatusId', entityDetailUrlCallback: getDeviceStatusDetailLink, label: t('sfxonitam', 'DeviceStatus'), sortable: false, cellMounted: defaultCellMounted, colLinkCallback: onGetDeviceUrl, },
     { type: 'relatedEntity', relatedEntityName: 'position', key: 'positionId', label: t('sfxonitam', 'Position'), sortable: false, cellMounted: defaultCellMounted, colLinkCallback: onGetDeviceUrl, },
     { type: 'relatedEntity', relatedEntityName: 'deviceType', key: 'deviceTypeId', label: t('sfxonitam', 'DeviceType'), sortable: false, cellMounted: defaultCellMounted, colLinkCallback: onGetDeviceUrl, },
     { type: 'relatedEntity', relatedEntityName: 'itamUser', key: 'itamUserId', label: t('sfxonitam', 'User'), sortable: false, cellMounted: defaultCellMounted, colLinkCallback: onGetDeviceUrl, },

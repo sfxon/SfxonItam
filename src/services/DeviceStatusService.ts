@@ -28,6 +28,10 @@ export interface ListParams {
     limit: number
 }
 
+export function getDeviceStatusDetailLink(deviceStatusId: string) {
+    return generateUrl(`/apps/sfxonitam/device-status/detail?deviceStatusId=${deviceStatusId}'`)
+}
+
 export async function createDeviceStatus(payload: DeviceStatusPayload) {
     const { data } = await axios.post(generateUrl('/apps/sfxonitam/device-status/save'), payload)
     return data

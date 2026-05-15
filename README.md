@@ -76,14 +76,17 @@ Editor:
                 - ✅ Add it to the the editor.
                 - ✅ Add it to the list view.
             - ✅ Add Image preview and qr code preview to the list.
-            - Add Image and Qr Code Popup, that opens, when an image or qr code is clicked in the list. Should close on next left click in free room, for easy handling. But should also show a close button, just to indicate, it can be closed.
+            - ✅ Add Image and Qr Code Popup, that opens, when an image or qr code is clicked in the list. Should close on next left click in free room, for easy handling. But should also show a close button, just to indicate, it can be closed.
             - Make Elements in list clickable:
-                - a) Every elements text should lead to the detail page, but as a link, so it can be opened in a new tab by clicking the middle mouse button.
+                - ✅ a) Every elements text should lead to the detail page, but as a link, so it can be opened in a new tab by clicking the middle mouse button.
                 - b) Behind related entities i would like to have the forward button, that directly leads to the entities edit page, as a link, so that it can be opened in a new tab with a click on the middle mouse button.
+                    b.I) ✅ Added to DeviceStatus.
+                    b.II) Add to all the other related entities.
             - Barcodes hinzufügen, Schema: DEVICE:JP001 oder LICENC:623498-23434-sdj 
                 - Add it to the editor.
                 - Add it to the list.
                 - Add barcode preview to the list.
+                - Add barcode popup to the list.
             - Geräte-Editor Darstellung optimieren. Mehrspaltig, wo möglich. Bild und QR-Code nach rechts. Inspiration bei Xanario holen - die haben imho den besten Editor für sowas gebaut (Übersichtlichkeit): https://www.xanario.de/naehere-informationen-software/ct-314.html.
             - Add a results per page dropdown/input, so we can also show 100 results or 1000 results on one page. Load data paged then too - meaning to not overload the server - so the loading should be junked to junks of size 20 (configurable in code).
 
@@ -91,6 +94,8 @@ Editor:
     - Menü hinzufügen, mit dem die Reihenfolge der Spalten geändert werden kann, sowie eingestellt werden kann, in welcher Reihenfolge gefiltert werden kann.
 
 * Filter, Sortier und Spalten-Einstellungen auch in andere Entitäten aufnehmen (einheitlich).
+
+* Daten laden optimieren.
 
 * Rechte-Verwaltung integrieren. Die Bestandteile dürfen nur mit der notwendigen Berechtigung verwendet werden dürfen.
 
@@ -108,6 +113,8 @@ Editor:
 
 * Light Mode, Dark Mode debuggen.
 
+* Optimize UX - make it a little bit more gamy. Get inspiration from games: https://www.youtube.com/watch?v=NWOUna4fSEI
+
 * ✅ Alle weiteren Entitäten umsetzen:
     - ✅ Location
     - ✅ Position
@@ -124,8 +131,6 @@ Editor:
     - ✅ Einträge verwalten (CRUD)
     - ✅ nur Löschen, wenn ein Status nicht mehr in Device verwendet wird.
     - ✅ DeviceStatus in den Menüpunkten zum Verwalten von Geräten (Device) hinzufügen.
-
-* Optimize UX - make it a little bit more gamy. Get inspiration from games: https://www.youtube.com/watch?v=NWOUna4fSEI
 
 ## Aktuelle Funktionen
 

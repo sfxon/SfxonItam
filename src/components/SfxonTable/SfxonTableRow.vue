@@ -1,10 +1,11 @@
 <script setup lang="ts" generic="T">
 
 import { generateUrl } from '@nextcloud/router'
-import { mdiDelete, mdiPencil } from '@mdi/js'
+import { mdiDelete, mdiPencil, mdiOpenInNew } from '@mdi/js'
 import NcActions from '@nextcloud/vue/components/NcActions'
 import NcActionButton from '@nextcloud/vue/components/NcActionButton'
 import NcIconSvgWrapper from '@nextcloud/vue/components/NcIconSvgWrapper'
+import NcPopover from '@nextcloud/vue/components/NcPopover'
 import SfxonQrCodeView from '@/components/SfxonQrCodeView'
 
 const props = defineProps<{
@@ -31,6 +32,11 @@ function onCellRef(col: any, el: HTMLElement | null) {
         cleanups.forEach(fn => fn())
         cleanups.clear()
     }
+}
+
+function getRelatedEntityData(col: any) {
+    return props.relatedEntityData[col.relatedEntityName]
+        ?.find(item => item.id === props.dataRow[col.key])?.id ?? null
 }
 
 </script>
@@ -85,6 +91,7 @@ function onCellRef(col: any, el: HTMLElement | null) {
         </span>
         <span
             v-else-if="col.type === 'relatedEntity'"
+            :class="$style.relatedEntityCol"
         >
             <template v-if="col.colLinkCallback">
                 <a :href="col.colLinkCallback(props.dataRow)" :class="$style.sfxonRowEditLink">
@@ -93,6 +100,11 @@ function onCellRef(col: any, el: HTMLElement | null) {
             </template>
             <template v-else>
                 {{ relatedEntityData[col.relatedEntityName]?.find(item => item.id === props.dataRow[col.key])?.label ?? props.dataRow[col.key] }}
+            </template>
+            <template v-if="col.entityDetailUrlCallback && getRelatedEntityData(col)">
+                <a :href="col.entityDetailUrlCallback?.(getRelatedEntityData(col))">
+                    <NcIconSvgWrapper :path="mdiOpenInNew" :size="16" :class="$style.relatedEntityColExternalLink" />
+                </a>
             </template>
         </span>
         <span v-else-if="col.type === 'image'">
@@ -132,5 +144,21 @@ function onCellRef(col: any, el: HTMLElement | null) {
 <style module>
     .sfxonRowEditLink {
         color: var(--color-primary-element-light-text);
+    }
+
+    .relatedEntityCol {
+        align-content: center;
+        align-items: center;
+        display: flex;
+        color: var(--color-primary-element-light-text);
+    }
+
+    .relatedEntityColExternalLink {
+        color: var(--color-primary-element-light-text)!important;
+        opacity: .6!important;
+    }
+
+    .relatedEntityColExternalLink:hover {
+        opacity: 1!important;
     }
 </style>
