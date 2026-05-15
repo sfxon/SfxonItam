@@ -33,6 +33,10 @@ export async function createItamUser(payload: ItamUserPayload) {
     return data
 }
 
+export async function deleteItamUser(id: number): Promise<void> {
+    await axios.delete(generateUrl(`/apps/sfxonitam/itam-user/${id}`))
+}
+
 export async function fetchAllItamUsers(params: ListParams): Promise<ItamUserListResponse> {
     const { data } = await axios.get(generateUrl('/apps/sfxonitam/itam-user/listall'), { params })
     return data
@@ -48,8 +52,8 @@ export async function fetchItamUsers(params: ListParams): Promise<ItamUserListRe
     return data
 }
 
-export async function deleteItamUser(id: number): Promise<void> {
-    await axios.delete(generateUrl(`/apps/sfxonitam/itam-user/${id}`))
+export function getItamUserDetailLink(itamUserId: string) {
+    return generateUrl(`/apps/sfxonitam/itam-user/detail?itamUserId=${itamUserId}`)
 }
 
 export async function updateItamUser(id: number, payload: ItamUserPayload) {

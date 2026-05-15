@@ -33,6 +33,10 @@ export async function createDeviceType(payload: DeviceTypePayload) {
     return data
 }
 
+export async function deleteDeviceType(id: number): Promise<void> {
+    await axios.delete(generateUrl(`/apps/sfxonitam/device-type/${id}`))
+}
+
 export async function fetchAllDeviceTypes(params: ListParams): Promise<DeviceTypeListResponse> {
     const { data } = await axios.get(generateUrl('/apps/sfxonitam/device-type/listall'), { params })
     return data
@@ -48,8 +52,8 @@ export async function fetchDeviceTypes(params: ListParams): Promise<DeviceTypeLi
     return data
 }
 
-export async function deleteDeviceType(id: number): Promise<void> {
-    await axios.delete(generateUrl(`/apps/sfxonitam/device-type/${id}`))
+export function getDeviceTypeDetailLink(deviceTypeId: string) {
+    return generateUrl(`/apps/sfxonitam/device-type/detail?deviceTypeId=${deviceTypeId}`)
 }
 
 export async function updateDeviceType(id: number, payload: DeviceTypePayload) {

@@ -33,6 +33,10 @@ export async function createMerchant(payload: MerchantPayload) {
     return data
 }
 
+export async function deleteMerchant(id: number): Promise<void> {
+    await axios.delete(generateUrl(`/apps/sfxonitam/merchant/${id}`))
+}
+
 export async function fetchAllMerchants(params: ListParams): Promise<MerchantListResponse> {
     const { data } = await axios.get(generateUrl('/apps/sfxonitam/merchant/listall'), { params })
     return data
@@ -48,8 +52,8 @@ export async function fetchMerchants(params: ListParams): Promise<MerchantListRe
     return data
 }
 
-export async function deleteMerchant(id: number): Promise<void> {
-    await axios.delete(generateUrl(`/apps/sfxonitam/merchant/${id}`))
+export function getMerchantDetailLink(merchantId: string) {
+    return generateUrl(`/apps/sfxonitam/merchant/detail?merchantId=${merchantId}`)
 }
 
 export async function updateMerchant(id: number, payload: MerchantPayload) {

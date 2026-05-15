@@ -33,6 +33,10 @@ export async function createQuantityUnit(payload: QuantityUnitPayload) {
     return data
 }
 
+export async function deleteQuantityUnit(id: number): Promise<void> {
+    await axios.delete(generateUrl(`/apps/sfxonitam/quantity-unit/${id}`))
+}
+
 export async function fetchAllQuantityUnits(params: ListParams): Promise<QuantityUnitListResponse> {
     const { data } = await axios.get(generateUrl('/apps/sfxonitam/quantity-unit/listall'), { params })
     return data
@@ -48,8 +52,8 @@ export async function fetchQuantityUnits(params: ListParams): Promise<QuantityUn
     return data
 }
 
-export async function deleteQuantityUnit(id: number): Promise<void> {
-    await axios.delete(generateUrl(`/apps/sfxonitam/quantity-unit/${id}`))
+export function getQuantityUnitDetailLink(quantityUnitId: string) {
+    return generateUrl(`/apps/sfxonitam/quantity-unit/detail?quantityUnitId=${quantityUnitId}`)
 }
 
 export async function updateQuantityUnit(id: number, payload: QuantityUnitPayload) {

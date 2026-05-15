@@ -21,13 +21,13 @@ import { useListState } from '@/composables/useListState'
 import { fetchDevices, deleteDevice} from '@/services/DeviceService'
 import type { Device } from '@/services/DeviceService'
 import { fetchAllDeviceStatis, getDeviceStatusDetailLink } from '@/services/DeviceStatusService'
-import { fetchAllDeviceTypes } from '@/services/DeviceTypeService'
-import { fetchAllItamUsers } from '@/services/ItamUserService'
+import { fetchAllDeviceTypes, getDeviceTypeDetailLink } from '@/services/DeviceTypeService'
+import { fetchAllItamUsers, getItamUserDetailLink } from '@/services/ItamUserService'
 import { fetchAllLocations } from '@/services/LocationService'
-import { fetchAllManufacturers } from '@/services/ManufacturerService'
-import { fetchAllMerchants } from '@/services/MerchantService'
-import { fetchAllPositions } from '@/services/PositionService'
-import { fetchAllQuantityUnits } from '@/services/QuantityUnitService'
+import { fetchAllManufacturers, getManufacturerDetailLink } from '@/services/ManufacturerService'
+import { fetchAllMerchants, getMerchantDetailLink } from '@/services/MerchantService'
+import { fetchAllPositions, getPositionDetailLink } from '@/services/PositionService'
+import { fetchAllQuantityUnits, getQuantityUnitDetailLink } from '@/services/QuantityUnitService'
 
 const deviceStatisLoading = ref(false)
 const deviceTypesLoading = ref(false)
@@ -375,16 +375,16 @@ async function reloadDevices() {
 const columns = [
     { type: 'image', label: t('sfxonitam', 'Image'), key: 'imageFileId', cellMounted: imageCellMounted, },
     { type: 'qrCode', label: t('sfxonitam', 'QR-Code'), key: 'id', cellMounted: qrCodeCellMounted, },
-    { key: 'name', label: t('sfxonitam', 'Name'), sortable: true, cellMounted: defaultCellMounted, colLinkCallback: onGetDeviceUrl,  },
-    { type: 'quantityWithUnit', relatedEntityName: 'quantityUnit', key: 'quantity', relatedEntityKey: 'quantityUnitId', label: t('sfxonitam', 'Quantity'), sortable: true, cellMounted: defaultCellMounted, colLinkCallback: onGetDeviceUrl, },
+    { key: 'name', label: t('sfxonitam', 'Name'), sortable: true, cellMounted: defaultCellMounted, colLinkCallback: onGetDeviceUrl, },
+    { type: 'quantityWithUnit', relatedEntityName: 'quantityUnit', key: 'quantity', relatedEntityKey: 'quantityUnitId', entityDetailUrlCallback: getQuantityUnitDetailLink, label: t('sfxonitam', 'Quantity'), sortable: true, cellMounted: defaultCellMounted, colLinkCallback: onGetDeviceUrl, },
     { type: 'relatedEntity', relatedEntityName: 'deviceStatus', key: 'deviceStatusId', entityDetailUrlCallback: getDeviceStatusDetailLink, label: t('sfxonitam', 'DeviceStatus'), sortable: false, cellMounted: defaultCellMounted, colLinkCallback: onGetDeviceUrl, },
-    { type: 'relatedEntity', relatedEntityName: 'position', key: 'positionId', label: t('sfxonitam', 'Position'), sortable: false, cellMounted: defaultCellMounted, colLinkCallback: onGetDeviceUrl, },
-    { type: 'relatedEntity', relatedEntityName: 'deviceType', key: 'deviceTypeId', label: t('sfxonitam', 'DeviceType'), sortable: false, cellMounted: defaultCellMounted, colLinkCallback: onGetDeviceUrl, },
-    { type: 'relatedEntity', relatedEntityName: 'itamUser', key: 'itamUserId', label: t('sfxonitam', 'User'), sortable: false, cellMounted: defaultCellMounted, colLinkCallback: onGetDeviceUrl, },
+    { type: 'relatedEntity', relatedEntityName: 'position', key: 'positionId', entityDetailUrlCallback: getPositionDetailLink, label: t('sfxonitam', 'Position'), sortable: false, cellMounted: defaultCellMounted, colLinkCallback: onGetDeviceUrl, },
+    { type: 'relatedEntity', relatedEntityName: 'deviceType', key: 'deviceTypeId', entityDetailUrlCallback: getDeviceTypeDetailLink, label: t('sfxonitam', 'DeviceType'), sortable: false, cellMounted: defaultCellMounted, colLinkCallback: onGetDeviceUrl, },
+    { type: 'relatedEntity', relatedEntityName: 'itamUser', key: 'itamUserId', entityDetailUrlCallback: getItamUserDetailLink, label: t('sfxonitam', 'User'), sortable: false, cellMounted: defaultCellMounted, colLinkCallback: onGetDeviceUrl, },
     { key: 'serialNumber', label: t('sfxonitam', 'Serial Number'), sortable: true, cellMounted: defaultCellMounted, colLinkCallback: onGetDeviceUrl, },
     { key: 'serialNumber2', label: t('sfxonitam', 'Serial Number 2'), sortable: true, cellMounted: defaultCellMounted, colLinkCallback: onGetDeviceUrl, },
     { key: 'assetNumber', label: t('sfxonitam', 'Asset Number'), sortable: true, cellMounted: defaultCellMounted, colLinkCallback: onGetDeviceUrl, },
-    { type: 'relatedEntity', relatedEntityName: 'merchant', key: 'merchantId', label: t('sfxonitam', 'Händler'), sortable: false, cellMounted: defaultCellMounted, colLinkCallback: onGetDeviceUrl, },
+    { type: 'relatedEntity', relatedEntityName: 'merchant', key: 'merchantId', entityDetailUrlCallback: getMerchantDetailLink, label: t('sfxonitam', 'Händler'), sortable: false, cellMounted: defaultCellMounted, colLinkCallback: onGetDeviceUrl, },
     { key: 'invoiceNumber', label: t('sfxonitam', 'Rechnungs-Nummer'), sortable: true, cellMounted: defaultCellMounted, colLinkCallback: onGetDeviceUrl, },
     { type: 'date', key: 'purchaseDate', label: t('sfxonitam', 'Purchase Date'), sortable: true, cellMounted: defaultCellMounted, colLinkCallback: onGetDeviceUrl, },
     { type: 'actions', label: t('sfxonitam', 'Aktion'), sortable: false, cellMounted: defaultCellMounted, },

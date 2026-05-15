@@ -34,6 +34,11 @@ function onCellRef(col: any, el: HTMLElement | null) {
     }
 }
 
+function getQuantityRelatedEntityData(col: any) {
+    return props.relatedEntityData[col.relatedEntityName]
+        ?.find(item => item.id === props.dataRow[col.relatedEntityKey])?.id ?? null
+}
+
 function getRelatedEntityData(col: any) {
     return props.relatedEntityData[col.relatedEntityName]
         ?.find(item => item.id === props.dataRow[col.key])?.id ?? null
@@ -77,6 +82,7 @@ function getRelatedEntityData(col: any) {
         </span>
         <span
             v-else-if="col.type === 'quantityWithUnit'"
+            :class="$style.relatedEntityCol"
         >
             <template v-if="col.colLinkCallback">
                 <a :href="col.colLinkCallback(props.dataRow)" :class="$style.sfxonRowEditLink">
@@ -87,6 +93,11 @@ function getRelatedEntityData(col: any) {
             <template v-else>
                 {{ props.dataRow[col.key] != null ? parseFloat(props.dataRow[col.key]) : '' }}
                 {{ relatedEntityData[col.relatedEntityName]?.find(item => item.id === props.dataRow[col.relatedEntityKey])?.label ?? props.dataRow[col.relatedEntityName] }}
+            </template>
+            <template v-if="col.entityDetailUrlCallback && getQuantityRelatedEntityData(col)">
+                <a :href="col.entityDetailUrlCallback?.(getQuantityRelatedEntityData(col))">
+                    <NcIconSvgWrapper :path="mdiOpenInNew" :size="16" :class="$style.relatedEntityColExternalLink" />
+                </a>
             </template>
         </span>
         <span

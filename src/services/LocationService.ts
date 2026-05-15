@@ -33,6 +33,10 @@ export async function createLocation(payload: LocationPayload) {
     return data
 }
 
+export async function deleteLocation(id: number): Promise<void> {
+    await axios.delete(generateUrl(`/apps/sfxonitam/location/${id}`))
+}
+
 export async function fetchAllLocations(params: ListParams): Promise<LocationListResponse> {
     const { data } = await axios.get(generateUrl('/apps/sfxonitam/location/listall'), { params })
     return data
@@ -46,10 +50,6 @@ export async function fetchLocation(id: number): Promise<Location> {
 export async function fetchLocations(params: ListParams): Promise<LocationListResponse> {
     const { data } = await axios.get(generateUrl('/apps/sfxonitam/location/list'), { params })
     return data
-}
-
-export async function deleteLocation(id: number): Promise<void> {
-    await axios.delete(generateUrl(`/apps/sfxonitam/location/${id}`))
 }
 
 export async function updateLocation(id: number, payload: LocationPayload) {

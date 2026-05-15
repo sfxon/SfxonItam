@@ -33,6 +33,10 @@ export async function createPosition(payload: PositionPayload) {
     return data
 }
 
+export async function deletePosition(id: number): Promise<void> {
+    await axios.delete(generateUrl(`/apps/sfxonitam/position/${id}`))
+}
+
 export async function fetchAllPositions(params: ListParams): Promise<PositionListResponse> {
     const { data } = await axios.get(generateUrl('/apps/sfxonitam/position/listall'), { params })
     return data
@@ -48,8 +52,8 @@ export async function fetchPositions(params: ListParams): Promise<PositionListRe
     return data
 }
 
-export async function deletePosition(id: number): Promise<void> {
-    await axios.delete(generateUrl(`/apps/sfxonitam/position/${id}`))
+export function getPositionDetailLink(positionId: string) {
+    return generateUrl(`/apps/sfxonitam/position/detail?positionId=${positionId}`)
 }
 
 export async function updatePosition(id: number, payload: PositionPayload) {

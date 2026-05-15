@@ -28,13 +28,13 @@ export interface ListParams {
     limit: number
 }
 
-export function getDeviceStatusDetailLink(deviceStatusId: string) {
-    return generateUrl(`/apps/sfxonitam/device-status/detail?deviceStatusId=${deviceStatusId}'`)
-}
-
 export async function createDeviceStatus(payload: DeviceStatusPayload) {
     const { data } = await axios.post(generateUrl('/apps/sfxonitam/device-status/save'), payload)
     return data
+}
+
+export async function deleteDeviceStatus(id: number): Promise<void> {
+    await axios.delete(generateUrl(`/apps/sfxonitam/device-status/${id}`))
 }
 
 export async function fetchAllDeviceStatis(params: ListParams): Promise<DeviceStatusListResponse> {
@@ -52,8 +52,8 @@ export async function fetchDeviceStatis(params: ListParams): Promise<DeviceStatu
     return data
 }
 
-export async function deleteDeviceStatus(id: number): Promise<void> {
-    await axios.delete(generateUrl(`/apps/sfxonitam/device-status/${id}`))
+export function getDeviceStatusDetailLink(deviceStatusId: string) {
+    return generateUrl(`/apps/sfxonitam/device-status/detail?deviceStatusId=${deviceStatusId}`)
 }
 
 export async function updateDeviceStatus(id: number, payload: DeviceStatusPayload) {
