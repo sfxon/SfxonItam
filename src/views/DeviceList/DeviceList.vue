@@ -48,6 +48,13 @@ const deviceToDelete = ref<Device | null>(null)
 const filterValues = reactive<Record<string, { value: any }[]>>({})
 const locations = ref<{ id: string; label: string}[]>([])
 const manufacturers = ref<{ id: string; label: string}[]>([])
+const modalState = reactive<{
+    dataRow: any | null,
+    type: 'image' | 'qrCode'
+}>({
+    dataRow: null,
+    type: 'image',
+})
 const relatedEntityData = reactive<Record<string, { id: any; label: string }[]>>({
     'deviceStatus': [],
     'deviceType': [],
@@ -85,11 +92,38 @@ function clearData() {
     relatedEntityData.position = []
 }
 
+function closeModal() {
+    modalState.dataRow = null
+}
+
 async function confirmDelete() {
     if (!deviceToDelete.value) return
     await deleteDevice(deviceToDelete.value.id)
     deviceToDelete.value = null
     await loadDevices()
+}
+
+function defaultCellMounted(el: HTMLElement, dataRow: any) {
+    const onEnter = previewImage.bind(null, dataRow)
+
+    el.addEventListener('mouseenter', onEnter)
+
+    return () => {
+        el.removeEventListener('mouseenter', onEnter)
+    }
+}
+
+function imageCellMounted(el: HTMLElement, dataRow: any) {
+    const onEnter = previewImage.bind(null, dataRow)
+    const onClick = openModal.bind(null, dataRow, 'image')
+
+    el.addEventListener('mouseenter', onEnter)
+    el.addEventListener('click', onClick)
+
+    return () => {
+        el.removeEventListener('mouseenter', onEnter)
+        el.removeEventListener('click', onClick)
+    }
 }
 
 async function loadDevices() {
@@ -278,9 +312,27 @@ function onFilterBtn() {
     reloadDevices()
 }
 
+function openModal(dataRow: any, type: 'image' | 'qrCode') {
+    modalState.dataRow = dataRow
+    modalState.type = type
+}
+
 function previewImage(dataRow: any) {
     previewState.dataRow = dataRow
     previewState.type = 'image'
+}
+
+function qrCodeCellMounted(el: HTMLElement, dataRow: any) {
+    const onEnter = previewQrCode.bind(null, dataRow)
+    const onClick = openModal.bind(null, dataRow, 'qrCode')
+
+    el.addEventListener('mouseenter', onEnter)
+    el.addEventListener('click', onClick)
+
+    return () => {
+        el.removeEventListener('mouseenter', onEnter)
+        el.removeEventListener('click', onClick)
+    }
 }
 
 function previewQrCode(dataRow: any) {
@@ -313,21 +365,21 @@ async function reloadDevices() {
 // Must be defined after the eventHandlers (previewQrCode, previewImage, rowLeave),
 // because const with ref/reactive depend on the order of the declaration.
 const columns = [
-    { type: 'image', label: t('sfxonitam', 'Image'), key: 'imageFileId', rowHandler: previewImage, rowLeaveHandler: previewClear, },
-    { type: 'qrCode', label: t('sfxonitam', 'QR-Code'), key: 'id', colHandler: previewQrCode, rowHandler: previewImage, rowLeaveHandler: previewClear, },
-    { key: 'name', label: t('sfxonitam', 'Name'), sortable: true, rowHandler: previewImage, rowLeaveHandler: previewClear, },
-    { type: 'quantityWithUnit', relatedEntityName: 'quantityUnit', key: 'quantity', relatedEntityKey: 'quantityUnitId', label: t('sfxonitam', 'Quantity'), sortable: true, rowHandler: previewImage, rowLeaveHandler: previewClear, },
-    { type: 'relatedEntity', relatedEntityName: 'deviceStatus', key: 'deviceStatusId', label: t('sfxonitam', 'DeviceStatus'), sortable: false, rowHandler: previewImage, rowLeaveHandler: previewClear, },
-    { type: 'relatedEntity', relatedEntityName: 'position', key: 'positionId', label: t('sfxonitam', 'Position'), sortable: false, rowHandler: previewImage, rowLeaveHandler: previewClear, },
-    { type: 'relatedEntity', relatedEntityName: 'deviceType', key: 'deviceTypeId', label: t('sfxonitam', 'DeviceType'), sortable: false, rowHandler: previewImage, rowLeaveHandler: previewClear, },
-    { type: 'relatedEntity', relatedEntityName: 'itamUser', key: 'itamUserId', label: t('sfxonitam', 'User'), sortable: false, rowHandler: previewImage, rowLeaveHandler: previewClear, },
-    { key: 'serialNumber', label: t('sfxonitam', 'Serial Number'), sortable: true, rowHandler: previewImage, rowLeaveHandler: previewClear, },
-    { key: 'serialNumber2', label: t('sfxonitam', 'Serial Number 2'), sortable: true, rowHandler: previewImage, rowLeaveHandler: previewClear, },
-    { key: 'assetNumber', label: t('sfxonitam', 'Asset Number'), sortable: true, rowHandler: previewImage, rowLeaveHandler: previewClear, },
-    { type: 'relatedEntity', relatedEntityName: 'merchant', key: 'merchantId', label: t('sfxonitam', 'Händler'), sortable: false, rowHandler: previewImage, rowLeaveHandler: previewClear, },
-    { key: 'invoiceNumber', label: t('sfxonitam', 'Rechnungs-Nummer'), sortable: true, rowHandler: previewImage, rowLeaveHandler: previewClear, },
-    { type: 'date', key: 'purchaseDate', label: t('sfxonitam', 'Purchase Date'), sortable: true, rowHandler: previewImage, rowLeaveHandler: previewClear, },
-    { type: 'actions', label: t('sfxonitam', 'Aktion'), sortable: false, rowHandler: previewImage, rowLeaveHandler: previewClear, },
+    { type: 'image', label: t('sfxonitam', 'Image'), key: 'imageFileId', cellMounted: imageCellMounted, },
+    { type: 'qrCode', label: t('sfxonitam', 'QR-Code'), key: 'id', cellMounted: qrCodeCellMounted, },
+    { key: 'name', label: t('sfxonitam', 'Name'), sortable: true, cellMounted: defaultCellMounted, },
+    { type: 'quantityWithUnit', relatedEntityName: 'quantityUnit', key: 'quantity', relatedEntityKey: 'quantityUnitId', label: t('sfxonitam', 'Quantity'), sortable: true, cellMounted: defaultCellMounted, },
+    { type: 'relatedEntity', relatedEntityName: 'deviceStatus', key: 'deviceStatusId', label: t('sfxonitam', 'DeviceStatus'), sortable: false, cellMounted: defaultCellMounted, },
+    { type: 'relatedEntity', relatedEntityName: 'position', key: 'positionId', label: t('sfxonitam', 'Position'), sortable: false, cellMounted: defaultCellMounted, },
+    { type: 'relatedEntity', relatedEntityName: 'deviceType', key: 'deviceTypeId', label: t('sfxonitam', 'DeviceType'), sortable: false, cellMounted: defaultCellMounted, },
+    { type: 'relatedEntity', relatedEntityName: 'itamUser', key: 'itamUserId', label: t('sfxonitam', 'User'), sortable: false, cellMounted: defaultCellMounted, },
+    { key: 'serialNumber', label: t('sfxonitam', 'Serial Number'), sortable: true, cellMounted: defaultCellMounted, },
+    { key: 'serialNumber2', label: t('sfxonitam', 'Serial Number 2'), sortable: true, cellMounted: defaultCellMounted, },
+    { key: 'assetNumber', label: t('sfxonitam', 'Asset Number'), sortable: true, cellMounted: defaultCellMounted, },
+    { type: 'relatedEntity', relatedEntityName: 'merchant', key: 'merchantId', label: t('sfxonitam', 'Händler'), sortable: false, cellMounted: defaultCellMounted, },
+    { key: 'invoiceNumber', label: t('sfxonitam', 'Rechnungs-Nummer'), sortable: true, cellMounted: defaultCellMounted, },
+    { type: 'date', key: 'purchaseDate', label: t('sfxonitam', 'Purchase Date'), sortable: true, cellMounted: defaultCellMounted, },
+    { type: 'actions', label: t('sfxonitam', 'Aktion'), sortable: false, cellMounted: defaultCellMounted, },
 ]
 
 const filterFields = [
@@ -384,8 +436,9 @@ onMounted(async () => {
                     >
                         <template v-if="previewState.type === 'qrCode'">
                             <SfxonQrCodeView
-                                :deviceId="previewState.dataRow.id"
                                 customStyle="width: 100%; height: 100%; max-height: 220px;"
+                                :deviceId="previewState.dataRow.id"
+                                :key="previewState.dataRow.id"
                             />
                         </template>
                         <template v-else>
@@ -438,6 +491,7 @@ onMounted(async () => {
                     :listState="listState"
                     :orderByCallback="listState.sortBy"
                     :relatedEntityData="relatedEntityData"
+                    :tableLeaveHandler="previewClear"
                 />
 
                 <SfxonPagination
@@ -457,6 +511,7 @@ onMounted(async () => {
         />
     </NcContent>
 
+    <!-- Confirm Delete Dialog -->
     <NcDialog
         v-if="deviceToDelete"
         :name="t('sfxonitam', 'Gerät löschen')"
@@ -479,6 +534,39 @@ onMounted(async () => {
                 {{ t('sfxonitam', 'Löschen') }}
             </NcButton>
         </template>
+    </NcDialog>
+
+    <!-- Image or QR-Code Dialog/Popup -->
+    <NcDialog
+        v-if="modalState.dataRow"
+        :name="modalState.dataRow?.name ?? ''"
+        :open="!!modalState.dataRow"
+        size="normal"
+        @closing="closeModal"
+        close-on-click-outside
+    >
+        <div
+            :class="$style.sfxonModalContent"
+            @click.left="closeModal"
+        >
+            <template v-if="modalState.type === 'qrCode'">
+                <SfxonQrCodeView
+                    :deviceId="modalState.dataRow.id"
+                    customStyle="width: 100%; height: auto;"
+                />
+            </template>
+            <template v-else>
+                <img
+                    v-if="modalState.dataRow.imageFileId"
+                    :src="generateUrl(`/core/preview?fileId=${modalState.dataRow.imageFileId}&x=800&y=800&a=1`)"
+                    :alt="modalState.dataRow.name ?? ''"
+                    :class="$style.sfxonModalImg"
+                />
+                <span v-else :class="$style.sfxonModalNoImage">
+                    {{ t('sfxonitam', 'No image') }}
+                </span>
+            </template>
+        </div>
     </NcDialog>
 </template>
 
@@ -547,5 +635,34 @@ onMounted(async () => {
         font-size: 0.85rem;
         border: 1px dashed var(--color-border);
         border-radius: 6px;
+    }
+
+    .sfxonModalContent {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        padding: 16px 16px 48px;
+        cursor: pointer;
+        min-height: 200px;
+    }
+
+    .sfxonModalImg {
+        max-width: 100%;
+        max-height: 70vh;
+        object-fit: contain;
+        border-radius: 8px;
+        display: block;
+    }
+
+    .sfxonModalNoImage {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 320px;
+        height: 200px;
+        color: var(--color-text-lighter);
+        font-size: 0.9rem;
+        border: 1px dashed var(--color-border);
+        border-radius: 8px;
     }
 </style>

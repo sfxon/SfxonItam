@@ -11,8 +11,13 @@ const props = defineProps<{
     editCallback: null,
     listState: null
     orderByCallback: null,
-    relatedEntityData: T[]
+    relatedEntityData: T[],
+    tableLeaveHandler: any
 }>()
+
+function handleTableLeave() {
+    props.tableLeaveHandler?.()
+}
 
 </script>
 <template>

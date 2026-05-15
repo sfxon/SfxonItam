@@ -20,11 +20,16 @@ const props = defineProps<{
     relatedEntityData: T[]
 }>()
 
-function handleCellEnter(col: any) {
-    const handled = col.colHandler?.(props.dataRow, col)
+// Cleanup Event Handlers, when the rows are not longer used (removing rows from table for example).
+const cleanups = new Map<HTMLElement, () => void>()
 
-    if (!handled) {
-        col.rowHandler?.(props.dataRow, col)
+function onCellRef(col: any, el: HTMLElement | null) {
+    if (el instanceof HTMLElement) {
+        const cleanup = col.cellMounted?.(el, props.dataRow)
+        if (typeof cleanup === 'function') cleanups.set(el, cleanup)
+    } else if (el === null) {
+        cleanups.forEach(fn => fn())
+        cleanups.clear()
     }
 }
 
@@ -34,7 +39,7 @@ function handleCellEnter(col: any) {
         v-for="col in columns"
         :key="col.key"
         :class="col.type === 'actions' ? 'action-col' : ''"
-        @mouseenter="handleCellEnter(col)"
+        :ref="(el) => onCellRef(col, el as HTMLElement | null)"
     >
         <span v-if="col.type == null">
             {{ props.dataRow[col.key] }}
