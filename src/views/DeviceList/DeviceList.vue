@@ -12,6 +12,7 @@ import NcLoadingIcon from '@nextcloud/vue/components/NcLoadingIcon'
 import { mdiPlus } from '@mdi/js'
 import { translate as t } from '@nextcloud/l10n'
 import { generateUrl } from '@nextcloud/router'
+import SfxonBarcode from '@/components/SfxonBarcode'
 import SfxonFilterBar from '@/components/SfxonFilterBar'
 import SfxonMainNavigation from '@/components/SfxonMainNavigation'
 import SfxonPagination from '@/components/SfxonPagination'
@@ -50,7 +51,7 @@ const locations = ref<{ id: string; label: string}[]>([])
 const manufacturers = ref<{ id: string; label: string}[]>([])
 const modalState = reactive<{
     dataRow: any | null,
-    type: 'image' | 'qrCode'
+    type: 'barcode' | 'image' | 'qrCode'
 }>({
     dataRow: null,
     type: 'image',
@@ -67,7 +68,7 @@ const relatedEntityData = reactive<Record<string, { id: any; label: string }[]>>
 })
 const previewState = reactive<{
     dataRow: any | null,
-    type: 'image' | 'qrCode'
+    type: 'barcode' | 'image' | 'qrCode'
 }>({
     dataRow: null,
     type: 'image',
@@ -75,6 +76,19 @@ const previewState = reactive<{
 
 function addItem() {
     window.location.href = generateUrl('/apps/sfxonitam/device/detail')
+}
+
+function barcodeMounted(el: HTMLElement, dataRow: any) {
+    const onEnter = previewBarcode.bind(null, dataRow)
+    const onClick = openModal.bind(null, dataRow, 'barcode')
+
+    el.addEventListener('mouseenter', onEnter)
+    el.addEventListener('click', onClick)
+
+    return () => {
+        el.removeEventListener('mouseenter', onEnter)
+        el.removeEventListener('click', onClick)
+    }
 }
 
 function cancelDelete() {
@@ -320,7 +334,7 @@ function onFilterBtn() {
     reloadDevices()
 }
 
-function openModal(dataRow: any, type: 'image' | 'qrCode') {
+function openModal(dataRow: any, type: 'barcode' | 'image' | 'qrCode') {
     modalState.dataRow = dataRow
     modalState.type = type
 }
@@ -341,6 +355,12 @@ function qrCodeCellMounted(el: HTMLElement, dataRow: any) {
         el.removeEventListener('mouseenter', onEnter)
         el.removeEventListener('click', onClick)
     }
+}
+
+function previewBarcode(dataRow: any) {
+    previewState.dataRow = dataRow
+    previewState.type = 'barcode'
+    return true
 }
 
 function previewQrCode(dataRow: any) {
@@ -375,6 +395,7 @@ async function reloadDevices() {
 const columns = [
     { type: 'image', label: t('sfxonitam', 'Image'), key: 'imageFileId', cellMounted: imageCellMounted, },
     { type: 'qrCode', label: t('sfxonitam', 'QR-Code'), key: 'id', cellMounted: qrCodeCellMounted, },
+    { type: 'barcode', label: t('sfxonitam', 'Barcode'), key: 'name', prefix: 'DEV', cellMounted: barcodeMounted, },
     { key: 'name', label: t('sfxonitam', 'Name'), sortable: true, cellMounted: defaultCellMounted, colLinkCallback: onGetDeviceUrl, },
     { type: 'quantityWithUnit', relatedEntityName: 'quantityUnit', key: 'quantity', relatedEntityKey: 'quantityUnitId', entityDetailUrlCallback: getQuantityUnitDetailLink, label: t('sfxonitam', 'Quantity'), sortable: true, cellMounted: defaultCellMounted, colLinkCallback: onGetDeviceUrl, },
     { type: 'relatedEntity', relatedEntityName: 'deviceStatus', key: 'deviceStatusId', entityDetailUrlCallback: getDeviceStatusDetailLink, label: t('sfxonitam', 'DeviceStatus'), sortable: false, cellMounted: defaultCellMounted, colLinkCallback: onGetDeviceUrl, },
@@ -447,6 +468,14 @@ onMounted(async () => {
                                 customStyle="width: 100%; height: 100%; max-height: 220px;"
                                 :deviceId="previewState.dataRow.id"
                                 :key="previewState.dataRow.id"
+                            />
+                        </template>
+                        <template v-else-if="previewState.type === 'barcode'">
+                            <SfxonBarcode
+                                customStyle="width: 100%; height: 100%; max-height: 220px;"
+                                :name="previewState.dataRow.name"
+                                :key="previewState.dataRow.name"
+                                :prefix="'DEV'"
                             />
                         </template>
                         <template v-else>
@@ -560,6 +589,13 @@ onMounted(async () => {
             <template v-if="modalState.type === 'qrCode'">
                 <SfxonQrCodeView
                     :deviceId="modalState.dataRow.id"
+                    customStyle="width: 100%; height: auto;"
+                />
+            </template>
+            <template v-else-if="modalState.type === 'barcode'">
+                <SfxonBarcode
+                    :name="modalState.dataRow.name"
+                    :prefix="'DEV'"
                     customStyle="width: 100%; height: auto;"
                 />
             </template>

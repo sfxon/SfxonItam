@@ -81,12 +81,12 @@ Editor:
                 - ✅ a) Every elements text should lead to the detail page, but as a link, so it can be opened in a new tab by clicking the middle mouse button.
                 - b) Behind related entities i would like to have the forward button, that directly leads to the entities edit page, as a link, so that it can be opened in a new tab with a click on the middle mouse button.
                     b.I) ✅ Added to DeviceStatus.
-                    b.II) Add to all the other related entities.
-            - Barcodes hinzufügen, Schema: DEVICE:JP001 oder LICENC:623498-23434-sdj 
-                - Add it to the editor.
-                - Add it to the list.
-                - Add barcode preview to the list.
-                - Add barcode popup to the list.
+                    b.II) ✅ Add to all the other related entities.
+            - ✅ Barcodes hinzufügen, Schema: DEV-JP001 oder LIC-623498-23434-sdj.
+                - ✅ Add it to the editor.
+                - ✅ Add it to the list.
+                - ✅ Add barcode preview to the list.
+                - ✅ Add barcode popup to the list.
             - Geräte-Editor Darstellung optimieren. Mehrspaltig, wo möglich. Bild und QR-Code nach rechts. Inspiration bei Xanario holen - die haben imho den besten Editor für sowas gebaut (Übersichtlichkeit): https://www.xanario.de/naehere-informationen-software/ct-314.html.
             - Add a results per page dropdown/input, so we can also show 100 results or 1000 results on one page. Load data paged then too - meaning to not overload the server - so the loading should be junked to junks of size 20 (configurable in code).
 
@@ -232,6 +232,9 @@ Es werden 2 Export-Formate unterstützt: druckbare HTML-Seiten und CSV-Dateien.
 * PHP
 
 * QR-Code Generator (Kazuhiko Arase, https://github.com/kazuhikoarase/qrcode-generator)
+
+* Barcode Generator (Johan Lindell, https://github.com/lindell/JsBarcode)
+
 
 ## Beispiel der Installation der Entwicklungsumgebung
 
@@ -857,41 +860,80 @@ The reasons for a decision against JSON FIELDS are:
     - The ability to search and filter them is not consistently given above different dbms.
 
 The reasons for a decision against JOINED TABLE are:
-    - JOINED TABLE describes a concept, where there is one table, that holds a row for each custom field for a certain entity. If you have 20 different custom fields filled for one main entity, it means this separate table contains 20 rows for this. To fetch them all, one had to query against the foreign key of the main entity.
-    - Overhead in developement: it really takes much more efford, to implement something like that.
-    - Datatype support: Usually systems with joined tables are built either with one column type (String, VARCHAR), which comes with a couple of tradeoffs, like limited length, parsing before and after adding data on the executional layer, large indexes.
-    - The datatype support could be approached, by building a table that uses multiple columns - one for each supported datatype. For example this could be: data_string (VARCHAR(4096)), data_int (11), data_decimal(10,4), data_date, data_datetime, data_bigint (20), ...
-    This on the other hand would lead to fast growing tables and mean an overhead in implementing search and other stuff, it can be even worse than having empty columns in morphing tables, since here data would be growing linear proportional for every added row, according to the number of datatypes that are supported.
-    - Searching something like this needs strong indexing. It's possible, but really disliked by the author of this app.
+
+- JOINED TABLE describes a concept, where there is one table, that holds a row for each custom field for a certain entity. If you have 20 different custom fields filled for one main entity, it means this separate table contains 20 rows for this. To fetch them all, one had to query against the foreign key of the main entity.
+
+- Overhead in developement: it really takes much more efford, to implement something like that.
+
+- Datatype support: Usually systems with joined tables are built either with one column type (String, VARCHAR), which comes with a couple of tradeoffs, like limited length, parsing before and after adding data on the executional layer, large indexes.
+
+- The datatype support could be approached, by building a table that uses multiple columns - one for each supported datatype. For example this could be: data_string (VARCHAR(4096)), data_int (11), data_decimal(10,4), data_date, data_datetime, data_bigint (20), ...
+This on the other hand would lead to fast growing tables and mean an overhead in implementing search and other stuff, it can be even worse than having empty columns in morphing tables, since here data would be growing linear proportional for every added row, according to the number of datatypes that are supported.
+
+- Searching something like this needs strong indexing. It's possible, but really disliked by the author of this app.
 
 The *pro* reasons for a decision for MORPHING TABLES:
-    - Native database schema is used.
-    - Normalization features can be kept.
-    - Performance in search, filtering, etc.
+
+- Native database schema is used.
+
+- Normalization features can be kept.
+
+- Performance in search, filtering, etc.
 
 The *cons* for the decision for MORPHING TABLES:
-    - May have to decline a couple of features from auto-loading - e.g. the Nextcloud database layer.
-    - Unecessary custom fields are added to every row. For example, one day it probably will make it possible, that only specific types of devices can use certain custom fields, the database colums for these custom fields will created for every row in that table, even if they are not used. JSON Fields and JOINED Tables have more flexibility in that. If one would expect more than 50 or 100 custom fields, it might be adviced, to get away from that schema and overthink it. But I'd rather keep it that way, and additionally implement a second probability to use JSON Custom Fields for data that is not likely to be searched and filtered, instead of not doing it with MORPHING TABLES. This could be a good starting point for contributors who want to add JSON Field support in the future.
+
+- May have to decline a couple of features from auto-loading - e.g. the Nextcloud database layer.
+
+- Unecessary custom fields are added to every row. For example, one day it probably will make it possible, that only specific types of devices can use certain custom fields, the database colums for these custom fields will created for every row in that table, even if they are not used. JSON Fields and JOINED Tables have more flexibility in that. If one would expect more than 50 or 100 custom fields, it might be adviced, to get away from that schema and overthink it. But I'd rather keep it that way, and additionally implement a second probability to use JSON Custom Fields for data that is not likely to be searched and filtered, instead of not doing it with MORPHING TABLES. This could be a good starting point for contributors who want to add JSON Field support in the future.
 
 1. **Performance**
-    * Morphing the schema brings **native columns** to the database. **Default search features** can be used, **indexes** can be used. Search, Filter and Sort will be easy to implement. Empty columns (null-Values) are accepted for now, since they can not be avoided in this solution.
+
+Morphing the schema brings **native columns** to the database. **Default search features** can be used, **indexes** can be used. Search, Filter and Sort will be easy to implement. Empty columns (null-Values) are accepted for now, since they can not be avoided in this solution.
 
 2. **Compatibility**
-    * Since NextCloud uses **doctrine** and supports to choose from **different database systems** for the backend, one has to look at the possible features. The database that is used for **default installations** is **SQLite**. SQLite is a small database with a **limited feature set**.
-    * All three major supported dbms (**SQLite, MySQL/MariaDB, PostgresSQL**) handle **JSON fields** a little bit **different**. There are also differences in the syntax for MySQL/MariaDB - meaning for those databases, that should be the most compatible.
-    * SQLite only supports **DROP COLUMN** for tables **from version 3.35** (2021). I consider to **just show a warning** in the **custom field edit screens**. I hope to be able to **detect the database version**, and only show the warning, when this kind of database is used. I'll also **disable the "Remove Custom Field" option** for older or incompatible dbms.
+
+* Since NextCloud uses **doctrine** and supports to choose from **different database systems** for the backend, one has to look at the possible features. The database that is used for **default installations** is **SQLite**. SQLite is a small database with a **limited feature set**.
+
+* All three major supported dbms (**SQLite, MySQL/MariaDB, PostgresSQL**) handle **JSON fields** a little bit **different**. There are also differences in the syntax for MySQL/MariaDB - meaning for those databases, that should be the most compatible.
+
+* SQLite only supports **DROP COLUMN** for tables **from version 3.35** (2021). I consider to **just show a warning** in the **custom field edit screens**. I hope to be able to **detect the database version**, and only show the warning, when this kind of database is used. I'll also **disable the "Remove Custom Field" option** for older or incompatible dbms.
 
 
 ## Performance Optimization
 
 1.  **Loading data in list views**
-    - Joins, intead of entity loading.
-        * Loading related entities directly with joins, instead of loading one after the other.
-        * Only loading that data, that is really needed.
-        * Do not load fulltext fields for tables. Better load only a short portion of them for table views.
-    - Paged and lazy loading
-        * Convert everything to paged and lazy loading. Remove all full search functionality from entity mappers.
+
+- Joins, intead of entity loading.
+    
+    * Loading related entities directly with joins, instead of loading one after the other.
+
+    * Only loading that data, that is really needed.
+    
+    * Do not load fulltext fields for tables. Better load only a short portion of them for table views.
+
+- Paged and lazy loading
+    
+    * Convert everything to paged and lazy loading. Remove all full search functionality from entity mappers.
 
 2. **Loading data for entity select fields**
-    * We have to see, if NextClouds select boxes support lazy loading natively. If not: implement it.
+
+* We have to see, if NextClouds select boxes support lazy loading natively. If not: implement it.
+
+## Barcodes
+
+Barcodes können verwendet werden, um leicht nach Assets zu suchen, bspw. mit einem Barcode Scanner.
+Das zentrale Suchfeld unterstützt die Suche danach.
+
+Barcodes sind gepräfixt:
+
+DEV = Device = Ein Barcode für ein Gerät.
+LIC = License = Ein Eintrag im Lizenz-Management.
+
+Als Trennzeichen wird ein Bindestrich verwendet. Das sorgt auch für Kompatibilität mit ggf. anderen Barcode-Typen.
+
+Das Gerät JP001 erhält also bspw. als Barcode Wert:
+
+DEV-JP001
+
+Dadurch ist es für eine Suchfunktion leichter, direkt zum Gerät oder der Lizenz zu springen.
 

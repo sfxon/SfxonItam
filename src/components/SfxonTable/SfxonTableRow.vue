@@ -5,8 +5,8 @@ import { mdiDelete, mdiPencil, mdiOpenInNew } from '@mdi/js'
 import NcActions from '@nextcloud/vue/components/NcActions'
 import NcActionButton from '@nextcloud/vue/components/NcActionButton'
 import NcIconSvgWrapper from '@nextcloud/vue/components/NcIconSvgWrapper'
-import NcPopover from '@nextcloud/vue/components/NcPopover'
 import SfxonQrCodeView from '@/components/SfxonQrCodeView'
+import SfxonTableRowBarcode from './SfxonTableRowBarcode.vue'
 
 const props = defineProps<{
     columns: T[],
@@ -129,8 +129,15 @@ function getRelatedEntityData(col: any) {
         </span>
         <span v-else-if="col.type === 'qrCode'">
             <SfxonQrCodeView
-                :deviceId="props.dataRow[col.key]"
+                :deviceId="dataRow[col.key]"
                 customStyle="width: 24px; height: 24px;"
+            />
+        </span>
+        <span v-else-if="col.type == 'barcode'">
+            <SfxonTableRowBarcode
+                customStyle="max-width: 36px!important; height: 24px!important;"
+                :name="dataRow[col.key]"
+                :prefix="col.prefix"
             />
         </span>
         <span v-else-if="col.type === 'actions'">

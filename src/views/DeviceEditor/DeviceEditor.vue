@@ -24,6 +24,7 @@ import { fetchAllLocations } from '@/services/LocationService'
 import { fetchAllMerchants } from '@/services/MerchantService'
 import { fetchAllPositions } from '@/services/PositionService'
 import { fetchAllQuantityUnits } from '@/services/QuantityUnitService'
+import SfxonBarcode from '@/components/SfxonBarcode'
 import SfxonMainNavigation from '@/components/SfxonMainNavigation'
 import SfxonQrCodeView from '@/components/SfxonQrCodeView'
 import { getCurrentUser } from '@nextcloud/auth'
@@ -541,6 +542,13 @@ onMounted(async () => {
                 <SfxonQrCodeView
                     v-if="isEditMode"
                     :deviceId="deviceId"
+                />
+
+                <!-- Barcode -->
+                <SfxonBarcode
+                    v-if="isEditMode && name"
+                    :name="name"
+                    prefix="DEV"
                 />
 
                 <!-- name -->
