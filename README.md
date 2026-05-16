@@ -811,3 +811,87 @@ Eingesetzt wird das bspw. im View *DeviceList.vue*. Dort werden die Events verwe
 * in der Seitenleiste eine Bild-Vorschau darzustellen wenn man über die Zeile hovert
 * falls man aber über der Spalte QR-Code hovert, wird der QR-Code statt des Bildes an dieser Stelle angezeigt.
 * eine Besonderheit ist, dass der colHandler aktuell nur beim QR-Code Einsatz findet. Dieser wird also nur ausgelöst, wenn man über der QR-Code Spalte hovert - ansonsten wird dort immer der Row-Handler bei jeder Zeile ausgelöst. Dadurch ist in der Regel das Bild des Eintrages zu sehen, und nur der QR-Code, wenn man auch wirklich über der QR-Code Zeile hovert.
+
+
+## Custom Fields
+
+* **Morphing table topology.**
+
+* Use a naming schema. Every column should be **prefixed** with ```c_```, e.g. ```c_mac_address```.
+
+* Since we are working in the **context of the app,** the **prefix for columns is enough efford**,
+    to differenciate custom fields from default fields. No other parts of Nextcloud will use our tables,
+    and if any plugin developer ever will, he should follow this standard.
+
+* **Supported** datatypes in the beginning:
+    - **VARCHAR** with LENGTH definition (with optional index, not searchable/filterable/sortable without index).
+    - **DECIMAL** with LENGTH definition (needs to length fields, e.g. 10,4, with optional index, not searchable/filterable/sortable without index).
+    - **LONGTEXT** (not searchable for now)
+    - DATE (optional index, not searchable/filterable/sortable without index).
+    - DATETIME (optional index, not searchable/filterable/sortable without index).
+    - FOREGIN_KEY: BIGINT (20), here the user also has to select the related entity (always indexed, index needed?).
+
+* For **Sqlite Support** we need at least **SQLite Version 3.35.0**, because **SQLite before didn't support DROP COLUMN**.
+
+* Only support **CREATE COLUMN** and **DROP COLUMN**, but **not ALTER COLUMN,** sinde SQLite does not support this feature.
+
+* Since SQLite does not support altering table columns, and modifying database schemas later would have to be done carefully,
+the decision is to **not let someone alter custom fields**. If one really needs to alter the technical name of a custom field,
+instead it should be done by **creating a new column**, **moving the data** of the old column there, and then **removing the old column**.
+This will **not** be done **automatically**. Either it is done in the database directly. Maybe later a *migrate column to different colum* is added. But lets keep it simple for now.
+
+
+### Morphing tables vs. JSON Fields vs. Multiple columns.
+
+There are a couple of design concepts, one could implement custom fields with. Each of it comes with it's own **tradeoffs**. The **decision** for MORPHING TABLES in this project came from the following reasons:
+
+Morphing TABLES means, the database schema is altered, whenever a custom field is added or removed. It does really affect the design of the database, albeit to a limited extend.
+
+Different approaches are JSON FIELDS or JOINED TABLE.
+
+The reasons for a decision against JSON FIELDS are:
+    - JSON Field means, one column of type JSON (or LONGTEXT) is used, to save all data of custom fields for one row in it.
+    - They are not too nice to handle/inspect/alter with tools like adminer.
+    - They can be used for more complex datatypes, but they are likely used in a way that breaks normalization.
+    - They are differently implemented in different database systems (dbms) - there is no general solution.
+    - The ability to search and filter them is not consistently given above different dbms.
+
+The reasons for a decision against JOINED TABLE are:
+    - JOINED TABLE describes a concept, where there is one table, that holds a row for each custom field for a certain entity. If you have 20 different custom fields filled for one main entity, it means this separate table contains 20 rows for this. To fetch them all, one had to query against the foreign key of the main entity.
+    - Overhead in developement: it really takes much more efford, to implement something like that.
+    - Datatype support: Usually systems with joined tables are built either with one column type (String, VARCHAR), which comes with a couple of tradeoffs, like limited length, parsing before and after adding data on the executional layer, large indexes.
+    - The datatype support could be approached, by building a table that uses multiple columns - one for each supported datatype. For example this could be: data_string (VARCHAR(4096)), data_int (11), data_decimal(10,4), data_date, data_datetime, data_bigint (20), ...
+    This on the other hand would lead to fast growing tables and mean an overhead in implementing search and other stuff, it can be even worse than having empty columns in morphing tables, since here data would be growing linear proportional for every added row, according to the number of datatypes that are supported.
+    - Searching something like this needs strong indexing. It's possible, but really disliked by the author of this app.
+
+The *pro* reasons for a decision for MORPHING TABLES:
+    - Native database schema is used.
+    - Normalization features can be kept.
+    - Performance in search, filtering, etc.
+
+The *cons* for the decision for MORPHING TABLES:
+    - May have to decline a couple of features from auto-loading - e.g. the Nextcloud database layer.
+    - Unecessary custom fields are added to every row. For example, one day it probably will make it possible, that only specific types of devices can use certain custom fields, the database colums for these custom fields will created for every row in that table, even if they are not used. JSON Fields and JOINED Tables have more flexibility in that. If one would expect more than 50 or 100 custom fields, it might be adviced, to get away from that schema and overthink it. But I'd rather keep it that way, and additionally implement a second probability to use JSON Custom Fields for data that is not likely to be searched and filtered, instead of not doing it with MORPHING TABLES. This could be a good starting point for contributors who want to add JSON Field support in the future.
+
+1. **Performance**
+    * Morphing the schema brings **native columns** to the database. **Default search features** can be used, **indexes** can be used. Search, Filter and Sort will be easy to implement. Empty columns (null-Values) are accepted for now, since they can not be avoided in this solution.
+
+2. **Compatibility**
+    * Since NextCloud uses **doctrine** and supports to choose from **different database systems** for the backend, one has to look at the possible features. The database that is used for **default installations** is **SQLite**. SQLite is a small database with a **limited feature set**.
+    * All three major supported dbms (**SQLite, MySQL/MariaDB, PostgresSQL**) handle **JSON fields** a little bit **different**. There are also differences in the syntax for MySQL/MariaDB - meaning for those databases, that should be the most compatible.
+    * SQLite only supports **DROP COLUMN** for tables **from version 3.35** (2021). I consider to **just show a warning** in the **custom field edit screens**. I hope to be able to **detect the database version**, and only show the warning, when this kind of database is used. I'll also **disable the "Remove Custom Field" option** for older or incompatible dbms.
+
+
+## Performance Optimization
+
+1.  **Loading data in list views**
+    - Joins, intead of entity loading.
+        * Loading related entities directly with joins, instead of loading one after the other.
+        * Only loading that data, that is really needed.
+        * Do not load fulltext fields for tables. Better load only a short portion of them for table views.
+    - Paged and lazy loading
+        * Convert everything to paged and lazy loading. Remove all full search functionality from entity mappers.
+
+2. **Loading data for entity select fields**
+    * We have to see, if NextClouds select boxes support lazy loading natively. If not: implement it.
+
