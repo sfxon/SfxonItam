@@ -121,7 +121,7 @@ class Version010100Date20260411092800 extends SimpleMigrationStep {
                 'notnull' => false,
             ]);
 
-            $table->addColumn('comment', Types::TEXT, [
+            $table->addColumn('description', Types::TEXT, [
                 'notnull' => false,
             ]);
 

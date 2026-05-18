@@ -9,15 +9,17 @@ Das Programm richtet sich an **KMU** (kleine und mittelständische Unternehmen) 
 * Release im Nextcloud Appstore zur einfacheren Installation ist geplant.
 * All your data now belongs to you.
 
+Light Mode:
+
 <img alt="IT-Asset-Management - Device List View" src="https://github.com/user-attachments/assets/7776981c-8e5f-403b-8719-463a43a21843" /><br><br>
 
-Dark Mode:
+Full Dark Mode Support:
 
 <img alt="IT-Asset-Management - Device List View in Dark Mode" src="https://github.com/user-attachments/assets/1946c652-8f06-4311-8641-45ce03446bb7" /><br><br>
 
 Editor:
 
-<img alt="IT-Asset-Management - Device Editor" src="https://github.com/user-attachments/assets/63ddb78e-07e3-4dfd-84cb-b56211382cb3" /><br><br>
+<img alt="IT-Asset-Management - Device Editor Fullscreen" src="https://github.com/user-attachments/assets/2b59c5e1-53af-4a88-9cd5-76a210b5f95a" /><br><br>
 
 ## Roadmap
 
@@ -77,9 +79,9 @@ Editor:
                 - ✅ Add it to the list view.
             - ✅ Add Image preview and qr code preview to the list.
             - ✅ Add Image and Qr Code Popup, that opens, when an image or qr code is clicked in the list. Should close on next left click in free room, for easy handling. But should also show a close button, just to indicate, it can be closed.
-            - Make Elements in list clickable:
+            - ✅ Make Elements in list clickable:
                 - ✅ a) Every elements text should lead to the detail page, but as a link, so it can be opened in a new tab by clicking the middle mouse button.
-                - b) Behind related entities i would like to have the forward button, that directly leads to the entities edit page, as a link, so that it can be opened in a new tab with a click on the middle mouse button.
+                - b) ✅ Behind related entities i would like to have the forward button, that directly leads to the entities edit page, as a link, so that it can be opened in a new tab with a click on the middle mouse button.
                     b.I) ✅ Added to DeviceStatus.
                     b.II) ✅ Add to all the other related entities.
             - ✅ Barcodes hinzufügen, Schema: DEV-JP001 oder LIC-623498-23434-sdj.
@@ -87,11 +89,12 @@ Editor:
                 - ✅ Add it to the list.
                 - ✅ Add barcode preview to the list.
                 - ✅ Add barcode popup to the list.
-            - Geräte-Editor Darstellung optimieren. Mehrspaltig, wo möglich. Bild und QR-Code nach rechts. Inspiration bei Xanario holen - die haben imho den besten Editor für sowas gebaut (Übersichtlichkeit): https://www.xanario.de/naehere-informationen-software/ct-314.html.
+            - ✅ Geräte-Editor Darstellung optimieren. Mehrspaltig, wo möglich. Bild und QR-Code nach rechts. Inspiration bei Xanario holen - die haben imho den besten Editor für sowas gebaut (Übersichtlichkeit): https://www.xanario.de/naehere-informationen-software/ct-314.html.
+            - Make Device Editor Page more responsive ready. It should be easy to use on mobile devices, too.
             - Add a results per page dropdown/input, so we can also show 100 results or 1000 results on one page. Load data paged then too - meaning to not overload the server - so the loading should be junked to junks of size 20 (configurable in code).
 
         - Geräteliste auch nach Entitäten sortierbar machen.
-    - Menü hinzufügen, mit dem die Reihenfolge der Spalten geändert werden kann, sowie eingestellt werden kann, in welcher Reihenfolge gefiltert werden kann.
+    - Menü hinzufügen, mit dem die Reihenfolge der Spalten geändert werden kann, sowie eingestellt werden kann, in welcher Reihenfolge gefiltert werden kann und welche Spalten überhaupt angezeigt werden sollen.
 
 * Filter, Sortier und Spalten-Einstellungen auch in andere Entitäten aufnehmen (einheitlich).
 

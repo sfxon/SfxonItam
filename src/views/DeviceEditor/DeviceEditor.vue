@@ -5,16 +5,16 @@ import NcAppNavigation from '@nextcloud/vue/components/NcAppNavigation'
 import NcAppNavigationList from '@nextcloud/vue/components/NcAppNavigationList'
 import NcAppNavigationNew from '@nextcloud/vue/components/NcAppNavigationNew'
 import NcContent from '@nextcloud/vue/components/NcContent'
-import { mdiPlus } from '@mdi/js'
+import { mdiClose, mdiPlus } from '@mdi/js'
 import { translate as t } from '@nextcloud/l10n'
 import { generateUrl, generateRemoteUrl } from '@nextcloud/router'
 import NcButton from '@nextcloud/vue/components/NcButton'
+import NcTextArea from '@nextcloud/vue/components/NcTextArea'
 import NcTextField from '@nextcloud/vue/components/NcTextField'
 import NcDateTimePickerNative from '@nextcloud/vue/components/NcDateTimePickerNative'
 import NcSelect from '@nextcloud/vue/components/NcSelect'
 import NcNoteCard from '@nextcloud/vue/components/NcNoteCard'
 import { useApiErrors } from '@/composables/useApiErrors'
-import { mdiClose } from '@mdi/js'
 import NcIconSvgWrapper from '@nextcloud/vue/components/NcIconSvgWrapper'
 import { fetchDevice, createDevice, updateDevice } from '@/services/DeviceService'
 import { fetchAllDeviceStatis } from '@/services/DeviceStatusService'
@@ -31,6 +31,7 @@ import { getCurrentUser } from '@nextcloud/auth'
 
 // Formulardaten
 const assetNumber = ref('')
+const description = ref('')
 const imageFileId = ref<number | null>(null)
 const imagePreviewUrl = ref<string | null>(null)
 const invoiceNumber = ref('')
@@ -107,16 +108,17 @@ async function loadDevice(id: number): Promise<void> {
         const d = await fetchDevice(id)
 
         assetNumber.value = d.assetNumber ?? ''
+        description.value = d.description ?? ''
         imageFileId.value = d.imageFileId ?? null
         invoiceNumber.value = d.invoiceNumber ?? ''
         name.value = d.name ?? ''
         purchaseDate.value = d.purchaseDate ? new Date(d.purchaseDate + 'T00:00:00') : null
-        quantity.value = d.quantity ?? ''
+        quantity.value = d.quantity ? String(parseFloat(d.quantity)) : ''
         selectedDeviceStatus.value = deviceStatis.value.find(s => s.id === d.deviceStatusId) ?? null
-        selectedDeviceType.value = deviceTypes.value.find(s => s.id == d.deviceTypeId) ?? null
+        selectedDeviceType.value = deviceTypes.value.find(s => s.id === d.deviceTypeId) ?? null
         selectedItamUser.value = itamUsers.value.find(u => u.id === d.itamUserId) ?? null
         selectedMerchant.value = merchants.value.find(u => u.id === d.merchantId) ?? null
-        selectedPosition.value = positions.value.find(s => s.id == d.positionId) ?? null
+        selectedPosition.value = positions.value.find(s => s.id === d.positionId) ?? null
         selectedQuantityUnit.value = quantityUnits.value.find(s => s.id === d.quantityUnitId) ?? null
         serialNumber.value = d.serialNumber ?? ''
         serialNumber2.value = d.serialNumber2 ?? ''
@@ -227,7 +229,7 @@ async function loadPositions() {
         const data = await fetchAllPositions({})
 
         positions.value = Object.values(data.positions).map((position: any) => {
-            const location = locations.value.find(l => l.id == position.locationId)
+            const location = locations.value.find(l => l.id === position.locationId)
             return {
                 id: position.id,
                 label: location
@@ -239,7 +241,7 @@ async function loadPositions() {
         // Sort list alphabetically ASC.
         positions.value.sort((a, b) => a.label.localeCompare(b.label))
     } catch(e) {
-        console.error('Error while loading Quantity Units', e)
+        console.error('Error while loading Positions', e)
     } finally {
         positionsLoading.value = false
     }
@@ -260,6 +262,10 @@ async function loadQuantityUnits() {
     } finally {
         quantityUnitsLoading.value = false
     }
+}
+
+function onBackButton() {
+    window.location.href = generateUrl('/apps/sfxonitam')
 }
 
 function onLocalFileChange(event: Event) {
@@ -346,6 +352,64 @@ async function openNextcloudFilePicker(): Promise<void> {
     })
 }
 
+async function submitForm() {
+    clearErrors()
+    savedSuccessfully.value = false;
+    isSaving.value = true
+
+    try {
+        await uploadImageIfNeeded()
+    } catch (e) {
+        console.error('Image upload failed:', e)
+        generalError.value = t('sfxonitam', 'Image upload failed.')
+        isSaving.value = false
+        return
+    }
+
+    const payload = {
+        assetNumber: assetNumber.value,
+        deviceStatusId: selectedDeviceStatus.value?.id ?? null,
+        deviceTypeId: selectedDeviceType.value?.id ?? null,
+        description: description.value,
+        imageFileId: imageFileId.value,
+        invoiceNumber: invoiceNumber.value,
+        itamUserId: selectedItamUser.value?.id ?? null,
+        merchantId: selectedMerchant.value?.id ?? null,
+        name: name.value,
+        positionId: selectedPosition.value?.id ?? null,
+        quantity: quantity.value,
+        quantityUnitId: selectedQuantityUnit.value?.id ?? null,
+        purchaseDate: purchaseDate.value ? toLocalDateString(purchaseDate.value) : null,
+        serialNumber: serialNumber.value,
+        serialNumber2: serialNumber2.value
+    }
+
+    try {
+        const data = isEditMode.value
+            ? await updateDevice(deviceId.value!, payload)
+            : await createDevice(payload)
+
+        // Backend gibt status: 'error' mit HTTP 200 zurück
+        if (data?.status === 'error') {
+            handleApiError(data, t('sfxonitam', 'Bitte korrigiere die markierten Felder.'))
+            return
+        }
+
+        savedSuccessfully.value = true;
+    } catch (error: any) {
+        // HTTP-Fehler (4xx/5xx) – Backend gibt evtl. trotzdem JSON zurück
+        const data = error?.response?.data
+
+        if (data?.status === 'error') {
+            handleApiError(data, t('sfxonitam', 'Bitte korrigiere die markierten Felder.'))
+        } else {
+            generalError.value = t('sfxonitam', 'Unbekannter Fehler beim Speichern.')
+        }
+    } finally {
+        isSaving.value = false
+    }
+}
+
 async function uploadImageIfNeeded(): Promise<void> {
     if (!selectedImageFile.value) return
 
@@ -403,61 +467,6 @@ async function uploadImageIfNeeded(): Promise<void> {
     selectedImageFile.value = null
 }
 
-async function submitForm() {
-    clearErrors()
-    savedSuccessfully.value = false;
-    isSaving.value = true
-
-    try {
-        await uploadImageIfNeeded()
-    } catch (e) {
-        console.error('Image upload failed:', e)
-        generalError.value = t('sfxonitam', 'Image upload failed.')
-        isSaving.value = false
-        return
-    }
-
-    const payload = {
-        assetNumber: assetNumber.value,
-        deviceStatusId: selectedDeviceStatus.value?.id ?? null,
-        deviceTypeId: selectedDeviceType.value?.id ?? null,
-        imageFileId: imageFileId.value,
-        invoiceNumber: invoiceNumber.value,
-        itamUserId: selectedItamUser.value?.id ?? null,
-        merchantId: selectedMerchant.value?.id ?? null,
-        name: name.value,
-        positionId: selectedPosition.value?.id ?? null,
-        quantity: quantity.value,
-        quantityUnitId: selectedQuantityUnit.value?.id ?? null,
-        purchaseDate: purchaseDate.value ? toLocalDateString(purchaseDate.value) : null,
-        serialNumber: serialNumber.value,
-        serialNumber2: serialNumber2.value
-    }
-
-    try {
-        const data = isEditMode.value
-            ? await updateDevice(deviceId.value!, payload)
-            : await createDevice(payload)
-
-        // Backend gibt status: 'error' mit HTTP 200 zurück
-        if (data?.status === 'error') {
-            handleApiError(data, t('sfxonitam', 'Bitte korrigiere die markierten Felder.'))
-            return
-        }
-
-        savedSuccessfully.value = true;
-    } catch (error: any) {
-        // HTTP-Fehler (4xx/5xx) – Backend gibt evtl. trotzdem JSON zurück
-        const data = error?.response?.data
-
-        if (data?.status === 'error') {
-            handleApiError(data, t('sfxonitam', 'Bitte korrigiere die markierten Felder.'))
-        } else {
-            generalError.value = t('sfxonitam', 'Unbekannter Fehler beim Speichern.')
-        }
-    }
-}
-
 onMounted(async () => {
     await loadDeviceStatis()
     await loadDeviceTypes()
@@ -489,318 +498,476 @@ onMounted(async () => {
         </NcAppNavigation>
 
         <!-- Inhaltsbereich -->
-        <NcAppContent :class="$style.content">
-            <div :class="$style.form">
-                <h2>
+        <NcAppContent>
+            <div :class="$style.sfxonItamHeader">
+                <div class="content-title">
                     {{ isEditMode
                         ? t('sfxonitam', 'Edit device')
-                        : t('sfxonitam', 'Create device') }}
-                </h2>
-
-                <!-- Allgemeine Fehlermeldung -->
-                <NcNoteCard
-                    v-if="generalError"
-                    type="error"
-                >
-                    {{ generalError }}
-                </NcNoteCard>
-
-                <!-- Erfolgsmeldung -->
-                <NcNoteCard
-                    v-if="savedSuccessfully"
-                    type="success"
-                >
-                    {{ t('sfxonitam', 'Changes have been saved.') }}
-                </NcNoteCard>
-
-                <div :class="$style.field">
-                    <label class="label">{{ t('sfxonitam', 'Device Image') }}</label>
-                    <div :class="$style.fileChooserRow">
-                        <input
-                            accept="image/*"
-                            @change="onLocalFileChange"
-                            :class="$style.fileUploadInput"
-                            :label="t('sfxonitam', 'Upload image')"
-                            type="file"
-                        />
-                        <NcButton type="button" variant="secondary" @click="openNextcloudFilePicker">
-                            {{ t('sfxonitam', 'Select existing file') }}
-                        </NcButton>
-                    </div>
-                    <div v-if="selectedImageLabel" :class="$style.selectedFileLabel">
-                        {{ selectedImageLabel }}
-                    </div>
-                    <img
-                        v-if="imagePreviewUrl"
-                        :src="imagePreviewUrl"
-                        :alt="t('sfxonitam', 'Device image preview')"
-                        :class="$style.imagePreview"
-                    />
+                        : t('sfxonitam', 'Create device')
+                    }}
                 </div>
-
-                <!-- QR Code -->
-                <SfxonQrCodeView
-                    v-if="isEditMode"
-                    :deviceId="deviceId"
-                />
-
-                <!-- Barcode -->
-                <SfxonBarcode
-                    v-if="isEditMode && name"
-                    :name="name"
-                    prefix="DEV"
-                />
-
-                <!-- name -->
-                <div :class="$style.field">
-                    <NcTextField
-                        id="name"
-                        v-model="name"
-                        :label="t('sfxonitam', 'Name / Device-ID')"
-                        :placeholder="t('sfxonitam', 'e.g. JP001')"
-                        :class="fieldErrors.name ? $style.fieldError : ''"
-                        @input="clearFieldError('name')"
-                    />
-                    <span v-if="fieldErrors.name" :class="$style.errorText">
-                        {{ fieldErrors.name }}
-                    </span>
-                </div>
-
-                <!-- quantity -->
-                <div :class="$style.field">
-                    <NcTextField
-                        id="quantity"
-                        v-model="quantity"
-                        :label="t('sfxonitam', 'Quantity')"
-                        :class="fieldErrors.name ? $style.fieldError : ''"
-                        @input="clearFieldError('quantity')"
-                        type="number"
-                    />
-                    <span v-if="fieldErrors.quantity" :class="$style.errorText">
-                        {{ fieldErrors.quantity }}
-                    </span>
-                </div>
-
-                <!-- QuantityUnit -->
-                <div :class="$style.field">
-                    <label for="quantity-unit-select" :class="$style.label">
-                        {{ t('sfxonitam', 'Quantity Unit') }}
-                    </label>
-                    <NcSelect
-                        id="quantity-unit-select"
-                        v-model="selectedQuantityUnit"
-                        :options="quantityUnits"
-                        :loading="quantityUnitsLoading"
-                        :label="'label'"
-                        track-by="id"
-                        :class="fieldErrors.quantityUnitId ? $style.fieldError : ''"
-                        @input="clearFieldError('quantityUnitId')"
-                    />
-                    <span v-if="fieldErrors.quantityUnitId" :class="$style.errorText">
-                        {{ fieldErrors.quantityUnitId }}
-                    </span>
-                </div>
-
-                <!-- DeviceStatus -->
-                <div :class="$style.field">
-                    <label for="device-status-select" :class="$style.label">
-                        {{ t('sfxonitam', 'Device Status') }}
-                    </label>
-                    <NcSelect
-                        id="device-status-select"
-                        v-model="selectedDeviceStatus"
-                        :options="deviceStatis"
-                        :loading="deviceStatisLoading"
-                        :label="'label'"
-                        track-by="id"
-                        :class="fieldErrors.deviceStatusId ? $style.fieldError : ''"
-                        @input="clearFieldError('deviceStatusId')"
-                    />
-                    <span v-if="fieldErrors.deviceStatusId" :class="$style.errorText">
-                        {{ fieldErrors.deviceStatusId }}
-                    </span>
-                </div>
-
-                <!-- Position -->
-                <div :class="$style.field">
-                    <label for="position-select" :class="$style.label">
-                        {{ t('sfxonitam', 'Position') }}
-                    </label>
-                    <NcSelect
-                        id="position-select"
-                        v-model="selectedPosition"
-                        :options="positions"
-                        :loading="positionsLoading"
-                        :label="'label'"
-                        track-by="id"
-                        :class="fieldErrors.positionId ? $style.fieldError : ''"
-                        @input="clearFieldError('positionId')"
-                    />
-                    <span v-if="fieldErrors.positionId" :class="$style.errorText">
-                        {{ fieldErrors.positionId }}
-                    </span>
-                </div>
-
-                <!-- DeviceType -->
-                <div :class="$style.field">
-                    <label for="device-type-select" :class="$style.label">
-                        {{ t('sfxonitam', 'Geräte-Typ') }}
-                    </label>
-                    <NcSelect
-                        id="device-type-select"
-                        v-model="selectedDeviceType"
-                        :options="deviceTypes"
-                        :loading="deviceTypesLoading"
-                        :placeholder="t('sfxonitam', 'Geräte-Typ auswählen')"
-                        :label="'label'"
-                        track-by="id"
-                        :class="fieldErrors.deviceTypeId ? $style.fieldError : ''"
-                        @input="clearFieldError('deviceTypeId')"
-                    />
-                    <span v-if="fieldErrors.deviceTypeId" :class="$style.errorText">
-                        {{ fieldErrors.deviceTypeId }}
-                    </span>
-                </div>
-
-                <!-- ItamUser -->
-                <div :class="$style.field">
-                    <label for="user-select" :class="$style.label">
-                        {{ t('sfxonitam', 'User') }}
-                    </label>
-                    <NcSelect
-                        id="user-select"
-                        v-model="selectedItamUser"
-                        :options="itamUsers"
-                        :loading="itamUsersLoading"
-                        :placeholder="t('sfxonitam', 'Benutzer auswählen')"
-                        :label="'label'"
-                        track-by="id"
-                        :class="fieldErrors.itamUserId ? $style.fieldError : ''"
-                        @input="clearFieldError('itamUserId')"
-                    />
-                    <span v-if="fieldErrors.itamUserId" :class="$style.errorText">
-                        {{ fieldErrors.itamUserId }}
-                    </span>
-                </div>
-
-                <!-- serialNumber -->
-                <div :class="$style.field">
-                    <NcTextField
-                        id="serialNumber"
-                        v-model="serialNumber"
-                        :label="t('sfxonitam', 'Serial Number')"
-                        :placeholder="t('sfxonitam', 'e.g. EX-123-45678-999')"
-                        :class="fieldErrors.serialNumber ? $style.fieldError : ''"
-                        @input="clearFieldError('serialNumber')"
-                    />
-                    <span v-if="fieldErrors.serialNumber" :class="$style.errorText">
-                        {{ fieldErrors.serialNumber }}
-                    </span>
-                </div>
-
-                <!-- serialNumber2 -->
-                <div :class="$style.field">
-                    <NcTextField
-                        id="serialNumber2"
-                        v-model="serialNumber2"
-                        :label="t('sfxonitam', 'Serial Number 2')"
-                        :placeholder="t('sfxonitam', 'e.g. EX-123-45678-999')"
-                        :class="fieldErrors.serialNumber2 ? $style.fieldError : ''"
-                        @input="clearFieldError('serialNumber2')"
-                    />
-                    <span v-if="fieldErrors.serialNumber2" :class="$style.errorText">
-                        {{ fieldErrors.serialNumber2 }}
-                    </span>
-                </div>
-
-                <!-- assetNumber -->
-                <div :class="$style.field">
-                    <NcTextField
-                        id="assetNumber"
-                        v-model="assetNumber"
-                        :label="t('sfxonitam', 'Asset Number')"
-                        :placeholder="t('sfxonitam', 'e.g. EX-123-45678-999')"
-                        :class="fieldErrors.assetNumber ? $style.fieldError : ''"
-                        @input="clearFieldError('assetNumber')"
-                    />
-                    <span v-if="fieldErrors.assetNumber" :class="$style.errorText">
-                        {{ fieldErrors.assetNumber }}
-                    </span>
-                </div>
-
-                <!-- Merchant -->
-                <div :class="$style.field">
-                    <label for="merchant-select" :class="$style.label">
-                        {{ t('sfxonitam', 'Merchant') }}
-                    </label>
-                    <NcSelect
-                        id="user-select"
-                        v-model="selectedMerchant"
-                        :options="merchants"
-                        :loading="merchantsLoading"
-                        :placeholder="t('sfxonitam', 'Select merchants')"
-                        :label="'label'"
-                        track-by="id"
-                        :class="fieldErrors.merchantId ? $style.fieldError : ''"
-                        @input="clearFieldError('merchantId')"
-                    />
-                    <span v-if="fieldErrors.merchantId" :class="$style.errorText">
-                        {{ fieldErrors.merchantId }}
-                    </span>
-                </div>
-
-                <!-- invoiceNumber -->
-                <div :class="$style.field">
-                    <NcTextField
-                        id="invoiceNumber"
-                        v-model="invoiceNumber"
-                        :label="t('sfxonitam', 'Invoice Number')"
-                        :placeholder="t('sfxonitam', 'e.g. EX-123-45678-999')"
-                        :class="fieldErrors.invoiceNumber ? $style.fieldError : ''"
-                        @input="clearFieldError('invoiceNumber')"
-                    />
-                    <span v-if="fieldErrors.invoiceNumber" :class="$style.errorText">
-                        {{ fieldErrors.invoiceNumber }}
-                    </span>
-                </div>
-
-                <!-- purchaseDate -->
-                <div :class="$style.field">
-                    <label for="purchaseDate" :class="$style.label">
-                        {{ t('sfxonitam', 'Kaufdatum') }}
-                    </label>
-                    <div :class="$style.dateRow">
-                        <NcDateTimePickerNative
-                            id="purchase-date"
-                            v-model="purchaseDate"
-                            type="date"
-                            :class="fieldErrors.purchaseDate ? $style.fieldError : ''"
-                            :label="''"
-                            @input="clearFieldError('purchaseDate')"
-                        />
-                        <NcButton
-                            :disabled="purchaseDate === null"
-                            type="button"
-                            :aria-label="t('sfxonitam', 'Datum entfernen')"
-                            @click="purchaseDate = null"
-                            >
-                            <NcIconSvgWrapper
-                                :path="mdiClose"
-                                :size="16"
-                            />
-                        </NcButton>
-                    </div>
-
-                    <span v-if="fieldErrors.purchaseDate" :class="$style.errorText">
-                        {{ fieldErrors.purchaseDate }}
-                    </span>
-                </div>
-
-                <!-- Absenden -->
-                <div :class="$style.actions">
-                    <NcButton variant="primary" @click="submitForm">
-                        {{ t('sfxonitam', 'Speichern') }}
+                <div :class="$style.sfxonItamHeaderSidebarToggleBtn">
+                    <NcButton
+                        @click="onBackButton"
+                    >
+                        {{ t('sfxonitam', 'Back') }}
                     </NcButton>
+                </div>
+            </div>
+
+            <!-- Allgemeine Fehlermeldung -->
+            <NcNoteCard
+                v-if="generalError"
+                type="error"
+            >
+                {{ generalError }}
+            </NcNoteCard>
+
+            <!-- Erfolgsmeldung -->
+            <NcNoteCard
+                v-if="savedSuccessfully"
+                type="success"
+            >
+                {{ t('sfxonitam', 'Changes have been saved.') }}
+            </NcNoteCard>
+
+            <div :class="$style.form">
+                <div :class="[$style.sfxonFormRow, $style.sfxonFormRowOne]">
+                    <div :class="$style.sfxonFormSection">
+                        <div :class="$style.sfxonFormColumn">
+                            <!-- name -->
+                            <div :class="$style.sfxonFormColumnRow">
+                                <div :class="$style.sfxonFormColumnLabel">
+                                    <label for="name" :class="$style.label">
+                                        {{ t('sfxonitam', 'Device Identifier') }}:
+                                    </label>
+                                </div>
+                                <div :class="$style.sfxonFormColumnInput">
+                                    <div :class="$style.field">
+                                        <NcTextField
+                                            id="name"
+                                            v-model="name"
+                                            :label-outside="true"
+                                            :placeholder="t('sfxonitam', 'e.g. JP001')"
+                                            :class="fieldErrors.name ? $style.fieldError : ''"
+                                            @input="clearFieldError('name')"
+                                        />
+                                        <span v-if="fieldErrors.name" :class="$style.errorText">
+                                            {{ fieldErrors.name }}
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Quantity -->
+                            <div :class="$style.sfxonFormColumnRow">
+                                <div :class="$style.sfxonFormColumnLabel">
+                                    <label for="quantity" :class="$style.label">
+                                        {{ t('sfxonitam', 'Quantity') }}:
+                                    </label>
+                                </div>
+                                <div :class="$style.sfxonFormColumnInput">
+                                    <!-- quantity -->
+                                    <div :class="$style.field">
+                                        <NcTextField
+                                            id="quantity"
+                                            v-model="quantity"
+                                            :label-outside="true"
+                                            :class="fieldErrors.quantity ? $style.fieldError : ''"
+                                            @input="clearFieldError('quantity')"
+                                            type="number"
+                                        />
+                                        <span v-if="fieldErrors.quantity" :class="$style.errorText">
+                                            {{ fieldErrors.quantity }}
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Quantity-Unit -->
+                            <div :class="$style.sfxonFormColumnRow">
+                                <div :class="$style.sfxonFormColumnLabel">
+                                    <label for="quantity-unit-select" :class="$style.label">
+                                        {{ t('sfxonitam', 'Quantity Unit') }}:
+                                    </label>
+                                </div>
+                                <div :class="$style.sfxonFormColumnInput">
+                                    <div :class="$style.field">
+                                        <NcSelect
+                                            id="quantity-unit-select"
+                                            v-model="selectedQuantityUnit"
+                                            :options="quantityUnits"
+                                            :loading="quantityUnitsLoading"
+                                            track-by="id"
+                                            :class="fieldErrors.quantityUnitId ? $style.fieldError : ''"
+                                            @input="clearFieldError('quantityUnitId')"
+                                        />
+                                        <span v-if="fieldErrors.quantityUnitId" :class="$style.errorText">
+                                            {{ fieldErrors.quantityUnitId }}
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- ItamUser -->
+                            <div :class="$style.sfxonFormColumnRow">
+                                <div :class="$style.sfxonFormColumnLabel">
+                                    <label for="user-select" :class="$style.label">
+                                        {{ t('sfxonitam', 'User') }}:
+                                    </label>
+                                </div>
+                                <div :class="$style.sfxonFormColumnInput">
+                                    <div :class="$style.field">
+                                        <NcSelect
+                                            id="user-select"
+                                            v-model="selectedItamUser"
+                                            :options="itamUsers"
+                                            :loading="itamUsersLoading"
+                                            track-by="id"
+                                            :class="fieldErrors.itamUserId ? $style.fieldError : ''"
+                                            @input="clearFieldError('itamUserId')"
+                                        />
+                                        <span v-if="fieldErrors.itamUserId" :class="$style.errorText">
+                                            {{ fieldErrors.itamUserId }}
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Position -->
+                            <div :class="$style.sfxonFormColumnRow">
+                                <div :class="$style.sfxonFormColumnLabel">
+                                    <label for="position-select" :class="$style.label">
+                                        {{ t('sfxonitam', 'Position') }}:
+                                    </label>
+                                </div>
+                                <div :class="$style.sfxonFormColumnInput">
+                                    <div :class="$style.field">
+                                        <NcSelect
+                                            id="position-select"
+                                            v-model="selectedPosition"
+                                            :options="positions"
+                                            :loading="positionsLoading"
+                                            track-by="id"
+                                            :class="fieldErrors.positionId ? $style.fieldError : ''"
+                                            @input="clearFieldError('positionId')"
+                                        />
+                                        <span v-if="fieldErrors.positionId" :class="$style.errorText">
+                                            {{ fieldErrors.positionId }}
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- serialNumber -->
+                             <div :class="$style.sfxonFormColumnRow">
+                                <div :class="$style.sfxonFormColumnLabel">
+                                    <label for="serialNumber" :class="$style.label">
+                                        {{ t('sfxonitam', 'Serial Number') }}:
+                                    </label>
+                                </div>
+                                <div :class="$style.sfxonFormColumnInput">
+                                    <div :class="$style.field">
+                                        <NcTextField
+                                            id="serialNumber"
+                                            v-model="serialNumber"
+                                            :label-outside="true"
+                                            :class="fieldErrors.serialNumber ? $style.fieldError : ''"
+                                            @input="clearFieldError('serialNumber')"
+                                        />
+                                        <span v-if="fieldErrors.serialNumber" :class="$style.errorText">
+                                            {{ fieldErrors.serialNumber }}
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- serialNumber2 -->
+                            <div :class="$style.sfxonFormColumnRow">
+                                <div :class="$style.sfxonFormColumnLabel">
+                                    <label for="serialNumber2" :class="$style.label">
+                                        {{ t('sfxonitam', 'Serial Number 2') }}:
+                                    </label>
+                                </div>
+                                <div :class="$style.sfxonFormColumnInput">
+                                    <div :class="$style.field">
+                                        <NcTextField
+                                            id="serialNumber2"
+                                            v-model="serialNumber2"
+                                            :label-outside="true"
+                                            :class="fieldErrors.serialNumber2 ? $style.fieldError : ''"
+                                            @input="clearFieldError('serialNumber2')"
+                                        />
+                                        <span v-if="fieldErrors.serialNumber2" :class="$style.errorText">
+                                            {{ fieldErrors.serialNumber2 }}
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- assetNumber -->
+                            <div :class="$style.sfxonFormColumnRow">
+                                <div :class="$style.sfxonFormColumnLabel">
+                                    <label for="assetNumber" :class="$style.label">
+                                        {{ t('sfxonitam', 'Asset Number') }}:
+                                    </label>
+                                </div>
+                                <div :class="$style.sfxonFormColumnInput">
+                                    <div :class="$style.field">
+                                        <NcTextField
+                                            id="assetNumber"
+                                            v-model="assetNumber"
+                                            :label-outside="true"
+                                            :class="fieldErrors.assetNumber ? $style.fieldError : ''"
+                                            @input="clearFieldError('assetNumber')"
+                                        />
+                                        <span v-if="fieldErrors.assetNumber" :class="$style.errorText">
+                                            {{ fieldErrors.assetNumber }}
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div :class="$style.sfxonFormColumn">
+                            <!-- Device Status -->
+                            <div :class="$style.sfxonFormColumnRow">
+                                <div :class="$style.sfxonFormColumnLabel">
+                                    <label for="device-status-select" :class="$style.label">
+                                        {{ t('sfxonitam', 'Device Status') }}:
+                                    </label>
+                                </div>
+                                <div :class="$style.sfxonFormColumnInput">
+                                    <div :class="$style.field">
+                                        <NcSelect
+                                            id="device-status-select"
+                                            v-model="selectedDeviceStatus"
+                                            :options="deviceStatis"
+                                            :loading="deviceStatisLoading"
+                                            track-by="id"
+                                            :class="fieldErrors.deviceStatusId ? $style.fieldError : ''"
+                                            @input="clearFieldError('deviceStatusId')"
+                                        />
+                                        <span v-if="fieldErrors.deviceStatusId" :class="$style.errorText">
+                                            {{ fieldErrors.deviceStatusId }}
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Device Type -->
+                            <div :class="$style.sfxonFormColumnRow">
+                                <div :class="$style.sfxonFormColumnLabel">
+                                    <label for="device-type-select" :class="$style.label">
+                                        {{ t('sfxonitam', 'Device Type') }}:
+                                    </label>
+                                </div>
+                                <div :class="$style.sfxonFormColumnInput">
+                                    <div :class="$style.field">
+                                        <NcSelect
+                                            id="device-type-select"
+                                            v-model="selectedDeviceType"
+                                            :options="deviceTypes"
+                                            :loading="deviceTypesLoading"
+                                            track-by="id"
+                                            :class="fieldErrors.deviceTypeId ? $style.fieldError : ''"
+                                            @input="clearFieldError('deviceTypeId')"
+                                        />
+                                        <span v-if="fieldErrors.deviceTypeId" :class="$style.errorText">
+                                            {{ fieldErrors.deviceTypeId }}
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div :class="$style.sfxonFormSection">
+                        <div :class="$style.sfxonFormColumn">
+                            <!-- Image -->
+                             <div :class="$style.field">
+                                <div :class="$style.imageContainer">
+                                    <img
+                                        v-if="imagePreviewUrl"
+                                        :src="imagePreviewUrl"
+                                        :alt="t('sfxonitam', 'Device image preview')"
+                                        :class="$style.imagePreview"
+                                    />
+                                    <div v-else :class="$style.imagePlaceholder">
+                                        {{ t('sfxonitam', 'No image selected') }}
+                                    </div>
+                                </div>
+                                <div v-if="selectedImageLabel" :class="$style.selectedFileLabel">
+                                    {{ selectedImageLabel }}
+                                </div>
+                                <div :class="$style.fileChooserRow">
+                                    <input
+                                        accept="image/*"
+                                        @change="onLocalFileChange"
+                                        :class="$style.fileUploadInput"
+                                        type="file"
+                                    />
+                                    <NcButton
+                                        :class="$style.fileSelectInput"
+                                        @click="openNextcloudFilePicker"
+                                        variant="secondary"
+                                        type="button">
+                                        {{ t('sfxonitam', 'Select existing file') }}
+                                    </NcButton>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div :class="[$style.sfxonFormRow]">
+                    <!-- Description -->
+                    <div :class="$style.sfxonFormSection">
+                        <div :class="$style.sfxonFormColumn">
+                            <div :class="[$style.sfxonFormColumnRow, $style.sfxonFormColumnRowTextareaFull]">
+                                <div :class="[$style.sfxonFormColumnInput, $style.sfxonFormColumnInputTextareaFull]">
+                                    <div :class="$style.field">
+                                        <NcTextArea
+                                            id="description"
+                                            :label="t('sfxonitam', 'Description') + ':'"
+                                            v-model="description"
+                                            :class="[fieldErrors.description ? $style.fieldError : '', $style.sfxonDescriptionInput]"
+                                            @input="clearFieldError('description')"
+                                        >
+                                        </NcTextArea>
+                                        <span v-if="fieldErrors.description" :class="$style.errorText">
+                                            {{ fieldErrors.description }}
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Purchase Information -->
+                    <div :class="$style.sfxonFormSection">
+                        <div :class="$style.sfxonFormColumn">
+                            <!-- Merchant -->
+                            <div :class="$style.sfxonFormColumnRow">
+                                <div :class="$style.sfxonFormColumnLabel">
+                                    <label for="merchant-select" :class="$style.label">
+                                        {{ t('sfxonitam', 'Merchant') }}:
+                                    </label>
+                                </div>
+                                <div :class="$style.sfxonFormColumnInput">
+                                    <div :class="$style.field">
+                                        <NcSelect
+                                            id="merchant-select"
+                                            v-model="selectedMerchant"
+                                            :options="merchants"
+                                            :loading="merchantsLoading"
+                                            track-by="id"
+                                            :class="fieldErrors.merchantId ? $style.fieldError : ''"
+                                            @input="clearFieldError('merchantId')"
+                                        />
+                                        <span v-if="fieldErrors.merchantId" :class="$style.errorText">
+                                            {{ fieldErrors.merchantId }}
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Invoice Number -->
+                            <div :class="$style.sfxonFormColumnRow">
+                                <div :class="$style.sfxonFormColumnLabel">
+                                    <label for="invoiceNumber" :class="$style.label">
+                                        {{ t('sfxonitam', 'Invoice Number') }}:
+                                    </label>
+                                </div>
+                                <div :class="$style.sfxonFormColumnInput">
+                                    <div :class="$style.field">
+                                        <NcTextField
+                                            id="invoiceNumber"
+                                            v-model="invoiceNumber"
+                                            :label-outside="true"
+                                            :class="fieldErrors.invoiceNumber ? $style.fieldError : ''"
+                                            @input="clearFieldError('invoiceNumber')"
+                                        />
+                                        <span v-if="fieldErrors.invoiceNumber" :class="$style.errorText">
+                                            {{ fieldErrors.invoiceNumber }}
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Purchase Date -->
+                            <div :class="$style.sfxonFormColumnRow">
+                                <div :class="$style.sfxonFormColumnLabel">
+                                    <label for="purchaseDate" :class="$style.label">
+                                        {{ t('sfxonitam', 'Purchase Date') }}:
+                                    </label>
+                                </div>
+                                <div :class="$style.sfxonFormColumnInput">
+                                    <div :class="$style.field">
+                                        <div :class="$style.dateRow">
+                                            <NcDateTimePickerNative
+                                                id="purchaseDate"
+                                                v-model="purchaseDate"
+                                                type="date"
+                                                :class="fieldErrors.purchaseDate ? $style.fieldError : ''"
+                                                :label="''"
+                                                :placeholder="''"
+                                                @input="clearFieldError('purchaseDate')"
+                                            />
+                                            <NcButton
+                                                :disabled="purchaseDate === null"
+                                                type="button"
+                                                :aria-label="t('sfxonitam', 'Clear date')"
+                                                @click="purchaseDate = null"
+                                                >
+                                                <NcIconSvgWrapper
+                                                    :path="mdiClose"
+                                                    :size="16"
+                                                />
+                                            </NcButton>
+                                        </div>
+                                        <span v-if="fieldErrors.purchaseDate" :class="$style.errorText">
+                                            {{ fieldErrors.purchaseDate }}
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- QrCode and Barcode -->
+                    <div :class="$style.sfxonFormSection">
+                        <div :class="$style.sfxonFormColumn">
+                            <!-- QR Code -->
+                            <SfxonQrCodeView
+                                v-if="isEditMode"
+                                :deviceId="deviceId"
+                                customStyle="width: 100%; max-width: 150px; height: auto;"
+                            />
+
+                            <!-- Barcode -->
+                            <SfxonBarcode
+                                v-if="isEditMode && name"
+                                :name="name"
+                                prefix="DEV"
+                                customStyle="width: 100%; margin-top: 12px; max-width: 150px; height: auto;"
+                            />
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Bottom Action Bar -->
+                <div :class="[$style.sfxonFormRow, $style.sfxonFormRowActionBar]">
+                    <div :class="[$style.sfxonFormSection, $style.sfxonFormSectionSave]">
+                        <div :class="$style.sfxonFormColumn">
+                            <div :class="$style.actions">
+                                <NcButton
+                                    :disabled="isSaving"
+                                    variant="primary"
+                                    @click="submitForm">
+                                    {{ t('sfxonitam', 'Save Changes') }}
+                                </NcButton>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </NcAppContent>
@@ -808,34 +975,73 @@ onMounted(async () => {
 </template>
 
 <style module>
-.content {
+.sfxonItamHeader {
+    align-items: center;
+    background-color: var(--color-background-assistant);
     display: flex;
-    justify-content: center;
-    margin: 16px;
+    flex: 0 0;
+    font-weight: bold;
+    gap: var(--default-grid-baseline);
+    /*margin-block: var(--app-navigation-padding, 4px);*/
+    /* margin-inline: calc(var(--default-clickable-area) + 2*var(--app-navigation-padding, 4px)) var(--app-navigation-padding, 4px);*/
+    max-width: 100%;
+    min-height: 32px;
+    padding: 
+        var(--app-navigation-padding)
+        var(--app-navigation-padding)
+        var(--app-navigation-padding)
+        calc(var(--default-clickable-area) + 2*var(--app-navigation-padding, 4px));
+}
+
+.sfxonItamHeaderSidebarToggleBtn {
+    margin-left: auto;
+    margin-right: 0;
 }
 
 .fileUploadInput {
     padding-top: 3px!important;
+    max-width: 200px;
+}
+
+.fileSelectInput {
+    width: 100%!important;
+    max-width: 200px;
 }
 
 .form {
-    width: 100%;
-    max-width: 480px;
     display: flex;
     flex-direction: column;
-    gap: 16px;
+    position: relative;
+    width: 100%;
 }
 
 .field {
     display: flex;
     flex-direction: column;
     gap: 4px;
+    width: 100%;
+}
+
+.field :global(.input-field__input) {
+    border-radius: 3px!important;
+}
+
+.field :global(.v-select) {
+    background-color: var(--color-main-background);
+}
+
+.field :global(.vs__selected) {
+    padding-left: 0!important;
+}
+
+.field :global(.vs__dropdown-toggle) {
+    border-color: var(--input-border-box-shadow-light);
+    border-radius: 3px;
+    border-width: 0;
 }
 
 .label {
-    font-weight: bold;
-    font-size: 0.875rem;
-    color: var(--color-text-maxcontrast);
+    width: 100%;
 }
 
 .actions {
@@ -867,26 +1073,150 @@ onMounted(async () => {
 }
 
 .fileChooserRow {
+    align-items: center;
     display: flex;
     flex-wrap: wrap;
     gap: 10px;
-    align-items: center;
+    margin-left: auto;
+    margin-right: auto;
+    margin-top: 12px;
+    max-width: 200px;
 }
 
 .selectedFileLabel {
     color: var(--color-text-secondary);
     font-size: 0.875rem;
+    margin-left: auto;
+    margin-right: auto;
     margin-top: 4px;
+    max-width: 200px;
+    text-align: center;
+    width: 100%;
+}
+
+.imageContainer {
+    aspect-ratio: 1 / 1;
+    border-radius: 6px;
+    margin-left: auto;
+    margin-right: auto;
+    max-width: 200px;
+    overflow: hidden;
+    position: relative;
+    width: 100%;
 }
 
 .imagePreview {
-    max-width: 100%;
-    border-radius: 6px;
-    margin-top: 8px;
+    background-color: var(--color-main-background);
+    border: 1px solid var(--color-border);
+    height: 100%;
     object-fit: contain;
+    inset: 0;
+    position: absolute;
+    width: 100%;
+}
+
+.imagePlaceholder {
+    align-items: center;
+    border: 6px dashed var(--color-border);
+    border-radius: 0;
+    color: var(--color-text-lighter);
+    display: flex;
+    font-size: 0.9rem;
+    inset: 0;
+    justify-content: center;
+    margin-left: auto;
+    margin-right: auto;
+    position: absolute;
 }
 
 .dateRow :global(.native-datetime-picker) {
     flex-grow: 1;
+}
+
+/* Architectural styles for the sections and rows */
+.sfxonFormRow {
+    display: flex;
+}
+
+.sfxonFormRow.sfxonFormRowActionBar {
+    bottom: 0;
+    position: sticky;
+    width: 100%;
+}
+
+.sfxonFormSection {
+    display: flex;
+    background-color: var(--color-background-assistant);
+    margin-left: var(--app-navigation-padding);
+    margin-top: var(--app-navigation-padding);
+    padding: calc(var(--app-navigation-padding)*2) calc(var(--app-navigation-padding)*2) var(--app-navigation-padding);
+    width: 100%;
+}
+
+.sfxonFormSection.sfxonFormSectionSave {
+    padding-top: 0;
+}
+
+.sfxonFormColumn {
+    width: 100%;
+}
+
+.sfxonFormColumnRow {
+    display: flex;
+    padding-bottom: 6px;
+}
+
+.sfxonFormColumnLabel {
+    align-content: center;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    width: 40%;
+}
+
+.sfxonFormColumnInput {
+    display: flex;
+    width: 60%;
+}
+
+/* Special Layout Designs */
+.sfxonFormRowOne .sfxonFormSection:first-child {
+    flex: 1.4;
+}
+
+.sfxonFormRowOne .sfxonFormSection:last-child {
+    flex: .6;
+}
+
+.sfxonFormRowOne .sfxonFormSection:first-child .sfxonFormColumn:last-child {
+    padding-left: 2rem;
+}
+
+/* Textarea for description */
+.sfxonFormColumnRow.sfxonFormColumnRowTextareaFull {
+    height: 100%!important;
+}
+
+.sfxonFormColumnInput.sfxonFormColumnInputTextareaFull {
+    width: 100%!important;
+}
+
+.sfxonDescriptionInput {
+    height: 100%!important;
+}
+
+.sfxonDescriptionInput :global(.textarea__main-wrapper) {
+    height: 100%!important;
+}
+
+.sfxonDescriptionInput :global(textarea) {
+    height: 100%!important;
+    margin-top: 0!important;
+    padding-top: 1.6rem!important;
+    width: 100%!important;
+}
+
+.sfxonDescriptionInput :global(.textarea__label) {
+    inset-block-start: 6px!important;
 }
 </style>

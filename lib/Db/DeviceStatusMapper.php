@@ -11,10 +11,10 @@ use OCP\IDBConnection;
  */
 class DeviceStatusMapper extends QBMapper {
     public function __construct(IDBConnection $db) {
-        parent::__construct($db, 'sfxon_device_status', Device::class);
+        parent::__construct($db, 'sfxon_device_status', DeviceStatus::class);
     }
 
-    public function findById(int $id): Device {
+    public function findById(int $id): DeviceStatus {
         $qb = $this->db->getQueryBuilder();
         $qb->select('*')
             ->from($this->getTableName())
@@ -23,14 +23,14 @@ class DeviceStatusMapper extends QBMapper {
         return $this->findEntity($qb);
     }
 
-    /** @return Device[] */
+    /** @return DeviceStatus[] */
     public function findAll(): array {
         $qb = $this->db->getQueryBuilder();
         $qb->select('*')->from($this->getTableName());
         return $this->findEntities($qb);
     }
 
-    /** @return Device[] */
+    /** @return DeviceStatus[] */
     public function findAllPaged(
         string $orderBy = 'name',
         string $direction = 'ASC',

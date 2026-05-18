@@ -503,7 +503,7 @@ onMounted(async () => {
         <!-- Inhaltsbereich -->
         <NcAppContent>
             <div :class="$style.sfxonItamHeader">
-                <div class=".content-title">Geräte-Verwaltung</div>
+                <div class="content-title">Geräte-Verwaltung</div>
                 <div :class="$style.sfxonItamHeaderSidebarToggleBtn">
                     <NcButton @click.prevent="filterSidebarOpen = !filterSidebarOpen">
                         {{ t('sfxonitam', 'Search/Filter') }}

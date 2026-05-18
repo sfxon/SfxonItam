@@ -35,13 +35,13 @@ use OCP\AppFramework\Db\Entity;
  * @method void setPurchaseDate(\DateTimeImmutable|null $purchaseDate)
  * @method string|null getCustomFields()
  * @method void setCustomFields(string|null $customFields)
- * @method string|null getComment()
- * @method void setComment(string|null $comment)
+ * @method string|null getDescription())
+ * @method void setDescription(string|null $description)
  */
 class Device extends Entity implements \JsonSerializable {
     protected ?string $assetNumber = null;
     protected ?string $customFields = null;
-    protected ?string $comment = null;
+    protected ?string $description = null;
     protected ?int $deviceStatusId = null;
     protected ?int $deviceTypeId = null;
     protected ?int $imageFileId = null;
@@ -69,7 +69,7 @@ class Device extends Entity implements \JsonSerializable {
     public function jsonSerialize(): array {
         return [
             'assetNumber' => $this->getAssetNumber(),
-            'comment' => $this->getComment(),
+            'description' => $this->getDescription(),
             'customFields' => $this->getCustomFields(),
             'deviceStatusId' => $this->getDeviceStatusId(),
             'deviceTypeId' => $this->getDeviceTypeId(),
