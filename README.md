@@ -23,8 +23,6 @@ Editor:
 
 ## Roadmap
 
-* Start an devlog instead of twitch streams - because it might be more of an interest. https://www.youtube.com/watch?v=NWOUna4fSEI
-
 * Device Entität umsetzen:
     - ✅ Übersichts-Seite für die Geräte umsetzen:
         - ✅ Tabelle Element für Element in einzelne wiederverwendbare Module aufteilen.
@@ -58,8 +56,8 @@ Editor:
         - ✅ Logik aus der DeviceList auslagern in eine Klasse Device, die dynamisch auf den Daten arbeitet.
         - ✅ Logik aus DeviceEditor ebenfalls auslagern in die Klasse Device. Das sollte die zentrale Klasse dafür werden.+
         - ✅ Denkbar ist jetzt noch eine Klasse DeviceApi oder ähnliches, welche die API-Logik noch etwas herauszieht, damit man schönen sauberen Code hat. Dann sollte es erstmal genug sein.
-    - Geräte-Liste durchsuchbar und filterbar machen.
-        - Geräteliste filterbar machen.
+    - ✅ Geräte-Liste durchsuchbar und filterbar machen.
+        - ✅ Geräteliste filterbar machen.
             - ✅ Eigene Komponente erstellen: SfxonFilterBar
             - Teilkomponenten dafür erstellen:
                 - ✅ 1. Filter für Text-Felder / Number-Felder SfxonFilterFieldText
@@ -90,10 +88,13 @@ Editor:
                 - ✅ Add barcode preview to the list.
                 - ✅ Add barcode popup to the list.
             - ✅ Geräte-Editor Darstellung optimieren. Mehrspaltig, wo möglich. Bild und QR-Code nach rechts. Inspiration bei Xanario holen - die haben imho den besten Editor für sowas gebaut (Übersichtlichkeit): https://www.xanario.de/naehere-informationen-software/ct-314.html.
-            - Make Device Editor Page more responsive ready. It should be easy to use on mobile devices, too.
-            - Add a results per page dropdown/input, so we can also show 100 results or 1000 results on one page. Load data paged then too - meaning to not overload the server - so the loading should be junked to junks of size 20 (configurable in code).
+    - ✅ Make Device Editor Page more responsive ready. It should be easy to use on mobile devices, too.
 
-        - Geräteliste auch nach Entitäten sortierbar machen.
+    - Take over new styling for detail page to all other entities.
+
+    - Add a results per page dropdown/input, so we can also show 100 results or 1000 results on one page. Load data paged then too - meaning to not overload the server - so the loading should be junked to junks of size 20 (configurable in code).
+
+    - Geräteliste auch nach Entitäten sortierbar machen.
     - Menü hinzufügen, mit dem die Reihenfolge der Spalten geändert werden kann, sowie eingestellt werden kann, in welcher Reihenfolge gefiltert werden kann und welche Spalten überhaupt angezeigt werden sollen.
 
 * Filter, Sortier und Spalten-Einstellungen auch in andere Entitäten aufnehmen (einheitlich).
@@ -134,6 +135,8 @@ Editor:
     - ✅ Einträge verwalten (CRUD)
     - ✅ nur Löschen, wenn ein Status nicht mehr in Device verwendet wird.
     - ✅ DeviceStatus in den Menüpunkten zum Verwalten von Geräten (Device) hinzufügen.
+
+* Start an devlog instead of twitch streams - because it might be more of an interest. (For now I choose bluesky and short messages.) Bsky: https://bsky.app/profile/eska1000.bsky.social
 
 ## Aktuelle Funktionen
 

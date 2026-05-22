@@ -532,7 +532,7 @@ onMounted(async () => {
             </NcNoteCard>
 
             <div :class="$style.form">
-                <div :class="[$style.sfxonFormRow, $style.sfxonFormRowOne]">
+                <div :class="[$style.sfxonFormRow]">
                     <div :class="$style.sfxonFormSection">
                         <div :class="$style.sfxonFormColumn">
                             <!-- name -->
@@ -816,9 +816,7 @@ onMounted(async () => {
                             </div>
                         </div>
                     </div>
-                </div>
 
-                <div :class="[$style.sfxonFormRow]">
                     <!-- Description -->
                     <div :class="$style.sfxonFormSection">
                         <div :class="$style.sfxonFormColumn">
@@ -982,15 +980,10 @@ onMounted(async () => {
     flex: 0 0;
     font-weight: bold;
     gap: var(--default-grid-baseline);
-    /*margin-block: var(--app-navigation-padding, 4px);*/
-    /* margin-inline: calc(var(--default-clickable-area) + 2*var(--app-navigation-padding, 4px)) var(--app-navigation-padding, 4px);*/
     max-width: 100%;
     min-height: 32px;
-    padding: 
-        var(--app-navigation-padding)
-        var(--app-navigation-padding)
-        var(--app-navigation-padding)
-        calc(var(--default-clickable-area) + 2*var(--app-navigation-padding, 4px));
+    padding: var(--app-navigation-padding);
+    padding-left: calc(var(--default-clickable-area) + 2 * var(--app-navigation-padding, 4px));
 }
 
 .sfxonItamHeaderSidebarToggleBtn {
@@ -999,20 +992,22 @@ onMounted(async () => {
 }
 
 .fileUploadInput {
-    padding-top: 3px!important;
+    margin-left: auto!important;
+    margin-right: auto!important;
     max-width: 200px;
+    padding-top: 3px!important;
 }
 
 .fileSelectInput {
-    width: 100%!important;
     max-width: 200px;
+    width: 100%!important;
 }
 
-.form {
-    display: flex;
-    flex-direction: column;
-    position: relative;
-    width: 100%;
+@media (min-width: 768px) {
+    .fileUploadInput,
+    .fileSelectInput {
+        max-width: 200px;
+    }
 }
 
 .field {
@@ -1046,8 +1041,8 @@ onMounted(async () => {
 
 .actions {
     display: flex;
-    justify-content: flex-end;
     margin-top: 8px;
+    justify-content: flex-end;
 }
 
 .fieldError :deep(input),
@@ -1073,14 +1068,18 @@ onMounted(async () => {
 }
 
 .fileChooserRow {
-    align-items: center;
     display: flex;
     flex-wrap: wrap;
     gap: 10px;
-    margin-left: auto;
-    margin-right: auto;
+    margin-inline: auto;
     margin-top: 12px;
-    max-width: 200px;
+    width: 100%;
+}
+
+@media (min-width: 768px) {
+    .fileChooserRow {
+        max-width: 200px;
+    }
 }
 
 .selectedFileLabel {
@@ -1097,12 +1096,17 @@ onMounted(async () => {
 .imageContainer {
     aspect-ratio: 1 / 1;
     border-radius: 6px;
-    margin-left: auto;
-    margin-right: auto;
-    max-width: 200px;
+    margin-inline: auto;
+    max-width: 140px;
     overflow: hidden;
     position: relative;
     width: 100%;
+}
+
+@media (min-width: 768px) {
+    .imageContainer {
+        max-width: 200px;
+    }
 }
 
 .imagePreview {
@@ -1134,36 +1138,102 @@ onMounted(async () => {
 }
 
 /* Architectural styles for the sections and rows */
-.sfxonFormRow {
+.form {
     display: flex;
+    flex-direction: column;
+    position: relative;
+    width: 100%;
+}
+
+.sfxonFormRow {
+    display: grid;
+    grid-template-columns: repeat(1, 1fr);
+    gap: 15px;
+    margin: 15px 15px 0;
 }
 
 .sfxonFormRow.sfxonFormRowActionBar {
+    background-color: var(--color-main-background);
     bottom: 0;
+    margin-top: 0;
+    padding-bottom: 15px;
     position: sticky;
-    width: 100%;
+}
+
+.sfxonFormRow:not(.sfxonFormRowActionBar) {
+    margin-bottom: 15px;
 }
 
 .sfxonFormSection {
     display: flex;
     background-color: var(--color-background-assistant);
-    margin-left: var(--app-navigation-padding);
-    margin-top: var(--app-navigation-padding);
+    flex-direction: column;
     padding: calc(var(--app-navigation-padding)*2) calc(var(--app-navigation-padding)*2) var(--app-navigation-padding);
-    width: 100%;
 }
 
-.sfxonFormSection.sfxonFormSectionSave {
+@media (min-width: 768px) {
+    .sfxonFormRow {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    .sfxonFormRow > .sfxonFormSection:nth-child(1) {
+        grid-column: span 2;
+    }
+}
+
+@media (min-width: 1700px) {
+    .sfxonFormRow {
+        grid-template-columns: repeat(3, 1fr);
+    }
+
+    /* Section 1: füllt den Rest in Zeile 1 */
+    .sfxonFormRow > .sfxonFormSection:nth-child(1) {
+        display: flex;
+        gap: calc(15px + (var(--app-navigation-padding)*4));
+        grid-column: span 2;
+    }
+}
+
+/* ActionBar-Reset: nicht von obigen Regeln erfassen lassen */
+.sfxonFormRowActionBar > .sfxonFormSection {
+    grid-column: span 3!important;
+    filter: brightness(96%);
+    max-width: none;
+}
+
+@media (min-width: 1700px) {
+    .sfxonFormSection {
+        flex-direction: row;
+    }
+}
+
+.sfxonFormRow > .sfxonFormSection:nth-child(1).sfxonFormSectionSave {
+    flex: 1;
+    max-width: 100%;
     padding-top: 0;
 }
 
 .sfxonFormColumn {
+    height: 100%;
     width: 100%;
+}
+
+.sfxonFormSection:nth-child(3) .sfxonFormColumn {
+    min-height: 200px;
 }
 
 .sfxonFormColumnRow {
     display: flex;
+    flex-direction: column; /* Mobile: untereinander */
+    gap: 2px;
     padding-bottom: 6px;
+}
+
+@media (min-width: 1024px) {
+    .sfxonFormColumnRow {
+        flex-direction: row;
+        gap: 8px;
+    }
 }
 
 .sfxonFormColumnLabel {
@@ -1171,25 +1241,35 @@ onMounted(async () => {
     display: flex;
     flex-direction: column;
     justify-content: center;
-    width: 40%;
+    width: 100%;
+}
+
+@media (min-width: 786px) {
+    .sfxonFormColumnLabel {
+        flex: 0 0 30%;
+        max-width: 30%;
+    }
 }
 
 .sfxonFormColumnInput {
     display: flex;
-    width: 60%;
+    width: 100%;
 }
 
-/* Special Layout Designs */
-.sfxonFormRowOne .sfxonFormSection:first-child {
-    flex: 1.4;
+@media (min-width: 768px) {
+    .sfxonFormColumnInput {
+        flex: 1 1 70%;
+    }
 }
 
-.sfxonFormRowOne .sfxonFormSection:last-child {
-    flex: .6;
-}
+@media (min-width: 1700px) {
+    .sfxonFormRowOne .sfxonFormSection:first-child {
+        flex-direction: row;
+    }
 
-.sfxonFormRowOne .sfxonFormSection:first-child .sfxonFormColumn:last-child {
-    padding-left: 2rem;
+    .sfxonFormRowOne .sfxonFormSection:first-child .sfxonFormColumn:last-child {
+        padding-left: 2rem;
+    }
 }
 
 /* Textarea for description */
