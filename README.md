@@ -136,6 +136,9 @@ Editor:
     - ✅ nur Löschen, wenn ein Status nicht mehr in Device verwendet wird.
     - ✅ DeviceStatus in den Menüpunkten zum Verwalten von Geräten (Device) hinzufügen.
 
+* Add Feature: Users should be able to configure, which fields are required fields.
+    - At least the Name of device should be always required and unique!
+
 * Start an devlog instead of twitch streams - because it might be more of an interest. (For now I choose bluesky and short messages.) Bsky: https://bsky.app/profile/eska1000.bsky.social
 
 ## Aktuelle Funktionen
@@ -832,13 +835,16 @@ Eingesetzt wird das bspw. im View *DeviceList.vue*. Dort werden die Events verwe
     to differenciate custom fields from default fields. No other parts of Nextcloud will use our tables,
     and if any plugin developer ever will, he should follow this standard.
 
-* **Supported** datatypes in the beginning:
+* **Supported datatypes** in the beginning:
     - **VARCHAR** with LENGTH definition (with optional index, not searchable/filterable/sortable without index).
     - **DECIMAL** with LENGTH definition (needs to length fields, e.g. 10,4, with optional index, not searchable/filterable/sortable without index).
+    - **INTEGER** with LENGTH definition.
+    - **BOOL** (on/off), with a switch display. Integrated in the database as INT(1).
+    - **FILE** - often required, for example to upload invoices. In the end, this is a foreign key on media, but with a different user interface.
     - **LONGTEXT** (not searchable for now)
-    - DATE (optional index, not searchable/filterable/sortable without index).
-    - DATETIME (optional index, not searchable/filterable/sortable without index).
-    - FOREGIN_KEY: BIGINT (20), here the user also has to select the related entity (always indexed, index needed?).
+    - **DATE** (optional index, not searchable/filterable/sortable without index).
+    - **DATETIME** (optional index, not searchable/filterable/sortable without index).
+    - **FOREGIN_KEY** BIGINT (20), here the user also has to select the related entity (always indexed?, index needed?).
 
 * For **Sqlite Support** we need at least **SQLite Version 3.35.0**, because **SQLite before didn't support DROP COLUMN**.
 
