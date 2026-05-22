@@ -25,6 +25,7 @@ import { fetchAllMerchants } from '@/services/MerchantService'
 import { fetchAllPositions } from '@/services/PositionService'
 import { fetchAllQuantityUnits } from '@/services/QuantityUnitService'
 import SfxonBarcode from '@/components/SfxonBarcode'
+import SfxonEditorFormInput from '@/components/SfxonEditorFormInput'
 import SfxonEditorStyles from '@/components/SfxonEditor/SfxonEditor.module.css'
 import SfxonItamHeader from '@/components/SfxonItamHeader'
 import SfxonMainNavigation from '@/components/SfxonMainNavigation'
@@ -534,7 +535,18 @@ onMounted(async () => {
                 <div :class="[SfxonEditorStyles.sfxonFormRow, $style.sfxonFormRow1]">
                     <div :class="[SfxonEditorStyles.sfxonFormSection, $style.sfxonFormSection1]">
                         <div :class="SfxonEditorStyles.sfxonFormColumn">
-                            <!-- name -->
+                            <SfxonEditorFormInput
+                                field="name"
+                                id="name"
+                                v-model="name"
+                                :label="t('sfxonitam', 'Device Identifier')"
+                                type="text"
+                                :placeholder="t('sfxonitam', 'e.g. JP001')"
+                                @input="clearFieldError('name')"
+                                :fieldError="fieldErrors.name"
+                            />
+
+                            <!-- name
                             <div :class="SfxonEditorStyles.sfxonFormColumnRow">
                                 <div :class="SfxonEditorStyles.sfxonFormColumnLabel">
                                     <label for="name" :class="SfxonEditorStyles.label">
@@ -557,6 +569,7 @@ onMounted(async () => {
                                     </div>
                                 </div>
                             </div>
+                            -->
 
                             <!-- Quantity -->
                             <div :class="SfxonEditorStyles.sfxonFormColumnRow">
