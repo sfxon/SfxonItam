@@ -140,6 +140,8 @@ Editor:
 * Add Feature: Users should be able to configure, which fields are required fields.
     - At least the Name of device should be always required and unique!
 
+* DeviceEditor: Add the same popup to show image, qrcode and barcode on the detail page. It should open, when one of the elements is clicked.
+
 * Start an devlog instead of twitch streams - because it might be more of an interest. (For now I choose bluesky and short messages.) Bsky: https://bsky.app/profile/eska1000.bsky.social
 
 ## Aktuelle Funktionen
