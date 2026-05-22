@@ -1,0 +1,166 @@
+.sfxonFormRow {
+    display: grid;
+    grid-template-columns: repeat(1, 1fr);
+    gap: 15px;
+    margin: 15px 15px 0;
+}
+
+.sfxonFormRow.sfxonFormRowActionBar {
+    background-color: var(--color-main-background);
+    bottom: 0;
+    margin-top: 0;
+    padding-bottom: 15px;
+    position: sticky;
+}
+
+.sfxonFormRow:not(.sfxonFormRowActionBar) {
+    margin-bottom: 15px;
+}
+
+.field {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    width: 100%;
+}
+
+.field :global(.input-field__input) {
+    border-radius: 3px!important;
+}
+
+.field :global(.v-select) {
+    background-color: var(--color-main-background);
+}
+
+.field :global(.vs__selected) {
+    padding-left: 0!important;
+}
+
+.field :global(.vs__dropdown-toggle) {
+    border-color: var(--input-border-box-shadow-light);
+    border-radius: 3px;
+    border-width: 0;
+}
+
+.fieldError :deep(input),
+.fieldError :deep(.v-select) {
+    border-color: var(--color-error) !important;
+    box-shadow: 0 0 0 2px var(--color-error-hover) !important;
+}
+
+/* Label */
+.sfxonFormColumnLabel {
+    align-content: center;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    width: 100%;
+}
+
+@media (min-width: 786px) {
+    .sfxonFormColumnLabel {
+        flex: 0 0 30%;
+        max-width: 30%;
+    }
+}
+
+.label {
+    width: 100%;
+}
+
+/* actions */
+.actions {
+    display: flex;
+    margin-top: 8px;
+    justify-content: flex-end;
+}
+
+.form {
+    display: flex;
+    flex-direction: column;
+    position: relative;
+    width: 100%;
+}
+
+.sfxonFormColumnRow {
+    display: flex;
+    flex-direction: column; /* Mobile: untereinander */
+    gap: 2px;
+    padding-bottom: 6px;
+}
+
+@media (min-width: 1024px) {
+    .sfxonFormColumnRow {
+        flex-direction: row;
+        gap: 8px;
+    }
+}
+
+.sfxonFormColumnRowTextareaFull {
+    height: 100%!important;
+    width: 100%;
+}
+
+.sfxonFormSection {
+    display: flex;
+    background-color: var(--color-background-assistant);
+    flex-direction: column;
+    padding: calc(var(--app-navigation-padding)*2) calc(var(--app-navigation-padding)*2) var(--app-navigation-padding);
+}
+
+.sfxonFormRowActionBar > .sfxonFormSection {
+    grid-column: span 3!important;
+    filter: brightness(96%);
+    max-width: none;
+}
+
+@media (min-width: 1700px) {
+    .sfxonFormSection {
+        flex-direction: row;
+    }
+}
+
+.sfxonFormSectionSave {
+    flex: 1;
+    max-width: 100%;
+    padding-top: 0;
+}
+
+.sfxonFormColumn {
+    height: 100%;
+    width: 100%;
+}
+
+/* input[type=text] */
+.sfxonFormColumnInput {
+    display: flex;
+    width: 100%;
+}
+
+@media (min-width: 768px) {
+    .sfxonFormColumnInput {
+        flex: 1 1 70%;
+    }
+}
+
+/* Success and Error */
+.errorText {
+    color: var(--color-element-error);
+    margin-top: 2px;
+}
+
+/* Date Row */
+.dateRow {
+    align-items: center;
+    display: flex;
+}
+
+.dateRow button {
+    max-height: 1rem;
+    margin-left: 6px;
+    margin-top: 1px;
+}
+
+.dateRow :global(.native-datetime-picker) {
+    flex-grow: 1;
+}

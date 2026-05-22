@@ -91,6 +91,7 @@ Editor:
     - ✅ Make Device Editor Page more responsive ready. It should be easy to use on mobile devices, too.
 
     - Take over new styling for detail page to all other entities.
+        - Build a editor.module.css and import it on every editor page. That way, I can use general stylings for that pages.
 
     - Add a results per page dropdown/input, so we can also show 100 results or 1000 results on one page. Load data paged then too - meaning to not overload the server - so the loading should be junked to junks of size 20 (configurable in code).
 
