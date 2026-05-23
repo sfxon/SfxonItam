@@ -9,7 +9,7 @@ const props = defineProps<{
     id: string,
     label: string,
     loading: any,
-    modelValue: Record<string, unknown> | null,  // war: string
+    modelValue: Record<string, unknown> | null,
     options: [],
     placeholder?: string,
     trackBy: string

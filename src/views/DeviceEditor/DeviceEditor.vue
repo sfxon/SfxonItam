@@ -5,14 +5,10 @@ import NcAppNavigation from '@nextcloud/vue/components/NcAppNavigation'
 import NcAppNavigationList from '@nextcloud/vue/components/NcAppNavigationList'
 import NcAppNavigationNew from '@nextcloud/vue/components/NcAppNavigationNew'
 import NcContent from '@nextcloud/vue/components/NcContent'
-import { mdiClose, mdiPlus } from '@mdi/js'
+import { mdiPlus } from '@mdi/js'
 import { translate as t } from '@nextcloud/l10n'
 import { generateUrl, generateRemoteUrl } from '@nextcloud/router'
 import NcButton from '@nextcloud/vue/components/NcButton'
-import NcTextArea from '@nextcloud/vue/components/NcTextArea'
-import NcTextField from '@nextcloud/vue/components/NcTextField'
-import NcDateTimePickerNative from '@nextcloud/vue/components/NcDateTimePickerNative'
-import NcSelect from '@nextcloud/vue/components/NcSelect'
 import NcNoteCard from '@nextcloud/vue/components/NcNoteCard'
 import { useApiErrors } from '@/composables/useApiErrors'
 import NcIconSvgWrapper from '@nextcloud/vue/components/NcIconSvgWrapper'
@@ -25,6 +21,7 @@ import { fetchAllMerchants } from '@/services/MerchantService'
 import { fetchAllPositions } from '@/services/PositionService'
 import { fetchAllQuantityUnits } from '@/services/QuantityUnitService'
 import SfxonBarcode from '@/components/SfxonBarcode'
+import SfxonEditorFormDatePicker from '@/components/SfxonEditorFormDatePicker'
 import SfxonEditorFormEntitySelect from '@/components/SfxonEditorFormEntitySelect'
 import SfxonEditorFormInput from '@/components/SfxonEditorFormInput'
 import SfxonEditorFormTextarea from '@/components/SfxonEditorFormTextarea'
@@ -726,43 +723,14 @@ onMounted(async () => {
                                 v-model="invoiceNumber"
                             />
 
-                            <!-- Purchase Date -->
-                            <div :class="SfxonEditorStyles.sfxonFormColumnRow">
-                                <div :class="SfxonEditorStyles.sfxonFormColumnLabel">
-                                    <label for="purchaseDate" :class="SfxonEditorStyles.label">
-                                        {{ t('sfxonitam', 'Purchase Date') }}:
-                                    </label>
-                                </div>
-                                <div :class="SfxonEditorStyles.sfxonFormColumnInput">
-                                    <div :class="SfxonEditorStyles.field">
-                                        <div :class="SfxonEditorStyles.dateRow">
-                                            <NcDateTimePickerNative
-                                                id="purchaseDate"
-                                                v-model="purchaseDate"
-                                                type="date"
-                                                :class="fieldErrors.purchaseDate ? SfxonEditorStyles.fieldError : ''"
-                                                :label="''"
-                                                :placeholder="''"
-                                                @input="clearFieldError('purchaseDate')"
-                                            />
-                                            <NcButton
-                                                :disabled="purchaseDate === null"
-                                                type="button"
-                                                :aria-label="t('sfxonitam', 'Clear date')"
-                                                @click="purchaseDate = null"
-                                                >
-                                                <NcIconSvgWrapper
-                                                    :path="mdiClose"
-                                                    :size="16"
-                                                />
-                                            </NcButton>
-                                        </div>
-                                        <span v-if="fieldErrors.purchaseDate" :class="SfxonEditorStyles.errorText">
-                                            {{ fieldErrors.purchaseDate }}
-                                        </span>
-                                    </div>
-                                </div>
-                            </div>
+                            <SfxonEditorFormDatePicker
+                                field="purchaseDate"
+                                :fieldError="fieldErrors.purchaseDate"
+                                id="purchaseDate"
+                                @input="clearFieldError('purchaseDate')"
+                                :label="t('sfxonitam', 'Purchase Date') + ':'"
+                                v-model="purchaseDate"
+                            />
                         </div>
                     </div>
 
