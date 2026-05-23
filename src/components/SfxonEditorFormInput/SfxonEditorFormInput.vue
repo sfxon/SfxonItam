@@ -18,13 +18,8 @@ const emit = defineEmits<{
   (e: 'input', field: string): void
 }>()
 
-function onInput(value: string | Event) {
-    const v =
-        typeof value === 'string'
-            ? value
-            : (value.target as HTMLInputElement).value
-
-    emit('update:modelValue', v)
+function onInput(value: string | number) {
+    emit('update:modelValue', String(value))
     emit('input', props.field)
 }
 
