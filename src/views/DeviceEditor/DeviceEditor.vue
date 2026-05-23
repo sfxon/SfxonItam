@@ -27,6 +27,7 @@ import { fetchAllQuantityUnits } from '@/services/QuantityUnitService'
 import SfxonBarcode from '@/components/SfxonBarcode'
 import SfxonEditorFormEntitySelect from '@/components/SfxonEditorFormEntitySelect'
 import SfxonEditorFormInput from '@/components/SfxonEditorFormInput'
+import SfxonEditorFormTextarea from '@/components/SfxonEditorFormTextarea'
 import SfxonEditorStyles from '@/components/SfxonEditor/SfxonEditor.module.css'
 import SfxonItamHeader from '@/components/SfxonItamHeader'
 import SfxonMainNavigation from '@/components/SfxonMainNavigation'
@@ -689,23 +690,14 @@ onMounted(async () => {
                     <!-- Description -->
                     <div :class="SfxonEditorStyles.sfxonFormSection">
                         <div :class="$style.sfxonFormColumnDescription">
-                            <div :class="[SfxonEditorStyles.sfxonFormColumnRow, SfxonEditorStyles.sfxonFormColumnRowTextareaFull]">
-                                <div :class="[SfxonEditorStyles.sfxonFormColumnInput, $style.sfxonFormColumnInputTextareaFull]">
-                                    <div :class="SfxonEditorStyles.field">
-                                        <NcTextArea
-                                            id="description"
-                                            :label="t('sfxonitam', 'Description') + ':'"
-                                            v-model="description"
-                                            :class="[fieldErrors.description ? SfxonEditorStyles.fieldError : '', $style.sfxonDescriptionInput]"
-                                            @input="clearFieldError('description')"
-                                        >
-                                        </NcTextArea>
-                                        <span v-if="fieldErrors.description" :class="SfxonEditorStyles.errorText">
-                                            {{ fieldErrors.description }}
-                                        </span>
-                                    </div>
-                                </div>
-                            </div>
+                            <SfxonEditorFormTextarea
+                                field="description"
+                                :fieldError="fieldErrors.invoiceNumber"
+                                id="description"
+                                @input="clearFieldError('description')"
+                                :label="t('sfxonitam', 'Description') + ':'"
+                                v-model="description"
+                            />
                         </div>
                     </div>
 
@@ -726,12 +718,12 @@ onMounted(async () => {
 
                             <SfxonEditorFormInput
                                 field="invoiceNumber"
+                                :fieldError="fieldErrors.invoiceNumber"
                                 id="invoiceNumber"
-                                v-model="invoiceNumber"
+                                @input="clearFieldError('invoiceNumber')"
                                 :label="t('sfxonitam', 'Invoice Number') + ':'"
                                 type="text"
-                                @input="clearFieldError('invoiceNumber')"
-                                :fieldError="fieldErrors.invoiceNumber"
+                                v-model="invoiceNumber"
                             />
 
                             <!-- Purchase Date -->
@@ -935,24 +927,5 @@ onMounted(async () => {
 .sfxonFormColumnDescription {
     min-height: 200px;
     width: 100%;
-}
-
-.sfxonDescriptionInput {
-    height: 100%!important;
-}
-
-.sfxonDescriptionInput :global(.textarea__main-wrapper) {
-    height: 100%!important;
-}
-
-.sfxonDescriptionInput :global(textarea) {
-    height: 100%!important;
-    margin-top: 0!important;
-    padding-top: 1.6rem!important;
-    width: 100%!important;
-}
-
-.sfxonDescriptionInput :global(.textarea__label) {
-    inset-block-start: 6px!important;
 }
 </style>

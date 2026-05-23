@@ -164,3 +164,29 @@
 .dateRow :global(.native-datetime-picker) {
     flex-grow: 1;
 }
+
+/* Textarea */
+.sfxonFormColumnRowDescription,
+.sfxonFormColumnInputDescription {
+    height: 100%;
+}
+
+.sfxonDescriptionInput {
+    height: 100%!important;
+    margin-top: 0!important;
+}
+
+.sfxonDescriptionInput :global(.textarea__main-wrapper) {
+    height: 100%!important;
+}
+
+.sfxonDescriptionInput :global(textarea) {
+    height: 100%!important;
+    margin-top: 0!important;
+    padding-top: 1.6rem!important;
+    width: 100%!important;
+}
+
+.sfxonDescriptionInput :global(.textarea__label) {
+    inset-block-start: 6px!important;
+}
