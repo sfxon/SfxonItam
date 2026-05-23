@@ -1,15 +1,22 @@
-# IT Asset Management
+# IT Asset Management (ITAM)
 
-ITAM (**IT Asset Management**) ist eine Nextcloud Erweiterung zur **Verwaltung von Hardwaregeräten** und **Verwaltung von Softwarelizenzen**.
-Das Programm richtet sich an **KMU** (kleine und mittelständische Unternehmen) sowie Privatpersonen.
+Manage your hardware and software licenses - self-hosted, open source, and fully under your control. No vendor lock-in, no third-party logins.
 
-* Geräte-Verwaltung
-* Lizenz-Verwaltung (Software-Lizenzen)
-* Open Source + kostenfreie Nutzung (MIT-Lizenz)
-* Release im Nextcloud Appstore zur einfacheren Installation ist geplant.
-* All your data now belongs to you.
+ITAM is a Nextcloud extension designed for **SMEs** and self-hosters who need a lightweight,
+GDPR-compliant and privacy-first alternative to expensive enterprise asset management tools.
 
-Light Mode:
+## Features
+
+* 🖥️ **Device management** - Track and organize your hardware assets.
+* 🔑 **License management** - Keep control of your software licenses.
+* 🔒 **Data Sovereignty** - Your data stays on your infrastructure.
+* 📦 **MIT Licensed** - Free to use, forever.
+* 🌍 Made in Germany - **built for the world.**
+
+
+## Impressions
+
+Device-List View in Light Mode:
 
 <img alt="IT-Asset-Management - Device List View" src="https://github.com/user-attachments/assets/7776981c-8e5f-403b-8719-463a43a21843" /><br><br>
 
@@ -93,8 +100,10 @@ Editor:
     - Take over new styling for detail page to all other editor pages..
         - ✅ Build a editor.module.css and import it on every editor page. That way, I can use general stylings for that pages.
         - ✅ Create SfxonEditorFormInput component, to wrap common layout and logic for repeating fields. This improves code quality.
-        - Make fields that share common patternsSfxonEditorFormInput-Fields on the DeviceEditor view.
-        - Implement style on other editor pages.
+        - ✅ Create SfxonEditorFormEntitySelect component.
+        - Create SfxonEditorFormTextarea component.
+        - Create SfxonEditorFormDate component.
+        - Implement style and new fields on all the other editor views.
 
     - Add a results per page dropdown/input, so we can also show 100 results or 1000 results on one page. Load data paged then too - meaning to not overload the server - so the loading should be junked to junks of size 20 (configurable in code).
 
@@ -145,7 +154,10 @@ Editor:
 
 * DeviceEditor: Add the same popup to show image, qrcode and barcode on the detail page. It should open, when one of the elements is clicked.
 
-* Start an devlog instead of twitch streams - because it might be more of an interest. (For now I choose bluesky and short messages.) Bsky: https://bsky.app/profile/eska1000.bsky.social
+* ✅ Start an devlog instead of twitch streams - because it might be more of an interest. (For now I choose bluesky and short messages.) Bsky: https://bsky.app/profile/eska1000.bsky.social
+
+* Release in Nextcloud Appstore.
+
 
 ## Aktuelle Funktionen
 
