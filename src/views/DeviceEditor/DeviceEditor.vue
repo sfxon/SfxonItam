@@ -25,6 +25,7 @@ import { fetchAllMerchants } from '@/services/MerchantService'
 import { fetchAllPositions } from '@/services/PositionService'
 import { fetchAllQuantityUnits } from '@/services/QuantityUnitService'
 import SfxonBarcode from '@/components/SfxonBarcode'
+import SfxonEditorFormEntitySelect from '@/components/SfxonEditorFormEntitySelect'
 import SfxonEditorFormInput from '@/components/SfxonEditorFormInput'
 import SfxonEditorStyles from '@/components/SfxonEditor/SfxonEditor.module.css'
 import SfxonItamHeader from '@/components/SfxonItamHeader'
@@ -539,257 +540,113 @@ onMounted(async () => {
                                 field="name"
                                 id="name"
                                 v-model="name"
-                                :label="t('sfxonitam', 'Device Identifier')"
+                                :label="t('sfxonitam', 'Device Identifier') + ':'"
                                 type="text"
                                 :placeholder="t('sfxonitam', 'e.g. JP001')"
                                 @input="clearFieldError('name')"
                                 :fieldError="fieldErrors.name"
                             />
 
-                            <!-- name
-                            <div :class="SfxonEditorStyles.sfxonFormColumnRow">
-                                <div :class="SfxonEditorStyles.sfxonFormColumnLabel">
-                                    <label for="name" :class="SfxonEditorStyles.label">
-                                        {{ t('sfxonitam', 'Device Identifier') }}:
-                                    </label>
-                                </div>
-                                <div :class="SfxonEditorStyles.sfxonFormColumnInput">
-                                    <div :class="SfxonEditorStyles.field">
-                                        <NcTextField
-                                            id="name"
-                                            v-model="name"
-                                            :label-outside="true"
-                                            :placeholder="t('sfxonitam', 'e.g. JP001')"
-                                            :class="fieldErrors.name ? SfxonEditorStyles.fieldError : ''"
-                                            @input="clearFieldError('name')"
-                                        />
-                                        <span v-if="fieldErrors.name" :class="SfxonEditorStyles.errorText">
-                                            {{ fieldErrors.name }}
-                                        </span>
-                                    </div>
-                                </div>
-                            </div>
-                            -->
+                            <SfxonEditorFormInput
+                                field="quantity"
+                                id="quantity"
+                                v-model="quantity"
+                                :label="t('sfxonitam', 'Quantity') + ':'"
+                                type="number"
+                                @input="clearFieldError('quantity')"
+                                :fieldError="fieldErrors.quantity"
+                            />
 
-                            <!-- Quantity -->
-                            <div :class="SfxonEditorStyles.sfxonFormColumnRow">
-                                <div :class="SfxonEditorStyles.sfxonFormColumnLabel">
-                                    <label for="quantity" :class="SfxonEditorStyles.label">
-                                        {{ t('sfxonitam', 'Quantity') }}:
-                                    </label>
-                                </div>
-                                <div :class="SfxonEditorStyles.sfxonFormColumnInput">
-                                    <!-- quantity -->
-                                    <div :class="SfxonEditorStyles.field">
-                                        <NcTextField
-                                            id="quantity"
-                                            v-model="quantity"
-                                            :label-outside="true"
-                                            :class="fieldErrors.quantity ? SfxonEditorStyles.fieldError : ''"
-                                            @input="clearFieldError('quantity')"
-                                            type="number"
-                                        />
-                                        <span v-if="fieldErrors.quantity" :class="SfxonEditorStyles.errorText">
-                                            {{ fieldErrors.quantity }}
-                                        </span>
-                                    </div>
-                                </div>
-                            </div>
+                            <SfxonEditorFormEntitySelect
+                                field="quantityUnitId"
+                                :fieldError="fieldErrors.quantityUnitId"
+                                id="quantity-unit-select"
+                                @input="clearFieldError('quantityUnitId')"
+                                :label="t('sfxonitam', 'Quantity Unit') + ':'"
+                                :loading="quantityUnitsLoading"
+                                :options="quantityUnits"
+                                trackBy="id"
+                                v-model="selectedQuantityUnit"
+                            />
 
-                            <!-- Quantity-Unit -->
-                            <div :class="SfxonEditorStyles.sfxonFormColumnRow">
-                                <div :class="SfxonEditorStyles.sfxonFormColumnLabel">
-                                    <label for="quantity-unit-select" :class="SfxonEditorStyles.label">
-                                        {{ t('sfxonitam', 'Quantity Unit') }}:
-                                    </label>
-                                </div>
-                                <div :class="SfxonEditorStyles.sfxonFormColumnInput">
-                                    <div :class="SfxonEditorStyles.field">
-                                        <NcSelect
-                                            id="quantity-unit-select"
-                                            v-model="selectedQuantityUnit"
-                                            :options="quantityUnits"
-                                            :loading="quantityUnitsLoading"
-                                            track-by="id"
-                                            :class="fieldErrors.quantityUnitId ? SfxonEditorStyles.fieldError : ''"
-                                            @input="clearFieldError('quantityUnitId')"
-                                        />
-                                        <span v-if="fieldErrors.quantityUnitId" :class="SfxonEditorStyles.errorText">
-                                            {{ fieldErrors.quantityUnitId }}
-                                        </span>
-                                    </div>
-                                </div>
-                            </div>
+                            <SfxonEditorFormEntitySelect
+                                field="userSelect"
+                                :fieldError="fieldErrors.itamUserId"
+                                id="user-select"
+                                @input="clearFieldError('itamUserId')"
+                                :label="t('sfxonitam', 'User') + ':'"
+                                :loading="itamUsersLoading"
+                                :options="itamUsers"
+                                trackBy="id"
+                                v-model="selectedItamUser"
+                            />
 
-                            <!-- ItamUser -->
-                            <div :class="SfxonEditorStyles.sfxonFormColumnRow">
-                                <div :class="SfxonEditorStyles.sfxonFormColumnLabel">
-                                    <label for="user-select" :class="SfxonEditorStyles.label">
-                                        {{ t('sfxonitam', 'User') }}:
-                                    </label>
-                                </div>
-                                <div :class="SfxonEditorStyles.sfxonFormColumnInput">
-                                    <div :class="SfxonEditorStyles.field">
-                                        <NcSelect
-                                            id="user-select"
-                                            v-model="selectedItamUser"
-                                            :options="itamUsers"
-                                            :loading="itamUsersLoading"
-                                            track-by="id"
-                                            :class="fieldErrors.itamUserId ? SfxonEditorStyles.fieldError : ''"
-                                            @input="clearFieldError('itamUserId')"
-                                        />
-                                        <span v-if="fieldErrors.itamUserId" :class="SfxonEditorStyles.errorText">
-                                            {{ fieldErrors.itamUserId }}
-                                        </span>
-                                    </div>
-                                </div>
-                            </div>
+                            <SfxonEditorFormEntitySelect
+                                field="positionSelect"
+                                :fieldError="fieldErrors.positionId"
+                                id="position-select"
+                                @input="clearFieldError('positionId')"
+                                :label="t('sfxonitam', 'Position') + ':'"
+                                :loading="positionsLoading"
+                                :options="positions"
+                                trackBy="id"
+                                v-model="selectedPosition"
+                            />
 
-                            <!-- Position -->
-                            <div :class="SfxonEditorStyles.sfxonFormColumnRow">
-                                <div :class="SfxonEditorStyles.sfxonFormColumnLabel">
-                                    <label for="position-select" :class="SfxonEditorStyles.label">
-                                        {{ t('sfxonitam', 'Position') }}:
-                                    </label>
-                                </div>
-                                <div :class="SfxonEditorStyles.sfxonFormColumnInput">
-                                    <div :class="SfxonEditorStyles.field">
-                                        <NcSelect
-                                            id="position-select"
-                                            v-model="selectedPosition"
-                                            :options="positions"
-                                            :loading="positionsLoading"
-                                            track-by="id"
-                                            :class="fieldErrors.positionId ? SfxonEditorStyles.fieldError : ''"
-                                            @input="clearFieldError('positionId')"
-                                        />
-                                        <span v-if="fieldErrors.positionId" :class="SfxonEditorStyles.errorText">
-                                            {{ fieldErrors.positionId }}
-                                        </span>
-                                    </div>
-                                </div>
-                            </div>
+                            <SfxonEditorFormInput
+                                field="serialNumber"
+                                id="serialNumber"
+                                v-model="serialNumber"
+                                :label="t('sfxonitam', 'Serial Number') + ':'"
+                                type="text"
+                                @input="clearFieldError('serialNumber')"
+                                :fieldError="fieldErrors.serialNumber"
+                            />
 
-                            <!-- serialNumber -->
-                             <div :class="SfxonEditorStyles.sfxonFormColumnRow">
-                                <div :class="SfxonEditorStyles.sfxonFormColumnLabel">
-                                    <label for="serialNumber" :class="SfxonEditorStyles.label">
-                                        {{ t('sfxonitam', 'Serial Number') }}:
-                                    </label>
-                                </div>
-                                <div :class="SfxonEditorStyles.sfxonFormColumnInput">
-                                    <div :class="SfxonEditorStyles.field">
-                                        <NcTextField
-                                            id="serialNumber"
-                                            v-model="serialNumber"
-                                            :label-outside="true"
-                                            :class="fieldErrors.serialNumber ? SfxonEditorStyles.fieldError : ''"
-                                            @input="clearFieldError('serialNumber')"
-                                        />
-                                        <span v-if="fieldErrors.serialNumber" :class="SfxonEditorStyles.errorText">
-                                            {{ fieldErrors.serialNumber }}
-                                        </span>
-                                    </div>
-                                </div>
-                            </div>
+                            <SfxonEditorFormInput
+                                field="serialNumber2"
+                                id="serialNumber2"
+                                v-model="serialNumber2"
+                                :label="t('sfxonitam', 'Serial Number 2') + ':'"
+                                type="text"
+                                @input="clearFieldError('serialNumber2')"
+                                :fieldError="fieldErrors.serialNumber2"
+                            />
 
-                            <!-- serialNumber2 -->
-                            <div :class="SfxonEditorStyles.sfxonFormColumnRow">
-                                <div :class="SfxonEditorStyles.sfxonFormColumnLabel">
-                                    <label for="serialNumber2" :class="SfxonEditorStyles.label">
-                                        {{ t('sfxonitam', 'Serial Number 2') }}:
-                                    </label>
-                                </div>
-                                <div :class="SfxonEditorStyles.sfxonFormColumnInput">
-                                    <div :class="SfxonEditorStyles.field">
-                                        <NcTextField
-                                            id="serialNumber2"
-                                            v-model="serialNumber2"
-                                            :label-outside="true"
-                                            :class="fieldErrors.serialNumber2 ? SfxonEditorStyles.fieldError : ''"
-                                            @input="clearFieldError('serialNumber2')"
-                                        />
-                                        <span v-if="fieldErrors.serialNumber2" :class="SfxonEditorStyles.errorText">
-                                            {{ fieldErrors.serialNumber2 }}
-                                        </span>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <!-- assetNumber -->
-                            <div :class="SfxonEditorStyles.sfxonFormColumnRow">
-                                <div :class="SfxonEditorStyles.sfxonFormColumnLabel">
-                                    <label for="assetNumber" :class="SfxonEditorStyles.label">
-                                        {{ t('sfxonitam', 'Asset Number') }}:
-                                    </label>
-                                </div>
-                                <div :class="SfxonEditorStyles.sfxonFormColumnInput">
-                                    <div :class="SfxonEditorStyles.field">
-                                        <NcTextField
-                                            id="assetNumber"
-                                            v-model="assetNumber"
-                                            :label-outside="true"
-                                            :class="fieldErrors.assetNumber ? SfxonEditorStyles.fieldError : ''"
-                                            @input="clearFieldError('assetNumber')"
-                                        />
-                                        <span v-if="fieldErrors.assetNumber" :class="SfxonEditorStyles.errorText">
-                                            {{ fieldErrors.assetNumber }}
-                                        </span>
-                                    </div>
-                                </div>
-                            </div>
+                            <SfxonEditorFormInput
+                                field="assetNumber"
+                                id="assetNumber"
+                                v-model="assetNumber"
+                                :label="t('sfxonitam', 'Asset Number') + ':'"
+                                type="text"
+                                @input="clearFieldError('assetNumber')"
+                                :fieldError="fieldErrors.assetNumber"
+                            />
                         </div>
                         <div :class="[SfxonEditorStyles.sfxonFormColumn, $style.sfxonFormColumnGeneralRight]">
-                            <!-- Device Status -->
-                            <div :class="SfxonEditorStyles.sfxonFormColumnRow">
-                                <div :class="SfxonEditorStyles.sfxonFormColumnLabel">
-                                    <label for="device-status-select" :class="SfxonEditorStyles.label">
-                                        {{ t('sfxonitam', 'Device Status') }}:
-                                    </label>
-                                </div>
-                                <div :class="SfxonEditorStyles.sfxonFormColumnInput">
-                                    <div :class="SfxonEditorStyles.field">
-                                        <NcSelect
-                                            id="device-status-select"
-                                            v-model="selectedDeviceStatus"
-                                            :options="deviceStatis"
-                                            :loading="deviceStatisLoading"
-                                            track-by="id"
-                                            :class="fieldErrors.deviceStatusId ? SfxonEditorStyles.fieldError : ''"
-                                            @input="clearFieldError('deviceStatusId')"
-                                        />
-                                        <span v-if="fieldErrors.deviceStatusId" :class="SfxonEditorStyles.errorText">
-                                            {{ fieldErrors.deviceStatusId }}
-                                        </span>
-                                    </div>
-                                </div>
-                            </div>
+                            <SfxonEditorFormEntitySelect
+                                field="deviceStatusSelect"
+                                :fieldError="fieldErrors.deviceStatusId"
+                                id="device-status-select"
+                                @input="clearFieldError('deviceStatusId')"
+                                :label="t('sfxonitam', 'Device Status') + ':'"
+                                :loading="deviceStatisLoading"
+                                :options="deviceStatis"
+                                trackBy="id"
+                                v-model="selectedDeviceStatus"
+                            />
 
-                            <!-- Device Type -->
-                            <div :class="SfxonEditorStyles.sfxonFormColumnRow">
-                                <div :class="SfxonEditorStyles.sfxonFormColumnLabel">
-                                    <label for="device-type-select" :class="SfxonEditorStyles.label">
-                                        {{ t('sfxonitam', 'Device Type') }}:
-                                    </label>
-                                </div>
-                                <div :class="SfxonEditorStyles.sfxonFormColumnInput">
-                                    <div :class="SfxonEditorStyles.field">
-                                        <NcSelect
-                                            id="device-type-select"
-                                            v-model="selectedDeviceType"
-                                            :options="deviceTypes"
-                                            :loading="deviceTypesLoading"
-                                            track-by="id"
-                                            :class="fieldErrors.deviceTypeId ? SfxonEditorStyles.fieldError : ''"
-                                            @input="clearFieldError('deviceTypeId')"
-                                        />
-                                        <span v-if="fieldErrors.deviceTypeId" :class="SfxonEditorStyles.errorText">
-                                            {{ fieldErrors.deviceTypeId }}
-                                        </span>
-                                    </div>
-                                </div>
-                            </div>
+                            <SfxonEditorFormEntitySelect
+                                field="deviceTypeSelect"
+                                :fieldError="fieldErrors.deviceTypeId"
+                                id="device-type-select"
+                                @input="clearFieldError('deviceTypeId')"
+                                :label="t('sfxonitam', 'Device Type') + ':'"
+                                :loading="deviceTypesLoading"
+                                :options="deviceTypes"
+                                trackBy="id"
+                                v-model="selectedDeviceType"
+                            />
                         </div>
                     </div>
                     <div :class="SfxonEditorStyles.sfxonFormSection">
@@ -855,53 +712,27 @@ onMounted(async () => {
                     <!-- Purchase Information -->
                     <div :class="SfxonEditorStyles.sfxonFormSection">
                         <div :class="SfxonEditorStyles.sfxonFormColumn">
-                            <!-- Merchant -->
-                            <div :class="SfxonEditorStyles.sfxonFormColumnRow">
-                                <div :class="SfxonEditorStyles.sfxonFormColumnLabel">
-                                    <label for="merchant-select" :class="SfxonEditorStyles.label">
-                                        {{ t('sfxonitam', 'Merchant') }}:
-                                    </label>
-                                </div>
-                                <div :class="SfxonEditorStyles.sfxonFormColumnInput">
-                                    <div :class="SfxonEditorStyles.field">
-                                        <NcSelect
-                                            id="merchant-select"
-                                            v-model="selectedMerchant"
-                                            :options="merchants"
-                                            :loading="merchantsLoading"
-                                            track-by="id"
-                                            :class="fieldErrors.merchantId ? SfxonEditorStyles.fieldError : ''"
-                                            @input="clearFieldError('merchantId')"
-                                        />
-                                        <span v-if="fieldErrors.merchantId" :class="SfxonEditorStyles.errorText">
-                                            {{ fieldErrors.merchantId }}
-                                        </span>
-                                    </div>
-                                </div>
-                            </div>
+                            <SfxonEditorFormEntitySelect
+                                field="merchantSelect"
+                                :fieldError="fieldErrors.merchantId"
+                                id="device-type-select"
+                                @input="clearFieldError('merchantId')"
+                                :label="t('sfxonitam', 'Merchant') + ':'"
+                                :loading="merchantsLoading"
+                                :options="merchants"
+                                trackBy="id"
+                                v-model="selectedMerchant"
+                            />
 
-                            <!-- Invoice Number -->
-                            <div :class="SfxonEditorStyles.sfxonFormColumnRow">
-                                <div :class="SfxonEditorStyles.sfxonFormColumnLabel">
-                                    <label for="invoiceNumber" :class="SfxonEditorStyles.label">
-                                        {{ t('sfxonitam', 'Invoice Number') }}:
-                                    </label>
-                                </div>
-                                <div :class="SfxonEditorStyles.sfxonFormColumnInput">
-                                    <div :class="SfxonEditorStyles.field">
-                                        <NcTextField
-                                            id="invoiceNumber"
-                                            v-model="invoiceNumber"
-                                            :label-outside="true"
-                                            :class="fieldErrors.invoiceNumber ? SfxonEditorStyles.fieldError : ''"
-                                            @input="clearFieldError('invoiceNumber')"
-                                        />
-                                        <span v-if="fieldErrors.invoiceNumber" :class="SfxonEditorStyles.errorText">
-                                            {{ fieldErrors.invoiceNumber }}
-                                        </span>
-                                    </div>
-                                </div>
-                            </div>
+                            <SfxonEditorFormInput
+                                field="invoiceNumber"
+                                id="invoiceNumber"
+                                v-model="invoiceNumber"
+                                :label="t('sfxonitam', 'Invoice Number') + ':'"
+                                type="text"
+                                @input="clearFieldError('invoiceNumber')"
+                                :fieldError="fieldErrors.invoiceNumber"
+                            />
 
                             <!-- Purchase Date -->
                             <div :class="SfxonEditorStyles.sfxonFormColumnRow">

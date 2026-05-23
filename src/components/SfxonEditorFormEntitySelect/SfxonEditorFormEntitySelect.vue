@@ -1,6 +1,6 @@
 <script setup lang="ts">
 
-import NcTextField from '@nextcloud/vue/components/NcTextField'
+import NcSelect from '@nextcloud/vue/components/NcSelect'
 import SfxonEditorStyles from '@/components/SfxonEditor/SfxonEditor.module.css'
 
 const props = defineProps<{
@@ -8,23 +8,20 @@ const props = defineProps<{
     fieldError: string,
     id: string,
     label: string,
-    modelValue: string,
-    placeholder: string,
-    type: "number" | "text" | "password" | "email" | "tel" | "url" | "search" | undefined,
+    loading: any,
+    modelValue: Record<string, unknown> | null,  // war: string
+    options: [],
+    placeholder?: string,
+    trackBy: string
 }>()
 
 const emit = defineEmits<{
-  (e: 'update:modelValue', value: string): void
+  (e: 'update:modelValue', value: Record<string, unknown> | null): void
   (e: 'input', field: string): void
 }>()
 
-function onInput(value: string | Event) {
-    const v =
-        typeof value === 'string'
-            ? value
-            : (value.target as HTMLInputElement).value
-
-    emit('update:modelValue', v)
+function onInput(value: Record<string, unknown> | null) {
+    emit('update:modelValue', value)
     emit('input', props.field)
 }
 
@@ -36,14 +33,14 @@ function onInput(value: string | Event) {
         </div>
         <div :class="SfxonEditorStyles.sfxonFormColumnInput">
             <div :class="SfxonEditorStyles.field">
-                <NcTextField
+                <NcSelect
                     :id="id"
                     :model-value="modelValue"
-                    :label-outside="true"
-                    :placeholder="placeholder"
+                    :options="options"
+                    :loading="loading"
+                    :track-by="trackBy"
                     :class="fieldError ? SfxonEditorStyles.fieldError : ''"
                     @update:modelValue="onInput"
-                    :type="type"
                 />
                 <span v-if="fieldError" :class="SfxonEditorStyles.errorText">
                     {{ fieldError }}
