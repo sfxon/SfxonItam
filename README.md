@@ -1,17 +1,19 @@
-# IT Asset Management (ITAM)
+# 🖥️ IT Asset Management (ITAM)
 
 Manage your hardware and software licenses - self-hosted, open source, and fully under your control. No vendor lock-in, no third-party logins.
 
 ITAM is a Nextcloud extension designed for **SMEs** and self-hosters who need a lightweight,
 GDPR-compliant and privacy-first alternative to expensive enterprise asset management tools.
 
-## Features
+## About ITAM
 
 * 🖥️ **Device management** - Track and organize your hardware assets.
 * 🔑 **License management** - Keep control of your software licenses.
 * 🔒 **Data Sovereignty** - Your data stays on your infrastructure.
 * 📦 **MIT Licensed** - Free to use, forever.
 * 🌍 Made in Germany - **built for the world.**
+
+Follow the developer for news and updates: https://bsky.app/profile/eska1000.bsky.social
 
 
 ## Impressions
@@ -154,9 +156,29 @@ Editor:
 
 * DeviceEditor: Add the same popup to show image, qrcode and barcode on the detail page. It should open, when one of the elements is clicked.
 
-* ✅ Start an devlog instead of twitch streams - because it might be more of an interest. (For now I choose bluesky and short messages.) Bsky: https://bsky.app/profile/eska1000.bsky.social
+* ✅ Start a devlog instead of twitch streams - because it might be more of an interest. For now I choose bluesky and short messages. Bsky: https://bsky.app/profile/eska1000.bsky.social
+
+* Create website for the project (oishii-desu.de/itam)
+
+* Create developer documentation sites for the project: oishii-desu.de/itam/docs.
+
+* Cleanup Readme.md
+    - Add "introduction" and "first steps" section, link for further usage info to project website.
+    - Add videos that show, how the plugin should be used.
+    - Bring roadmap to project website.
+    - Add information on how to contribute and how to make feature requests. (Github issues please).
+    - Bring information about setting up dev environment to developer documentation.
+    - Bring information about alle the custom components to developer documentation /oishii-desu.de/itam/docs/vue-components
+    - Bring description of data-structure to github.
 
 * Release in Nextcloud Appstore.
+
+* Add install documentation to Readme.md, when plugin is released in the App-Store.
+
+* Add video for installation instructions.
+
+* Add videos for developer and contributor instructions and link them in readme.md and website.
+
 
 
 ## Aktuelle Funktionen
