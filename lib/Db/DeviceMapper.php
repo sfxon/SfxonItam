@@ -43,7 +43,7 @@ class DeviceMapper extends QBMapper {
         return true;
     }
 
-    public function findById(int $id, array $include): array {
+    public function findById(int $id, ?array $include = null ): array {
         $qb = $this->db->getQueryBuilder();
         $qb->select('*')
             ->from($this->getTableName())
@@ -52,7 +52,7 @@ class DeviceMapper extends QBMapper {
 
         $relations = [];
 
-        if (!empty($include)) {
+        if (null !== $include && !empty($include)) {
             $relations = $this->loadRelations([$mainData], $include);
         }
 

@@ -157,7 +157,7 @@ class DeviceController extends Controller {
     public function update(int $id): DataResponse {
         // Gerät laden – 404 wenn nicht vorhanden
         try {
-            $device = $this->deviceMapper->findById($id);
+            $device = $this->deviceMapper->findById($id)['mainData'];
         } catch (\OCP\AppFramework\Db\DoesNotExistException) {
             return new DataResponse(
                 ['status' => 'error', 'message' => 'Device not found'],

@@ -99,12 +99,31 @@ Editor:
             - ✅ Geräte-Editor Darstellung optimieren. Mehrspaltig, wo möglich. Bild und QR-Code nach rechts. Inspiration bei Xanario holen - die haben imho den besten Editor für sowas gebaut (Übersichtlichkeit): https://www.xanario.de/naehere-informationen-software/ct-314.html.
     - ✅ Make Device Editor Page more responsive ready. It should be easy to use on mobile devices, too.
 
+    - Refactor the handling of related entities.
+        - ✅ Make it possible, to give a list of related entities to the api endpoint.
+        - ✅ Search given related entities by an id mapping, but after the main entity has been loaded.
+        - ✅ Make it usable for lists of data from the beginning. Group foreign entities' id's and search them in a single query with "IN".
+        - Refactor the editor view(s), to intially load much faster.
+        - When opening dropdowns, the dropdown should load additional entries for selection. Also the dropdown should update contents by "search" -> so the results update, when you limit the shown data.
+
+    - Some of the boxes have different border radius. Fix that.
+
+    - Add a button [+] to the entity dropdowns.
+        - Open a popup, when the + button is clicked with minimum input.
+        - Let the user input values.
+    
+    - Add a goto link beside the entity dropdowns, so one can directly go to the entity detail page to edit it.
+
+    - Gestaltung von Erfolgs- und Fehlerleiste anpassen.
+    - Button zu Erfolgs + Fehlerleiste hinufügen (Dismiss/Schließen)
+
     - Take over new styling for detail page to all other editor pages..
         - ✅ Build a editor.module.css and import it on every editor page. That way, I can use general stylings for that pages.
         - ✅ Create SfxonEditorFormInput component, to wrap common layout and logic for repeating fields. This improves code quality.
         - ✅ Create SfxonEditorFormEntitySelect component.
-        - Create SfxonEditorFormTextarea component.
-        - Create SfxonEditorFormDate component.
+        - ✅ Create SfxonEditorFormTextarea component.
+        - ✅ Create SfxonEditorFormDate component.
+    
         - Implement style and new fields on all the other editor views.
 
     - Add a results per page dropdown/input, so we can also show 100 results or 1000 results on one page. Load data paged then too - meaning to not overload the server - so the loading should be junked to junks of size 20 (configurable in code).

@@ -104,11 +104,48 @@ const selectedImageLabel = computed(() => {
     return ''
 })
 
+function addEntityData(entity, dataObject, identifierField, valueFields = null) {
+    if('undefined' === typeof dataObject) {
+        return
+    }
+
+    let id = dataObject[identifierField];
+    let label = '';
+    
+    if(null !== valueFields) {
+        if(valueFields.technique === 'concat') {
+            for(let fieldName of valueFields.fields) {
+                if(label.length > 0) {
+                    label += valueFields.separator;
+                }
+
+                label += dataObject[fieldName];
+            }
+        } else {
+            label = dataObject.name
+        } 
+    } else {
+        label = dataObject.name
+    }
+
+    entity.value.push({id: id, label: label})
+}
+
 async function loadDevice(id: number): Promise<void> {
     deviceLoading.value = true
 
     try {
         const data = await fetchDevice(id)
+
+        /* Setup dropdowns */
+        addEntityData(deviceStatis, Object.values(data.relations.deviceStatus)[0], 'id')
+        addEntityData(deviceTypes, Object.values(data.relations.deviceType)[0], 'id')
+        addEntityData(itamUsers, Object.values(data.relations.itamUser)[0], 'id', { fields: ['firstname', 'lastname'], technique: 'concat', separator: ' '})
+        addEntityData(merchants, Object.values(data.relations.merchant)[0], 'id')
+        addEntityData(positions, Object.values(data.relations.position)[0], 'id')
+        addEntityData(quantityUnits, Object.values(data.relations.quantityUnit)[0], 'id')
+        
+        /* Load main data. */
         const d = data.mainData;
 
         assetNumber.value = d.assetNumber ?? ''
@@ -472,13 +509,6 @@ async function uploadImageIfNeeded(): Promise<void> {
 }
 
 onMounted(async () => {
-    await loadDeviceStatis()
-    await loadDeviceTypes()
-    await loadItamUsers()
-    await loadMerchants()
-    await loadPositions()
-    await loadQuantityUnits()
-
     if (deviceId.value) {
         await loadDevice(deviceId.value)
     }
