@@ -42,7 +42,20 @@ export async function deleteDevice(id: number): Promise<void> {
 }
 
 export async function fetchDevice(id: number): Promise<Device> {
-    const { data } = await axios.get(generateUrl(`/apps/sfxonitam/device/${id}`))
+    const { data } = await axios.post(
+        generateUrl(`/apps/sfxonitam/device/${id}`),
+        {
+            include: {
+                deviceStatus: {},
+                deviceType: {},
+                itamUser: { 'fields': ['id', 'firstname', 'lastname'] },
+                merchant: {},
+                position: {},
+                quantityUnit: {}
+            }
+        }
+    )
+
     return data
 }
 

@@ -108,7 +108,8 @@ async function loadDevice(id: number): Promise<void> {
     deviceLoading.value = true
 
     try {
-        const d = await fetchDevice(id)
+        const data = await fetchDevice(id)
+        const d = data.mainData;
 
         assetNumber.value = d.assetNumber ?? ''
         description.value = d.description ?? ''
@@ -669,7 +670,7 @@ onMounted(async () => {
                         <div :class="$style.sfxonFormColumnDescription">
                             <SfxonEditorFormTextarea
                                 field="description"
-                                :fieldError="fieldErrors.invoiceNumber"
+                                :fieldError="fieldErrors.description"
                                 id="description"
                                 @input="clearFieldError('description')"
                                 :label="t('sfxonitam', 'Description') + ':'"

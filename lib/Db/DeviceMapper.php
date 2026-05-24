@@ -43,13 +43,25 @@ class DeviceMapper extends QBMapper {
         return true;
     }
 
-    public function findById(int $id): Device {
+    public function findById(int $id, array $include): array {
         $qb = $this->db->getQueryBuilder();
         $qb->select('*')
             ->from($this->getTableName())
             ->where($qb->expr()->eq('id', $qb->createNamedParameter($id, IQueryBuilder::PARAM_INT)));
+        $mainData = $this->findEntity($qb);
 
-        return $this->findEntity($qb);
+        $relations = [];
+
+        if (!empty($include)) {
+            $relations = $this->loadRelations([$mainData], $include);
+        }
+
+        $result = [
+            'mainData' => $mainData,
+            'relations' => $relations,
+        ];
+
+        return $result;
     }
 
     /** @return Device[] */
@@ -77,7 +89,8 @@ class DeviceMapper extends QBMapper {
             'serialNumber2',
         ];
         $col = in_array($orderBy, $allowedSortColumns, true) ? 'd.' . $orderBy : 'd.name';
-        $col = strtolower(preg_replace('/[A-Z]/', '_$0', $col)); // CamelCase to SnakeCase umwandeln.
+        $col = $this->camelToSnake($col);
+ 
         $dir = strtoupper($direction) === 'DESC' ? 'DESC' : 'ASC';
 
         $qb = $this->db->getQueryBuilder();
@@ -271,5 +284,71 @@ class DeviceMapper extends QBMapper {
                 $qb->expr()->lte($column, $qb->createNamedParameter($to, IQueryBuilder::PARAM_STR))
             );
         }
+    }
+
+    private function camelToSnake($input) {
+        return strtolower(preg_replace('/[A-Z]/', '_$0', $input));
+    }
+
+    private function loadRelations(array $devices, array $include): array {
+        $relations = [];
+    
+        foreach ($include as $relationName => $relationData) {
+            $fields = ['id', 'name'];
+
+            if(isset($relationData['fields'])) {
+                $fields = $relationData['fields'];
+            }
+
+            // Expected result, for example: deviceStatusId
+            $foreignKey = $relationName . 'Id';
+
+            // Expected result, for example: getDeviceStatusId
+            $getter = 'get' . ucfirst($foreignKey);
+
+            // Expected result, for example: sfxon_device_status
+            $table = 'sfxon_' . $this->camelToSnake($relationName);
+
+            // Get all the ids of this foreign entity, that we want to get values for.
+            $searchIdsIndexed = [];
+
+            foreach($devices as $device) {
+                if(property_exists($device, $foreignKey)) {
+                    $value = $device->{$getter}();
+                    
+                    if($value !== null) {
+                        $searchIdsIndexed[$value] = true;
+                    }
+                }
+            }
+
+            $searchIds = array_keys($searchIdsIndexed);
+
+            if (empty($searchIds)) {
+                continue;
+            }
+
+            // Fetch all data for this entries.
+            $qb = $this->db->getQueryBuilder();
+            $qb->select($fields);
+            $qb->from($table);
+            $qb->where($qb->expr()->in(
+                'id',
+                $qb->createNamedParameter($searchIds, IQueryBuilder::PARAM_INT_ARRAY)
+            ));
+
+            $result = $qb->executeQuery();
+            $indexedResult = [];
+
+            while ($row = $result->fetch()) {
+                $indexedResult[(int)$row['id']] = $row;
+            }
+
+            $result->closeCursor();
+
+            $relations[$relationName] = $indexedResult;
+        }
+
+        return $relations;
     }
 }

@@ -133,10 +133,12 @@ class DeviceController extends Controller {
 
     #[NoCSRFRequired]
     #[OpenAPI(OpenAPI::SCOPE_IGNORE)]
-    #[FrontpageRoute(verb: 'GET', url: '/device/{id}')]
+    #[FrontpageRoute(verb: 'POST', url: '/device/{id}')]
     public function show(int $id): JSONResponse {
         try {
-            $device = $this->deviceMapper->findById($id);
+            $include = $this->request->getParam('include');
+
+            $data = $this->deviceMapper->findById($id, $include);
         } catch (DoesNotExistException) {
             return new JSONResponse(
                 ['status' => 'error', 'message' => 'Device not found'],
@@ -144,7 +146,10 @@ class DeviceController extends Controller {
             );
         }
 
-        return new JSONResponse($device->jsonSerialize());
+        $data['mainData'] = $data['mainData']->jsonSerialize();
+        $data['relations'] = $data['relations'];
+
+        return new JSONResponse($data);
     }
 
     #[OpenAPI(OpenAPI::SCOPE_IGNORE)]
