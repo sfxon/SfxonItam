@@ -60,14 +60,7 @@ const savedSuccessfully = ref(false)
 
 // Ladezustände
 const deviceLoading = ref(false)
-const deviceStatisLoading = ref(false)
-const deviceTypesLoading = ref(false)
 const isSaving = ref(false)
-const itamUsersLoading = ref(false)
-// const locationsLoading = ref(false)
-const merchantsLoading = ref(false)
-const positionsLoading = ref(false)
-const quantityUnitsLoading = ref(false)
 
 // Fehlerbehandlung
 const { fieldErrors, generalError, handleApiError, clearErrors, clearFieldError } = useApiErrors()
@@ -137,9 +130,8 @@ function addEntityData(entity, dataObject, identifierField, valueFields = null) 
 }
 
 async function loadDevice(id: number): Promise<void> {
-    deviceLoading.value = true
-
     try {
+        deviceLoading.value = true
         const data = await fetchDevice(id)
 
         /* Setup dropdowns */
@@ -182,8 +174,6 @@ async function loadDevice(id: number): Promise<void> {
 }
 
 async function searchDeviceStatis(query: string, signal: AbortSignal): Promise<void> {
-    deviceStatisLoading.value = true;
-
     let filters = {
         name: [query]
     };
@@ -194,13 +184,9 @@ async function searchDeviceStatis(query: string, signal: AbortSignal): Promise<v
         id: deviceStatus.id,
         label: deviceStatus.name
     }))
-
-    deviceStatisLoading.value = false;
 }
 
 async function searchDeviceTypes(query: string, signal: AbortSignal): Promise<void> {
-    deviceTypesLoading.value = true;
-
     let filters = {
         name: [query]
     };
@@ -211,13 +197,9 @@ async function searchDeviceTypes(query: string, signal: AbortSignal): Promise<vo
         id: deviceType.id,
         label: deviceType.name
     }))
-
-    deviceTypesLoading.value = false;
 }
 
 async function searchItamUsers(query: string, signal: AbortSignal): Promise<void> {
-    itamUsersLoading.value = true;
-
     let filters = {
         firstname: [query],
         lastname: [query],
@@ -230,8 +212,6 @@ async function searchItamUsers(query: string, signal: AbortSignal): Promise<void
         id: itamUser.id,
         label: itamUser.firstname + ' ' + itamUser.lastname
     }))
-
-    itamUsersLoading.value = false;
 }
 
 /*
@@ -254,8 +234,6 @@ async function loadLocations() {
 */
 
 async function searchMerchants(query: string, signal: AbortSignal): Promise<void> {
-    merchantsLoading.value = true;
-
     let filters = {
         name: [query]
     };
@@ -266,13 +244,9 @@ async function searchMerchants(query: string, signal: AbortSignal): Promise<void
         id: merchant.id,
         label: merchant.name
     }))
-
-    merchantsLoading.value = false;
 }
 
 async function searchPositions(query: string, signal: AbortSignal): Promise<void> {
-    positionsLoading.value = true;
-
     let filters = {
         name: [query]
     };
@@ -283,13 +257,9 @@ async function searchPositions(query: string, signal: AbortSignal): Promise<void
         id: position.id,
         label: position.name
     }))
-
-    positionsLoading.value = false;
 }
 
 async function searchQuantityUnits(query: string, signal: AbortSignal): Promise<void> {
-    quantityUnitsLoading.value = true;
-
     let filters = {
         name: [query]
     };
@@ -300,8 +270,6 @@ async function searchQuantityUnits(query: string, signal: AbortSignal): Promise<
         id: quantityUnit.id,
         label: quantityUnit.name
     }))
-
-    quantityUnitsLoading.value = false;
 }
 
 function onBackButton() {
@@ -592,7 +560,6 @@ onMounted(async () => {
                                 id="quantity-unit-select"
                                 @input="clearFieldError('quantityUnitId')"
                                 :label="t('sfxonitam', 'Quantity Unit') + ':'"
-                                :loading="quantityUnitsLoading"
                                 :options="quantityUnits"
                                 :searchFn="searchQuantityUnits"
                                 trackBy="id"
@@ -605,7 +572,6 @@ onMounted(async () => {
                                 id="user-select"
                                 @input="clearFieldError('itamUserId')"
                                 :label="t('sfxonitam', 'User') + ':'"
-                                :loading="itamUsersLoading"
                                 :options="itamUsers"
                                 :searchFn="searchItamUsers"
                                 trackBy="id"
@@ -618,7 +584,6 @@ onMounted(async () => {
                                 id="position-select"
                                 @input="clearFieldError('positionId')"
                                 :label="t('sfxonitam', 'Position') + ':'"
-                                :loading="positionsLoading"
                                 :options="positions"
                                 :searchFn="searchPositions"
                                 trackBy="id"
@@ -662,7 +627,6 @@ onMounted(async () => {
                                 id="device-status-select"
                                 @input="clearFieldError('deviceStatusId')"
                                 :label="t('sfxonitam', 'Device Status') + ':'"
-                                :loading="deviceStatisLoading"
                                 :options="deviceStatis"
                                 :searchFn="searchDeviceStatis"
                                 trackBy="id"
@@ -675,7 +639,6 @@ onMounted(async () => {
                                 id="device-type-select"
                                 @input="clearFieldError('deviceTypeId')"
                                 :label="t('sfxonitam', 'Device Type') + ':'"
-                                :loading="deviceTypesLoading"
                                 :options="deviceTypes"
                                 :searchFn="searchDeviceTypes"
                                 trackBy="id"
@@ -722,7 +685,6 @@ onMounted(async () => {
                                 id="device-type-select"
                                 @input="clearFieldError('merchantId')"
                                 :label="t('sfxonitam', 'Merchant') + ':'"
-                                :loading="merchantsLoading"
                                 :options="merchants"
                                 :searchFn="searchMerchants"
                                 trackBy="id"

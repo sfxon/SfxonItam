@@ -104,9 +104,11 @@ Editor:
         - ✅ Search given related entities by an id mapping, but after the main entity has been loaded.
         - ✅ Make it usable for lists of data from the beginning. Group foreign entities' id's and search them in a single query with "IN".
         - ✅ When opening dropdowns, the dropdown should load additional entries for selection. Also the dropdown should update contents by "search" -> so the results update, when you limit the shown data.
-        - When opening the dropdown without a search term, it should load 20 entries from the db first.
-            - The one, that is currently active should stay in there, too.
-            -> This makes the workflow for every user a little bit faster.
+        - ✅ When opening the dropdown without a search term, it should load 20 entries from the db first.
+            - ✅ The one, that is currently active should stay in there, too.
+            -> ✅ This makes the workflow for every user a little bit faster.
+            -> ✅ Decided to already load on hover. This makes the transition even smoother.
+            -> ✅ There is still room for improvement, but I am at a sweet spot now.
         - Make loading of sub-sub data possible. For example the Position dropdown should also load it's locations.
             - In the frontend, the position dropdown then should put their text together with this loaded information- not already in the backend.
             -> this means: Prefix the Position with the location, as it has been before.

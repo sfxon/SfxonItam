@@ -4,12 +4,14 @@ import NcSelect from '@nextcloud/vue/components/NcSelect'
 import { ref } from 'vue'
 import SfxonEditorStyles from '@/components/SfxonEditor/SfxonEditor.module.css'
 
+const isSearching = ref(false)
+const preloaded = ref<boolean>(false)
+const hoverTimeout = ref<ReturnType<typeof setTimeout> | null>(null)
 const props = defineProps<{
     field: string,
     fieldError: string,
     id: string,
     label: string,
-    loading: any,
     modelValue: Record<string, unknown> | null,
     options: [],
     placeholder?: string,
@@ -22,16 +24,20 @@ const emit = defineEmits<{
   (e: 'input', field: string): void
 }>()
 
-function onInput(value: Record<string, unknown> | null) {
-    emit('update:modelValue', value)
-    emit('input', props.field)
+function onMouseEnter() {
+    hoverTimeout.value = setTimeout(triggerPreload, 150)
+}
+
+function onMouseLeave() {
+    if (hoverTimeout.value) clearTimeout(hoverTimeout.value)
 }
 
 // -- Async Search Handler --
-// Note: No AbortController used intentionally.
-// Debounce alone covers most cases. If race conditions
-// become an issue (slow servers, high load), add AbortController
-// pattern to searchFn + signal prop.
+// The AbortController helps to avoid problems with fast paced loads,
+// for example, when the server is slow, and the user types fast,
+// and would trigger multiple loads, this could lead to false results.
+// To avoid this completely, we dismiss a prior load, and only accept the one,
+// that reallly was the last one.
 const searchTimeout = ref<ReturnType<typeof setTimeout> | null>(null)
 const abortController = ref<AbortController | null>(null) // Aborts a previous call.
 
@@ -51,8 +57,22 @@ async function onSearch(query: string) {
 
     searchTimeout.value = setTimeout(async () => {
         abortController.value = new AbortController()
+        isSearching.value = true
         await props.searchFn!(query, abortController.value.signal)
+        isSearching.value = false
     }, 300)
+}
+
+// Prefills the select with up to 20 values.
+// Improves smootheness of the components.
+function triggerPreload() {
+    if (preloaded.value || !props.searchFn) {
+        return
+    }
+
+    preloaded.value = true
+    const ctrl = new AbortController()
+    props.searchFn!('', ctrl.signal)
 }
 
 </script>
@@ -65,10 +85,13 @@ async function onSearch(query: string) {
             <div :class="SfxonEditorStyles.field">
                 <NcSelect
                     :class="fieldError ? SfxonEditorStyles.fieldError : ''"
+                    @focusin="triggerPreload"
                     :id="id"
-                    :loading="loading"
+                    :loading="isSearching"
                     :min-input-length="2"
                     :model-value="modelValue"
+                    @mouseenter="onMouseEnter"
+                    @mouseleave="onMouseLeave"
                     :options="options"
                     v-on="searchFn ? { search: onSearch } : {}"
                     :track-by="trackBy"
