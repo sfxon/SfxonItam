@@ -13,13 +13,18 @@ import NcNoteCard from '@nextcloud/vue/components/NcNoteCard'
 import { useApiErrors } from '@/composables/useApiErrors'
 import NcIconSvgWrapper from '@nextcloud/vue/components/NcIconSvgWrapper'
 import { fetchDevice, createDevice, updateDevice } from '@/services/DeviceService'
-import { fetchAllDeviceStatis } from '@/services/DeviceStatusService'
-import { fetchAllDeviceTypes } from '@/services/DeviceTypeService'
-import { fetchAllItamUsers } from '@/services/ItamUserService'
+
+/*
 import { fetchAllLocations } from '@/services/LocationService'
-import { fetchAllMerchants } from '@/services/MerchantService'
-import { fetchAllPositions } from '@/services/PositionService'
-import { fetchAllQuantityUnits } from '@/services/QuantityUnitService'
+*/
+
+import { findDeviceStatis } from '@/services/DeviceStatusService'
+import { findDeviceTypes } from '@/services/DeviceTypeService'
+import { findItamUsers } from '@/services/ItamUserService'
+import { findMerchants } from '@/services/MerchantService'
+import { findPositions } from '@/services/PositionService'
+import { findQuantityUnits } from '@/services/QuantityUnitService'
+
 import SfxonBarcode from '@/components/SfxonBarcode'
 import SfxonEditorFormDatePicker from '@/components/SfxonEditorFormDatePicker'
 import SfxonEditorFormEntitySelect from '@/components/SfxonEditorFormEntitySelect'
@@ -59,7 +64,7 @@ const deviceStatisLoading = ref(false)
 const deviceTypesLoading = ref(false)
 const isSaving = ref(false)
 const itamUsersLoading = ref(false)
-const locationsLoading = ref(false)
+// const locationsLoading = ref(false)
 const merchantsLoading = ref(false)
 const positionsLoading = ref(false)
 const quantityUnitsLoading = ref(false)
@@ -176,57 +181,60 @@ async function loadDevice(id: number): Promise<void> {
     }
 }
 
-async function loadItamUsers() {
-    itamUsersLoading.value = true;
-
-    try {
-        const data = await fetchAllItamUsers({})
-
-        itamUsers.value = Object.values(data.itamUsers).map((itamUser: any) => ({
-            id: itamUser.id,
-            label: itamUser.firstname + ' ' + itamUser.lastname
-        }))
-    } catch(e) {
-        console.error('Fehler beim Laden der ItamUsers', e)
-    } finally {
-        itamUsersLoading.value = false
-    }
-}
-
-async function loadDeviceStatis() {
+async function searchDeviceStatis(query: string, signal: AbortSignal): Promise<void> {
     deviceStatisLoading.value = true;
 
-    try {
-        const data = await fetchAllDeviceStatis({})
+    let filters = {
+        name: [query]
+    };
 
-        deviceStatis.value = Object.values(data.deviceStatis).map((deviceStatus: any) => ({
-            id: deviceStatus.id,
-            label: deviceStatus.name
-        }))
-    } catch(e) {
-        console.error('Fehler beim Laden der Device-Stati', e)
-    } finally {
-        deviceStatisLoading.value = false
-    }
+    const data = await findDeviceStatis({ filters: filters }, signal)
+
+    deviceStatis.value = Object.values(data.mainData).map((deviceStatus: any) => ({
+        id: deviceStatus.id,
+        label: deviceStatus.name
+    }))
+
+    deviceStatisLoading.value = false;
 }
 
-async function loadDeviceTypes() {
+async function searchDeviceTypes(query: string, signal: AbortSignal): Promise<void> {
     deviceTypesLoading.value = true;
 
-    try {
-        const data = await fetchAllDeviceTypes({})
+    let filters = {
+        name: [query]
+    };
 
-        deviceTypes.value = Object.values(data.deviceTypes).map((deviceType: any) => ({
-            id: deviceType.id,
-            label: deviceType.name
-        }))
-    } catch(e) {
-        console.error('Fehler beim Laden der Device-Types', e)
-    } finally {
-        deviceTypesLoading.value = false
-    }
+    const data = await findDeviceTypes({ filters: filters }, signal)
+
+    deviceTypes.value = Object.values(data.mainData).map((deviceType: any) => ({
+        id: deviceType.id,
+        label: deviceType.name
+    }))
+
+    deviceTypesLoading.value = false;
 }
 
+async function searchItamUsers(query: string, signal: AbortSignal): Promise<void> {
+    itamUsersLoading.value = true;
+
+    let filters = {
+        firstname: [query],
+        lastname: [query],
+        email: [query]
+    };
+
+    const data = await findItamUsers({ filters: filters }, signal)
+
+    itamUsers.value = Object.values(data.mainData).map((itamUser: any) => ({
+        id: itamUser.id,
+        label: itamUser.firstname + ' ' + itamUser.lastname
+    }))
+
+    itamUsersLoading.value = false;
+}
+
+/*
 async function loadLocations() {
     locationsLoading.value = true;
 
@@ -243,66 +251,57 @@ async function loadLocations() {
         locationsLoading.value = false
     }
 }
+*/
 
-async function loadMerchants() {
+async function searchMerchants(query: string, signal: AbortSignal): Promise<void> {
     merchantsLoading.value = true;
 
-    try {
-        const data = await fetchAllMerchants({})
+    let filters = {
+        name: [query]
+    };
 
-        merchants.value = Object.values(data.merchants).map((merchant: any) => ({
-            id: merchant.id,
-            label: merchant.name
-        }))
-    } catch(e) {
-        console.error('Fehler beim Laden der Merchants', e)
-    } finally {
-        merchantsLoading.value = false
-    }
+    const data = await findMerchants({ filters: filters }, signal)
+
+    merchants.value = Object.values(data.mainData).map((merchant: any) => ({
+        id: merchant.id,
+        label: merchant.name
+    }))
+
+    merchantsLoading.value = false;
 }
 
-async function loadPositions() {
-    await loadLocations()
-
+async function searchPositions(query: string, signal: AbortSignal): Promise<void> {
     positionsLoading.value = true;
 
-    try {
-        const data = await fetchAllPositions({})
+    let filters = {
+        name: [query]
+    };
 
-        positions.value = Object.values(data.positions).map((position: any) => {
-            const location = locations.value.find(l => l.id === position.locationId)
-            return {
-                id: position.id,
-                label: location
-                    ? location.label + ' - ' + position.name
-                    : position.name
-            }
-        })
+    const data = await findPositions({ filters: filters }, signal)
 
-        // Sort list alphabetically ASC.
-        positions.value.sort((a, b) => a.label.localeCompare(b.label))
-    } catch(e) {
-        console.error('Error while loading Positions', e)
-    } finally {
-        positionsLoading.value = false
-    }
+    positions.value = Object.values(data.mainData).map((position: any) => ({
+        id: position.id,
+        label: position.name
+    }))
+
+    positionsLoading.value = false;
 }
 
-async function loadQuantityUnits() {
+async function searchQuantityUnits(query: string, signal: AbortSignal): Promise<void> {
     quantityUnitsLoading.value = true;
 
-    try {
-        const data = await fetchAllQuantityUnits({})
+    let filters = {
+        name: [query]
+    };
 
-        quantityUnits.value = Object.values(data.quantityUnits).map((quantityUnit: any) => ({
-            id: quantityUnit.id,
-            label: quantityUnit.name
-        }))
-    } catch(e) {
-        console.error('Error while loading Quantity Units', e)
-    } finally {
-        quantityUnitsLoading.value = false
-    }
+    const data = await findQuantityUnits({ filters: filters }, signal)
+
+    quantityUnits.value = Object.values(data.mainData).map((quantityUnit: any) => ({
+        id: quantityUnit.id,
+        label: quantityUnit.name
+    }))
+
+    quantityUnitsLoading.value = false;
 }
 
 function onBackButton() {
@@ -595,6 +594,7 @@ onMounted(async () => {
                                 :label="t('sfxonitam', 'Quantity Unit') + ':'"
                                 :loading="quantityUnitsLoading"
                                 :options="quantityUnits"
+                                :searchFn="searchQuantityUnits"
                                 trackBy="id"
                                 v-model="selectedQuantityUnit"
                             />
@@ -607,6 +607,7 @@ onMounted(async () => {
                                 :label="t('sfxonitam', 'User') + ':'"
                                 :loading="itamUsersLoading"
                                 :options="itamUsers"
+                                :searchFn="searchItamUsers"
                                 trackBy="id"
                                 v-model="selectedItamUser"
                             />
@@ -619,6 +620,7 @@ onMounted(async () => {
                                 :label="t('sfxonitam', 'Position') + ':'"
                                 :loading="positionsLoading"
                                 :options="positions"
+                                :searchFn="searchPositions"
                                 trackBy="id"
                                 v-model="selectedPosition"
                             />
@@ -662,6 +664,7 @@ onMounted(async () => {
                                 :label="t('sfxonitam', 'Device Status') + ':'"
                                 :loading="deviceStatisLoading"
                                 :options="deviceStatis"
+                                :searchFn="searchDeviceStatis"
                                 trackBy="id"
                                 v-model="selectedDeviceStatus"
                             />
@@ -674,6 +677,7 @@ onMounted(async () => {
                                 :label="t('sfxonitam', 'Device Type') + ':'"
                                 :loading="deviceTypesLoading"
                                 :options="deviceTypes"
+                                :searchFn="searchDeviceTypes"
                                 trackBy="id"
                                 v-model="selectedDeviceType"
                             />
@@ -720,6 +724,7 @@ onMounted(async () => {
                                 :label="t('sfxonitam', 'Merchant') + ':'"
                                 :loading="merchantsLoading"
                                 :options="merchants"
+                                :searchFn="searchMerchants"
                                 trackBy="id"
                                 v-model="selectedMerchant"
                             />

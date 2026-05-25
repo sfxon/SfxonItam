@@ -52,6 +52,25 @@ export async function fetchManufacturers(params: ListParams): Promise<Manufactur
     return data
 }
 
+export async function findManufacturer(params: ListParams, signal: AbortSignal) {
+    try {
+        const { data } = await axios.post(
+            generateUrl('/apps/sfxonitam/manufacturer/search'),
+            params,
+            { signal },
+        )
+        return data
+    } catch (error) {
+        if (axios.isCancel(error)) {
+            // Veraltete Anfrage – einfach ignorieren
+            return null
+        }
+        console.error('Suche fehlgeschlagen:', error)
+    }
+
+    return null
+}
+
 export function getManufacturerDetailLink(manufacturerId: string) {
     return generateUrl(`/apps/sfxonitam/manufacturer/detail?manufacturerId=${manufacturerId}`)
 }

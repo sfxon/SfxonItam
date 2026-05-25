@@ -52,6 +52,25 @@ export async function fetchItamUsers(params: ListParams): Promise<ItamUserListRe
     return data
 }
 
+export async function findItamUsers(params: ListParams, signal: AbortSignal) {
+    try {
+        const { data } = await axios.post(
+            generateUrl('/apps/sfxonitam/itam-user/search'),
+            params,
+            { signal },
+        )
+        return data
+    } catch (error) {
+        if (axios.isCancel(error)) {
+            // Veraltete Anfrage – einfach ignorieren
+            return null
+        }
+        console.error('Suche fehlgeschlagen:', error)
+    }
+
+    return null
+}
+
 export function getItamUserDetailLink(itamUserId: string) {
     return generateUrl(`/apps/sfxonitam/itam-user/detail?itamUserId=${itamUserId}`)
 }

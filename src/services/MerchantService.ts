@@ -52,6 +52,25 @@ export async function fetchMerchants(params: ListParams): Promise<MerchantListRe
     return data
 }
 
+export async function findMerchants(params: ListParams, signal: AbortSignal) {
+    try {
+        const { data } = await axios.post(
+            generateUrl('/apps/sfxonitam/merchant/search'),
+            params,
+            { signal },
+        )
+        return data
+    } catch (error) {
+        if (axios.isCancel(error)) {
+            // Veraltete Anfrage – einfach ignorieren
+            return null
+        }
+        console.error('Suche fehlgeschlagen:', error)
+    }
+
+    return null
+}
+
 export function getMerchantDetailLink(merchantId: string) {
     return generateUrl(`/apps/sfxonitam/merchant/detail?merchantId=${merchantId}`)
 }

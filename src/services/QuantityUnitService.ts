@@ -42,6 +42,25 @@ export async function fetchAllQuantityUnits(params: ListParams): Promise<Quantit
     return data
 }
 
+export async function findQuantityUnits(params: ListParams, signal: AbortSignal) {
+    try {
+        const { data } = await axios.post(
+            generateUrl('/apps/sfxonitam/quantity-unit/search'),
+            params,
+            { signal },
+        )
+        return data
+    } catch (error) {
+        if (axios.isCancel(error)) {
+            // Veraltete Anfrage – einfach ignorieren
+            return null
+        }
+        console.error('Suche fehlgeschlagen:', error)
+    }
+
+    return null
+}
+
 export async function fetchQuantityUnit(id: number): Promise<QuantityUnit> {
     const { data } = await axios.get(generateUrl(`/apps/sfxonitam/quantity-unit/${id}`))
     return data

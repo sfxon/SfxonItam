@@ -138,6 +138,28 @@ class MerchantController extends Controller {
 
     #[NoCSRFRequired]
     #[OpenAPI(OpenAPI::SCOPE_IGNORE)]
+    #[FrontpageRoute(verb: 'POST', url: '/merchant/search')]
+    public function search(
+        string $orderBy = 'name',
+        string $direction = 'ASC',
+        int $page = 1,
+        int $limit = 20,
+    ): JSONResponse {
+        $offset = ($page - 1) * $limit;
+        $filters = $this->request->getParam('filters');
+        $result = $this->merchantMapper->searchPaged($orderBy, $direction, $limit, $offset, $filters);
+        $total   = $this->merchantMapper->countAll($filters);
+
+        return new JSONResponse([
+            'mainData' => array_map(fn($d) => $d->jsonSerialize(), $result),
+            'total'   => $total,
+            'page'    => $page,
+            'limit'   => $limit,
+        ]);
+    }
+
+    #[NoCSRFRequired]
+    #[OpenAPI(OpenAPI::SCOPE_IGNORE)]
     #[FrontpageRoute(verb: 'GET', url: '/merchant/{id}')]
     public function show(int $id): JSONResponse {
         try {

@@ -103,19 +103,21 @@ Editor:
         - ✅ Make it possible, to give a list of related entities to the api endpoint.
         - ✅ Search given related entities by an id mapping, but after the main entity has been loaded.
         - ✅ Make it usable for lists of data from the beginning. Group foreign entities' id's and search them in a single query with "IN".
-        - Refactor the editor view(s), to intially load much faster.
-        - When opening dropdowns, the dropdown should load additional entries for selection. Also the dropdown should update contents by "search" -> so the results update, when you limit the shown data.
-
-    - Some of the boxes have different border radius. Fix that.
-
-    - Add a button [+] to the entity dropdowns.
-        - Open a popup, when the + button is clicked with minimum input.
-        - Let the user input values.
-    
-    - Add a goto link beside the entity dropdowns, so one can directly go to the entity detail page to edit it.
-
-    - Gestaltung von Erfolgs- und Fehlerleiste anpassen.
-    - Button zu Erfolgs + Fehlerleiste hinufügen (Dismiss/Schließen)
+        - ✅ When opening dropdowns, the dropdown should load additional entries for selection. Also the dropdown should update contents by "search" -> so the results update, when you limit the shown data.
+        - When opening the dropdown without a search term, it should load 20 entries from the db first.
+            - The one, that is currently active should stay in there, too.
+            -> This makes the workflow for every user a little bit faster.
+        - Make loading of sub-sub data possible. For example the Position dropdown should also load it's locations.
+            - In the frontend, the position dropdown then should put their text together with this loaded information- not already in the backend.
+            -> this means: Prefix the Position with the location, as it has been before.
+            -> so it is not longer "Fest zugeordnet", instead it is: Mobile - Fest zugeordnet.
+        - Add a button [+] to the entity dropdowns.
+            - Open a popup, when the + button is clicked with minimum input.
+            - Let the user input values.
+        - Add a goto link beside the entity dropdowns, so one can directly go to the entity detail page to edit it.
+        - Some of the boxes have different border radius. Fix that.
+        - Gestaltung von Erfolgs- und Fehlerleiste anpassen.
+        - Button zu Erfolgs + Fehlerleiste hinufügen (Dismiss/Schließen)
 
     - Take over new styling for detail page to all other editor pages..
         - ✅ Build a editor.module.css and import it on every editor page. That way, I can use general stylings for that pages.
@@ -123,17 +125,17 @@ Editor:
         - ✅ Create SfxonEditorFormEntitySelect component.
         - ✅ Create SfxonEditorFormTextarea component.
         - ✅ Create SfxonEditorFormDate component.
-    
-        - Implement style and new fields on all the other editor views.
+        - Implement style, new fields and functionality on all the other editor views.
+
+    * Optimize data loading in device list view.
 
     - Add a results per page dropdown/input, so we can also show 100 results or 1000 results on one page. Load data paged then too - meaning to not overload the server - so the loading should be junked to junks of size 20 (configurable in code).
 
     - Geräteliste auch nach Entitäten sortierbar machen.
     - Menü hinzufügen, mit dem die Reihenfolge der Spalten geändert werden kann, sowie eingestellt werden kann, in welcher Reihenfolge gefiltert werden kann und welche Spalten überhaupt angezeigt werden sollen.
 
-* Filter, Sortier und Spalten-Einstellungen auch in andere Entitäten aufnehmen (einheitlich).
+    * Take over device loading optimization from device list view to other entities.
 
-* Daten laden optimieren.
 
 * Rechte-Verwaltung integrieren. Die Bestandteile dürfen nur mit der notwendigen Berechtigung verwendet werden dürfen.
 

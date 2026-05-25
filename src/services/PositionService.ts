@@ -52,6 +52,25 @@ export async function fetchPositions(params: ListParams): Promise<PositionListRe
     return data
 }
 
+export async function findPositions(params: ListParams, signal: AbortSignal) {
+    try {
+        const { data } = await axios.post(
+            generateUrl('/apps/sfxonitam/position/search'),
+            params,
+            { signal },
+        )
+        return data
+    } catch (error) {
+        if (axios.isCancel(error)) {
+            // Veraltete Anfrage – einfach ignorieren
+            return null
+        }
+        console.error('Suche fehlgeschlagen:', error)
+    }
+
+    return null
+}
+
 export function getPositionDetailLink(positionId: string) {
     return generateUrl(`/apps/sfxonitam/position/detail?positionId=${positionId}`)
 }

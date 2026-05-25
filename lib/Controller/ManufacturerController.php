@@ -152,6 +152,28 @@ class ManufacturerController extends Controller {
         return new JSONResponse($manufacturer->jsonSerialize());
     }
 
+    #[NoCSRFRequired]
+    #[OpenAPI(OpenAPI::SCOPE_IGNORE)]
+    #[FrontpageRoute(verb: 'POST', url: '/manufacturer/search')]
+    public function search(
+        string $orderBy = 'name',
+        string $direction = 'ASC',
+        int $page = 1,
+        int $limit = 20,
+    ): JSONResponse {
+        $offset = ($page - 1) * $limit;
+        $filters = $this->request->getParam('filters');
+        $result = $this->manufacturerMapper->searchPaged($orderBy, $direction, $limit, $offset, $filters);
+        $total   = $this->manufacturerMapper->countAll($filters);
+
+        return new JSONResponse([
+            'mainData' => array_map(fn($d) => $d->jsonSerialize(), $result),
+            'total'   => $total,
+            'page'    => $page,
+            'limit'   => $limit,
+        ]);
+    }
+
     #[OpenAPI(OpenAPI::SCOPE_IGNORE)]
     #[FrontpageRoute(verb: 'PUT', url: '/manufacturer/{id}')]
     public function update(int $id): DataResponse {

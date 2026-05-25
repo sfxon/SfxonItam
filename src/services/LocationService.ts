@@ -52,6 +52,25 @@ export async function fetchLocations(params: ListParams): Promise<LocationListRe
     return data
 }
 
+export async function findLocation(params: ListParams, signal: AbortSignal) {
+    try {
+        const { data } = await axios.post(
+            generateUrl('/apps/sfxonitam/location/search'),
+            params,
+            { signal },
+        )
+        return data
+    } catch (error) {
+        if (axios.isCancel(error)) {
+            // Veraltete Anfrage – einfach ignorieren
+            return null
+        }
+        console.error('Suche fehlgeschlagen:', error)
+    }
+
+    return null
+}
+
 export async function updateLocation(id: number, payload: LocationPayload) {
     const { data } = await axios.put(generateUrl(`/apps/sfxonitam/location/${id}`), payload)
     return data

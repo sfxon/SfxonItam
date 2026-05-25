@@ -14,6 +14,18 @@ class DeviceMapper extends QBMapper {
         parent::__construct($db, 'sfxon_device', Device::class);
     }
 
+    public function countAll(?array $filters = null): int {
+        $qb = $this->db->getQueryBuilder();
+        $qb->select($qb->func()->count('*', 'count'));
+        $qb->from($this->getTableName(), 'd');
+
+        if ($filters !== null) {
+            $this->applyFilters($qb, $filters);
+        }
+
+        return (int) $qb->executeQuery()->fetchOne();
+    }
+
     public function isEntityValueInUse($entityFieldName, $id) {
         $allowedEntityIdFields = [
             'device_status_id',
@@ -105,18 +117,6 @@ class DeviceMapper extends QBMapper {
         }
         
         return $this->findEntities($qb);
-    }
-
-    public function countAll(?array $filters = null): int {
-        $qb = $this->db->getQueryBuilder();
-        $qb->select($qb->func()->count('*', 'count'));
-        $qb->from($this->getTableName(), 'd');
-
-        if ($filters !== null) {
-            $this->applyFilters($qb, $filters);
-        }
-
-        return (int) $qb->executeQuery()->fetchOne();
     }
 
     private function applyFilters(IQueryBuilder $qb, array $filters): void {

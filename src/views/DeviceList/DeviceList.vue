@@ -1,5 +1,12 @@
 <script setup lang="ts">
-import { reactive, ref, watch, onMounted } from 'vue'
+
+import { deleteDevice } from '@/services/DeviceService'
+import type { Device } from '@/services/DeviceService'
+import { fetchDevices} from '@/services/DeviceService'
+import { generateUrl } from '@nextcloud/router'
+import { reactive } from 'vue'
+import { ref } from 'vue'
+import { mdiPlus } from '@mdi/js'
 import NcAppContent from '@nextcloud/vue/components/NcAppContent'
 import NcAppNavigation from '@nextcloud/vue/components/NcAppNavigation'
 import NcAppNavigationList from '@nextcloud/vue/components/NcAppNavigationList'
@@ -9,9 +16,8 @@ import NcContent from '@nextcloud/vue/components/NcContent'
 import NcDialog from '@nextcloud/vue/components/NcDialog'
 import NcIconSvgWrapper from '@nextcloud/vue/components/NcIconSvgWrapper'
 import NcLoadingIcon from '@nextcloud/vue/components/NcLoadingIcon'
-import { mdiPlus } from '@mdi/js'
+import { onMounted } from 'vue'
 import { translate as t } from '@nextcloud/l10n'
-import { generateUrl } from '@nextcloud/router'
 import SfxonBarcode from '@/components/SfxonBarcode'
 import SfxonFilterBar from '@/components/SfxonFilterBar'
 import SfxonMainNavigation from '@/components/SfxonMainNavigation'
@@ -19,8 +25,6 @@ import SfxonPagination from '@/components/SfxonPagination'
 import SfxonQrCodeView from '@/components/SfxonQrCodeView'
 import SfxonTable from '@/components/SfxonTable'
 import { useListState } from '@/composables/useListState'
-import { fetchDevices, deleteDevice} from '@/services/DeviceService'
-import type { Device } from '@/services/DeviceService'
 import { fetchAllDeviceStatis, getDeviceStatusDetailLink } from '@/services/DeviceStatusService'
 import { fetchAllDeviceTypes, getDeviceTypeDetailLink } from '@/services/DeviceTypeService'
 import { fetchAllItamUsers, getItamUserDetailLink } from '@/services/ItamUserService'
@@ -29,6 +33,7 @@ import { fetchAllManufacturers, getManufacturerDetailLink } from '@/services/Man
 import { fetchAllMerchants, getMerchantDetailLink } from '@/services/MerchantService'
 import { fetchAllPositions, getPositionDetailLink } from '@/services/PositionService'
 import { fetchAllQuantityUnits, getQuantityUnitDetailLink } from '@/services/QuantityUnitService'
+import { watch } from 'vue'
 
 const deviceStatisLoading = ref(false)
 const deviceTypesLoading = ref(false)
@@ -40,10 +45,8 @@ const manufacturersLoading = ref(false)
 const merchantsLoading = ref(false)
 const positionsLoading = ref(false)
 const quantityUnitsLoading = ref(false)
-
 const error = ref<string | null>(null)
 const listState = useListState()
-
 const devices = ref<Device[]>([])
 const deviceToDelete = ref<Device | null>(null)
 const filterValues = reactive<Record<string, { value: any }[]>>({})
@@ -437,7 +440,6 @@ watch(
 onMounted(async () => {
     await reloadDevices()
 })
-
 </script>
 
 <template>
@@ -456,7 +458,7 @@ onMounted(async () => {
 
             <SfxonMainNavigation :currentPage="'devices'" />
 
-            <!-- Preview Image on the sidebar -->
+            <!-- Preview Image on the sidebar. -->
             <template #footer>
                 <Transition name="sfxon-preview">
                     <div
@@ -500,7 +502,7 @@ onMounted(async () => {
             </template>
         </NcAppNavigation>
 
-        <!-- Inhaltsbereich -->
+        <!-- Main App Content -->
         <NcAppContent>
             <div :class="$style.sfxonItamHeader">
                 <div class="content-title">Geräte-Verwaltung</div>
@@ -511,10 +513,9 @@ onMounted(async () => {
                 </div>
             </div>
             <div :class="$style.sfxonItamContent">
-                <!-- Fehler -->
                 <div v-if="error" class="device-list__error">{{ error }}</div>
 
-                <!-- Ladeindikator -->
+                <!-- Loading spinner -->
                 <div v-else-if="loading" class="device-list__loading">
                     <NcLoadingIcon :size="32" />
                 </div>
@@ -538,7 +539,7 @@ onMounted(async () => {
             </div>
         </NcAppContent>
 
-        <!-- Sidebar for filter and search -->
+        <!-- Sidebar for filter and search. -->
         <SfxonFilterBar
             v-model:filterSidebarOpen="filterSidebarOpen"
             :filterFields="filterFields"
@@ -548,7 +549,7 @@ onMounted(async () => {
         />
     </NcContent>
 
-    <!-- Confirm Delete Dialog -->
+    <!-- Confirm Delete Dialog. -->
     <NcDialog
         v-if="deviceToDelete"
         :name="t('sfxonitam', 'Gerät löschen')"
@@ -573,7 +574,7 @@ onMounted(async () => {
         </template>
     </NcDialog>
 
-    <!-- Image or QR-Code Dialog/Popup -->
+    <!-- Image or QR-Code Dialog/Popup. -->
     <NcDialog
         v-if="modalState.dataRow"
         :name="modalState.dataRow?.name ?? ''"
@@ -640,7 +641,7 @@ onMounted(async () => {
     .sfxonNavList {
         flex: 1 1 auto;
         overflow-y: auto;
-        min-height: 0; /* wichtig für flex-shrink */
+        min-height: 0;
     }
 
     .sfxonNavPreview {

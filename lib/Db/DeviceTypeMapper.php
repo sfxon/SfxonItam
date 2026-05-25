@@ -10,8 +10,22 @@ use OCP\IDBConnection;
  * @template-extends QBMapper<DeviceType>
  */
 class DeviceTypeMapper extends QBMapper {
+    private string $tableNameAlias = 'dt';
+
     public function __construct(IDBConnection $db) {
         parent::__construct($db, 'sfxon_device_type', DeviceType::class);
+    }
+
+    public function countAll(?array $filters = null): int {
+        $qb = $this->db->getQueryBuilder();
+        $qb->select($qb->func()->count('*', 'count'));
+        $qb->from($this->getTableName(), $this->tableNameAlias);
+
+        if ($filters !== null) {
+            $this->applyFilters($qb, $filters);
+        }
+
+        return (int) $qb->executeQuery()->fetchOne();
     }
 
     public function isEntityValueInUse($entityFieldName, $id) {
@@ -45,6 +59,7 @@ class DeviceTypeMapper extends QBMapper {
         return $this->findEntity($qb);
     }
 
+    #[\Deprecated(message: "Will be removed.", since: "1.9")]
     /** @return DeviceType[] */
     public function findAll(): array {
         $qb = $this->db->getQueryBuilder();
@@ -52,6 +67,7 @@ class DeviceTypeMapper extends QBMapper {
         return $this->findEntities($qb);
     }
 
+    #[\Deprecated(message: "Will be replaced by searchPaged", since: "1.9")]
     /** @return DeviceType[] */
     public function findAllPaged(
         string $orderBy = 'name',
@@ -74,11 +90,58 @@ class DeviceTypeMapper extends QBMapper {
         return $this->findEntities($qb);
     }
 
-    public function countAll(): int {
+    /** @return DeviceType[] */
+    public function searchPaged(
+        string $orderBy = 'name',
+        string $direction = 'ASC',
+        int $limit = 20,
+        int $offset = 0,
+        ?array $filters = null
+    ): array {
+        $allowedColumns = [ 'name', ];
+        $col = in_array($orderBy, $allowedColumns, true) ? $orderBy : 'name';
+        $col = strtolower(preg_replace('/[A-Z]/', '_$0', $col)); // Convert camel case to snake case.
+        $dir = strtoupper($direction) === 'DESC' ? 'DESC' : 'ASC';
+
         $qb = $this->db->getQueryBuilder();
-        $qb->select($qb->func()->count('*', 'count'));
-        $qb->from($this->getTableName());
-        $result = $qb->executeQuery();
-        return (int) $result->fetchOne();
+        $qb->select('*')
+            ->from($this->getTableName(), $this->tableNameAlias)
+            ->orderBy($col, $dir)
+            ->setMaxResults($limit)
+            ->setFirstResult($offset);
+
+        if($filters !== null) {
+            $this->applyFilters($qb, $filters);
+        }
+
+        return $this->findEntities($qb);
+    }
+
+    private function applyFilters(IQueryBuilder $qb, array $filters): void {
+        foreach ($filters as $key => $values) {
+            if (empty($values)) {
+                continue;
+            }
+
+            match ($key) {
+                'name' => $this->applyLikeFilter($qb, $this->tableNameAlias . '.name', $values),
+                default => null,
+            };
+        }
+    }
+
+    private function applyLikeFilter(IQueryBuilder $qb, string $column, array $values): void {
+        // For multiple values: OR combination
+        $orX = $qb->expr()->orX();
+
+        foreach ($values as $value) {
+            $param = $qb->createNamedParameter('%' . $this->db->escapeLikeParameter(strtolower($value)) . '%');
+            $orX->add($qb->expr()->like(
+                $qb->func()->lower($column), 
+                $param)
+            );
+        }
+
+        $qb->andWhere($orX);
     }
 }

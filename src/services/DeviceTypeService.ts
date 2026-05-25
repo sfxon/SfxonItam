@@ -52,6 +52,25 @@ export async function fetchDeviceTypes(params: ListParams): Promise<DeviceTypeLi
     return data
 }
 
+export async function findDeviceTypes(params: ListParams, signal: AbortSignal) {
+    try {
+        const { data } = await axios.post(
+            generateUrl('/apps/sfxonitam/device-type/search'),
+            params,
+            { signal },
+        )
+        return data
+    } catch (error) {
+        if (axios.isCancel(error)) {
+            // Veraltete Anfrage – einfach ignorieren
+            return null
+        }
+        console.error('Suche fehlgeschlagen:', error)
+    }
+
+    return null
+}
+
 export function getDeviceTypeDetailLink(deviceTypeId: string) {
     return generateUrl(`/apps/sfxonitam/device-type/detail?deviceTypeId=${deviceTypeId}`)
 }

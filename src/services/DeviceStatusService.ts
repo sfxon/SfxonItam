@@ -52,6 +52,25 @@ export async function fetchDeviceStatis(params: ListParams): Promise<DeviceStatu
     return data
 }
 
+export async function findDeviceStatis(params: ListParams, signal: AbortSignal) {
+    try {
+        const { data } = await axios.post(
+            generateUrl('/apps/sfxonitam/device-status/search'),
+            params,
+            { signal },
+        )
+        return data
+    } catch (error) {
+        if (axios.isCancel(error)) {
+            // Veraltete Anfrage – einfach ignorieren
+            return null
+        }
+        console.error('Suche fehlgeschlagen:', error)
+    }
+
+    return null
+}
+
 export function getDeviceStatusDetailLink(deviceStatusId: string) {
     return generateUrl(`/apps/sfxonitam/device-status/detail?deviceStatusId=${deviceStatusId}`)
 }
