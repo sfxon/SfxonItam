@@ -186,6 +186,26 @@ Editor:
 
 * DeviceEditor: Add the same popup to show image, qrcode and barcode on the detail page. It should open, when one of the elements is clicked.
 
+* Add change log/history:
+    Write Ahead Log: We create an entry in the database, what kind of data is about to be saved. When that is written, we really write the data. After that, we mark the write ahead entry as written. There might be a delta, if the log entry was not successfully updated for any reason, but we accept that - since no data will ever be lost - it might just not be always in state.
+    We could use some hash over the data, to later see, if an entry was saved successfully the last time it was intended to be written. This would make things even cleaner. But I am not willing to implement this yet, since I see no big advantage in this.
+
+    The log will write at least:
+    - Entity to be written
+    - timestamp
+    - modified by (admin user)
+    - changed values (only the delta). To see everything, one would have to reconstruct the history of an entry.
+    - state [logEntryCreated, entryWritten]
+
+    There are possibilities of asynchron timing issues and concurrent requests, but I am willing to live with them. With this system we have simplicity. And that is the most important factor. It is more than anything before (nothing). So yeah - might it be what it is. I am fine with it. And in the end, someone will find out, who tried to modify stuff. There are easier attack vectors than that, and a really willing attacker will find better ways to create chaos.
+
+    I think sooner or later we will want to have an "archive that" option, to clean out the logs. I am not sure, what that will/should look like. A good way could be to say for example: "Okay, here is a day, where we make "Stocktaking day". We check, what really is still there - and archivate all the logs prior to this day together with the measured stock.
+    That way, we have a safe state, after which we can start from "new".
+    The archive could be a copy of the original log table extended by a datetime timestamp at the end, for example: log_archive_20260525_083734.
+    So if you ever need that data again, it would be possible to build easy loaders for that.
+    If you need to reconstruct more complex data, that would also be possible, but for foreign entities you'd have the efford to follow their complete history. Not the nicest way, but possible.
+
+
 * ✅ Start a devlog instead of twitch streams - because it might be more of an interest. For now I choose bluesky and short messages. Bsky: https://bsky.app/profile/eska1000.bsky.social
 
 * Create website for the project (oishii-desu.de/itam)
