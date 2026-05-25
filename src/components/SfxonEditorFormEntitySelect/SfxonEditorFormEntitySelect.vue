@@ -24,6 +24,11 @@ const emit = defineEmits<{
   (e: 'input', field: string): void
 }>()
 
+function onInput(value: Record<string, unknown> | null) {
+    emit('update:modelValue', value)
+    emit('input', props.field)
+}
+
 function onMouseEnter() {
     hoverTimeout.value = setTimeout(triggerPreload, 150)
 }

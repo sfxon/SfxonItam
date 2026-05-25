@@ -109,10 +109,10 @@ Editor:
             -> ✅ This makes the workflow for every user a little bit faster.
             -> ✅ Decided to already load on hover. This makes the transition even smoother.
             -> ✅ There is still room for improvement, but I am at a sweet spot now.
-        - Make loading of sub-sub data possible. For example the Position dropdown should also load it's locations.
-            - In the frontend, the position dropdown then should put their text together with this loaded information- not already in the backend.
-            -> this means: Prefix the Position with the location, as it has been before.
-            -> so it is not longer "Fest zugeordnet", instead it is: Mobile - Fest zugeordnet.
+        - ✅ Make loading of sub-sub data possible. For example the Position dropdown should also load it's locations.
+            - ✅ In the frontend, the position dropdown then should put their text together with this loaded information- not already in the backend.
+            -> ✅ this means: Prefix the Position with the location, as it has been before.
+            -> ✅ so it is not longer "Fest zugeordnet", instead it is: Mobile - Fest zugeordnet.
         - Add a button [+] to the entity dropdowns.
             - Open a popup, when the + button is clicked with minimum input.
             - Let the user input values.
@@ -122,14 +122,16 @@ Editor:
         - Button zu Erfolgs + Fehlerleiste hinufügen (Dismiss/Schließen)
 
     - Take over new styling for detail page to all other editor pages..
-        - ✅ Build a editor.module.css and import it on every editor page. That way, I can use general stylings for that pages.
+        - ✅ Build an editor.module.css and import it on every editor page. That way, I can use general stylings for that pages.
         - ✅ Create SfxonEditorFormInput component, to wrap common layout and logic for repeating fields. This improves code quality.
         - ✅ Create SfxonEditorFormEntitySelect component.
         - ✅ Create SfxonEditorFormTextarea component.
         - ✅ Create SfxonEditorFormDate component.
         - Implement style, new fields and functionality on all the other editor views.
 
-    * Optimize data loading in device list view.
+    - Optimize data loading in device list view.
+
+    - List views: The filter dropdowns should be loaded lazy, not all after the load and not with full data. Use same strategy as for dropdowns on the device detail page.
 
     - Add a results per page dropdown/input, so we can also show 100 results or 1000 results on one page. Load data paged then too - meaning to not overload the server - so the loading should be junked to junks of size 20 (configurable in code).
 
@@ -201,6 +203,11 @@ Editor:
 * Add video for installation instructions.
 
 * Add videos for developer and contributor instructions and link them in readme.md and website.
+
+* Build tests:
+    - Unit tests
+    - Integration tests
+    - E2E Tests
 
 
 

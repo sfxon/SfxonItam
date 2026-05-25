@@ -251,12 +251,29 @@ async function searchPositions(query: string, signal: AbortSignal): Promise<void
         name: [query]
     };
 
-    const data = await findPositions({ filters: filters }, signal)
+    let include = {
+        location: {}
+    };
 
-    positions.value = Object.values(data.mainData).map((position: any) => ({
-        id: position.id,
-        label: position.name
-    }))
+    const data = await findPositions(
+        { 
+            filters: filters,
+            include: include
+        }, signal
+    )
+
+    if(data === null || data.result === null || data.result.mainData === null) {
+        return;
+    }
+
+    positions.value = Object.values(data.result.mainData).map((position: any) => {
+        const location = data.result.relations?.location?.[position.locationId];
+        const label = location ? `${location.name} - ${position.name}` : position.name;
+        return {
+            id: position.id,
+            label
+        };
+    });
 }
 
 async function searchQuantityUnits(query: string, signal: AbortSignal): Promise<void> {

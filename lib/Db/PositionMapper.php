@@ -96,7 +96,8 @@ class PositionMapper extends QBMapper {
         string $direction = 'ASC',
         int $limit = 20,
         int $offset = 0,
-        ?array $filters = null
+        ?array $filters = null,
+        ?array $include = null
     ): array {
         $allowedColumns = [ 'name', ];
         $col = in_array($orderBy, $allowedColumns, true) ? $orderBy : 'name';
@@ -114,7 +115,26 @@ class PositionMapper extends QBMapper {
             $this->applyFilters($qb, $filters);
         }
 
-        return $this->findEntities($qb);
+        $mainData = $this->findEntities($qb);
+        $relations = [];
+
+        if (null !== $include && !empty($include)) {
+            $relations = $this->loadRelations($mainData, $include);
+        }
+
+        // Extract the raw versions of the mainData entries (flat arrays, not longer objects).
+        $mainDataFlat = [];
+
+        foreach($mainData as $m) {
+            $mainDataFlat[] = $m->jsonSerialize();
+        }
+
+        $result = [
+            'mainData' => $mainDataFlat,
+            'relations' => $relations,
+        ];
+
+        return $result;
     }
 
     private function applyFilters(IQueryBuilder $qb, array $filters): void {
@@ -143,5 +163,71 @@ class PositionMapper extends QBMapper {
         }
 
         $qb->andWhere($orX);
+    }
+
+    private function camelToSnake($input) {
+        return strtolower(preg_replace('/[A-Z]/', '_$0', $input));
+    }
+
+    private function loadRelations(array $mainData, array $include): array {
+        $relations = [];
+    
+        foreach ($include as $relationName => $relationData) {
+            $fields = ['id', 'name'];
+
+            if(isset($relationData['fields'])) {
+                $fields = $relationData['fields'];
+            }
+
+            // Expected result, for example: deviceStatusId
+            $foreignKey = $relationName . 'Id';
+
+            // Expected result, for example: getDeviceStatusId
+            $getter = 'get' . ucfirst($foreignKey);
+
+            // Expected result, for example: sfxon_device_status
+            $table = 'sfxon_' . $this->camelToSnake($relationName);
+
+            // Get all the ids of this foreign entity, that we want to get values for.
+            $searchIdsIndexed = [];
+
+            foreach($mainData as $mainDataEntry) {
+                if(property_exists($mainDataEntry, $foreignKey)) {
+                    $value = $mainDataEntry->{$getter}();
+                    
+                    if($value !== null) {
+                        $searchIdsIndexed[$value] = true;
+                    }
+                }
+            }
+
+            $searchIds = array_keys($searchIdsIndexed);
+
+            if (empty($searchIds)) {
+                continue;
+            }
+
+            // Fetch all data for this entries.
+            $qb = $this->db->getQueryBuilder();
+            $qb->select($fields);
+            $qb->from($table);
+            $qb->where($qb->expr()->in(
+                'id',
+                $qb->createNamedParameter($searchIds, IQueryBuilder::PARAM_INT_ARRAY)
+            ));
+
+            $result = $qb->executeQuery();
+            $indexedResult = [];
+
+            while ($row = $result->fetch()) {
+                $indexedResult[(int)$row['id']] = $row;
+            }
+
+            $result->closeCursor();
+
+            $relations[$relationName] = $indexedResult;
+        }
+
+        return $relations;
     }
 }

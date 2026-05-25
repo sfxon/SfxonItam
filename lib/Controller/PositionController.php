@@ -154,11 +154,12 @@ class PositionController extends Controller {
     ): JSONResponse {
         $offset = ($page - 1) * $limit;
         $filters = $this->request->getParam('filters');
-        $result = $this->positionMapper->searchPaged($orderBy, $direction, $limit, $offset, $filters);
+        $include = $this->request->getParam('include');
+        $result = $this->positionMapper->searchPaged($orderBy, $direction, $limit, $offset, $filters, $include);
         $total   = $this->positionMapper->countAll($filters);
 
         return new JSONResponse([
-            'mainData' => array_map(fn($d) => $d->jsonSerialize(), $result),
+            'result' => $result,
             'total'   => $total,
             'page'    => $page,
             'limit'   => $limit,

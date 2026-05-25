@@ -36,6 +36,10 @@
     padding-left: 0!important;
 }
 
+.field :global(.vs--open) :global(.vs__selected) {
+    padding-left: 0.25em!important;
+}
+
 .field :global(.vs__dropdown-toggle) {
     border-color: var(--input-border-box-shadow-light);
     border-radius: 3px;
