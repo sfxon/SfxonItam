@@ -113,9 +113,14 @@ Editor:
             - ✅ In the frontend, the position dropdown then should put their text together with this loaded information- not already in the backend.
             -> ✅ this means: Prefix the Position with the location, as it has been before.
             -> ✅ so it is not longer "Fest zugeordnet", instead it is: Mobile - Fest zugeordnet.
-        - Add a button [+] to the entity dropdowns.
-            - Open a popup, when the + button is clicked with minimum input.
+        - ✅ Add a button [+] to the entity dropdowns.
+            - ✅ Open a popup, when the + button is clicked with minimum input.
+            - Dynamically generate input fields in the popup. The definition comes from an array, that defines the input fields, that should be visible.
             - Let the user input values.
+            - Implement save action for entities, and show state. Maybe also fix state message immediately.
+            - Select the created entity in the dropdown as current value.
+            - If you enter something in the dropdown search field and hit enter, than this should result in the "add new entity" dialog to open with the text prefilled - if possible. That way it should be easier to navigate the application just with a keyboard.
+            - If possible, externalise the dialog as custom component, and keep only the config stuff for it.
         - Add a goto link beside the entity dropdowns, so one can directly go to the entity detail page to edit it.
         - Some of the boxes have different border radius. Fix that.
         - Gestaltung von Erfolgs- und Fehlerleiste anpassen.

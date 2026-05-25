@@ -4,27 +4,22 @@ import NcAppContent from '@nextcloud/vue/components/NcAppContent'
 import NcAppNavigation from '@nextcloud/vue/components/NcAppNavigation'
 import NcAppNavigationList from '@nextcloud/vue/components/NcAppNavigationList'
 import NcAppNavigationNew from '@nextcloud/vue/components/NcAppNavigationNew'
+import NcButton from '@nextcloud/vue/components/NcButton'
 import NcContent from '@nextcloud/vue/components/NcContent'
+import NcDialog from '@nextcloud/vue/components/NcDialog'
 import { mdiPlus } from '@mdi/js'
 import { translate as t } from '@nextcloud/l10n'
 import { generateUrl, generateRemoteUrl } from '@nextcloud/router'
-import NcButton from '@nextcloud/vue/components/NcButton'
 import NcNoteCard from '@nextcloud/vue/components/NcNoteCard'
 import { useApiErrors } from '@/composables/useApiErrors'
 import NcIconSvgWrapper from '@nextcloud/vue/components/NcIconSvgWrapper'
 import { fetchDevice, createDevice, updateDevice } from '@/services/DeviceService'
-
-/*
-import { fetchAllLocations } from '@/services/LocationService'
-*/
-
 import { findDeviceStatis } from '@/services/DeviceStatusService'
 import { findDeviceTypes } from '@/services/DeviceTypeService'
 import { findItamUsers } from '@/services/ItamUserService'
 import { findMerchants } from '@/services/MerchantService'
 import { findPositions } from '@/services/PositionService'
 import { findQuantityUnits } from '@/services/QuantityUnitService'
-
 import SfxonBarcode from '@/components/SfxonBarcode'
 import SfxonEditorFormDatePicker from '@/components/SfxonEditorFormDatePicker'
 import SfxonEditorFormEntitySelect from '@/components/SfxonEditorFormEntitySelect'
@@ -38,6 +33,7 @@ import SfxonQrCodeView from '@/components/SfxonQrCodeView'
 import { getCurrentUser } from '@nextcloud/auth'
 
 // Formulardaten
+const showAddEntityEntryDialog = ref(false)
 const assetNumber = ref('')
 const description = ref('')
 const imageFileId = ref<number | null>(null)
@@ -173,6 +169,12 @@ async function loadDevice(id: number): Promise<void> {
     }
 }
 
+async function openAddEntityDialog(payload: any) {
+    console.log('Open add Entity Dialog, payload: ', payload)
+
+    showAddEntityEntryDialog.value = true;
+}
+
 async function searchDeviceStatis(query: string, signal: AbortSignal): Promise<void> {
     let filters = {
         name: [query]
@@ -213,25 +215,6 @@ async function searchItamUsers(query: string, signal: AbortSignal): Promise<void
         label: itamUser.firstname + ' ' + itamUser.lastname
     }))
 }
-
-/*
-async function loadLocations() {
-    locationsLoading.value = true;
-
-    try {
-        const data = await fetchAllLocations({})
-
-        locations.value = Object.values(data.locations).map((location: any) => ({
-            id: location.id,
-            label: location.name
-        }))
-    } catch(e) {
-        console.error('Fehler beim Laden der Locations', e)
-    } finally {
-        locationsLoading.value = false
-    }
-}
-*/
 
 async function searchMerchants(query: string, signal: AbortSignal): Promise<void> {
     let filters = {
@@ -572,6 +555,7 @@ onMounted(async () => {
                             />
 
                             <SfxonEditorFormEntitySelect
+                                :addRecordFn="() => openAddEntityDialog({ entity: 'quantityUnit' })"
                                 field="quantityUnitId"
                                 :fieldError="fieldErrors.quantityUnitId"
                                 id="quantity-unit-select"
@@ -768,6 +752,15 @@ onMounted(async () => {
             </div>
         </NcAppContent>
     </NcContent>
+
+    <NcDialog
+        v-if="showAddEntityEntryDialog"
+        :name="t('sfxonitam', 'Add entity') + ':'"
+        :open="showAddEntityEntryDialog"
+        @closing="showAddEntityEntryDialog = false"
+    >
+        <p>Testitest</p>
+    </NcDialog>
 </template>
 
 <style module>

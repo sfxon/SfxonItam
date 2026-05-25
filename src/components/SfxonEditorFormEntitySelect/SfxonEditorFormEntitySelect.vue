@@ -1,5 +1,7 @@
 <script setup lang="ts">
 
+import { mdiPlus } from '@mdi/js'
+import NcIconSvgWrapper from '@nextcloud/vue/components/NcIconSvgWrapper'
 import NcSelect from '@nextcloud/vue/components/NcSelect'
 import { ref } from 'vue'
 import SfxonEditorStyles from '@/components/SfxonEditor/SfxonEditor.module.css'
@@ -8,6 +10,7 @@ const isSearching = ref(false)
 const preloaded = ref<boolean>(false)
 const hoverTimeout = ref<ReturnType<typeof setTimeout> | null>(null)
 const props = defineProps<{
+    addRecordFn?: () => void,
     field: string,
     fieldError: string,
     id: string,
@@ -80,11 +83,25 @@ function triggerPreload() {
     props.searchFn!('', ctrl.signal)
 }
 
+function onClickAddIcon() {
+    alert('test')
+}
+
 </script>
 <template>
     <div :class="SfxonEditorStyles.sfxonFormColumnRow">
         <div :class="SfxonEditorStyles.sfxonFormColumnLabel">
-            <label :for="id" :class="SfxonEditorStyles.label">{{ label }}</label>
+            <label :for="id" :class="SfxonEditorStyles.label">
+                {{ label }}
+
+                <span
+                    v-if="addRecordFn !== null && typeof(addRecordFn) === 'function'"
+                    :class="$style.addNewEntityButton"
+                    @click="addRecordFn?.()"
+                >
+                    <NcIconSvgWrapper :path="mdiPlus" :size="16" />
+                </span>
+            </label>
         </div>
         <div :class="SfxonEditorStyles.sfxonFormColumnInput">
             <div :class="SfxonEditorStyles.field">
@@ -110,4 +127,12 @@ function triggerPreload() {
 </template>
 
 <style module>
+.addNewEntityButton {
+    color: var(--color-primary-element);
+    display: inline-block;
+}
+
+.addNewEntityButton :global(.icon-vue) {
+    cursor: pointer!important;
+}
 </style>
