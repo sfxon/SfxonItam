@@ -142,7 +142,7 @@ onMounted(async () => {
                         id="name"
                         v-model="name"
                         :label="t('sfxonitam', 'Name')"
-                        :placeholder="t('sfxonitam', 'z.B. In Nutzung')"
+                        :placeholder="t('sfxonitam', 'e.g. Pieces')"
                         :class="fieldErrors.name ? $style.fieldError : ''"
                         @input="clearFieldError('name')"
                     />

@@ -18,6 +18,8 @@ use OCA\SfxonItam\Db\Device;
 use OCA\SfxonItam\Db\DeviceMapper;
 use OCA\SfxonItam\Service\DeviceService;
 
+use OCA\SfxonItam\Db\QuantityUnit;
+
 /**
  * @psalm-suppress UnusedClass
  */
@@ -69,9 +71,14 @@ class DeviceController extends Controller {
     #[OpenAPI(OpenAPI::SCOPE_IGNORE)]
     #[FrontpageRoute(verb: 'GET', url: '/device/detail')]
     public function deviceDetail(): TemplateResponse {
+        $entityDefinitions = [
+            'quantityUnit' => QuantityUnit::getFieldDefinition()
+        ];
+
         return new TemplateResponse(
             Application::APP_ID,
             'device/editor',
+            ['entityDefinitions' => $entityDefinitions]
         );
     }
 

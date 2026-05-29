@@ -1,5 +1,10 @@
 import { createApp } from 'vue'
-import DeviceEditor from './DeviceEditor.vue'
+import App from './DeviceEditor.vue'
 
-const deviceEditor = createApp(DeviceEditor)
-deviceEditor.mount('#sfxonitamdeviceeditor')
+const el = document.getElementById('sfxonitamdeviceeditor')
+const entityDefinitions = JSON.parse(el.dataset.entityDefinitions || '{}')
+
+const app = createApp(App, {
+    entityDefinitions,
+})
+app.mount('#sfxonitamdeviceeditor')

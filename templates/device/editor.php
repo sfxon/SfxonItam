@@ -9,4 +9,7 @@ Util::addStyle(OCA\SfxonItam\AppInfo\Application::APP_ID, OCA\SfxonItam\AppInfo\
 
 ?>
 
-<div id="sfxonitamdeviceeditor"></div>
+<div 
+    id="sfxonitamdeviceeditor"
+    data-entity-definitions="<?= htmlspecialchars(json_encode($_['entityDefinitions']), ENT_QUOTES, 'UTF-8') ?>"
+></div>

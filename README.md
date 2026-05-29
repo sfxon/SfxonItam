@@ -115,16 +115,21 @@ Editor:
             -> ✅ so it is not longer "Fest zugeordnet", instead it is: Mobile - Fest zugeordnet.
         - ✅ Add a button [+] to the entity dropdowns.
             - ✅ Open a popup, when the + button is clicked with minimum input.
-            - Dynamically generate input fields in the popup. The definition comes from an array, that defines the input fields, that should be visible.
-            - Let the user input values.
-            - Implement save action for entities, and show state. Maybe also fix state message immediately.
+            - ✅ Dynamically generate input fields in the popup. The definition comes from an array, that defines the input fields, that should be visible.
+            - ✅ Move the definition for the fields to the EntityMappers. At some points, we'd have to define them anyway. So we have them re-usable.
+            - ✅ Create the values for the editor dynamically. The prior defined entityDefinitions are used, to archive that. Only display the fields, that are marked with requiredOnCreate in the editor, to keep the forms small and functionable.
+            - ✅ Let the user input values.
+            - ✅ Implement save action for entities.
+            - ✅ Clear the editor fields for the editor (that was used to add a new entry for an entity), when the save function was successful and close the editor.
+            - Button während des Speicherns auf "Processing" setzen und inaktiv machen - so dass der User sieht, dass etwas passiert.
+            - Handle success and error messages when the entity is saved. Also fix the error and success bars in this step:
+                - Adjust the design of the success and error bars.
+                - Add button to success/error bar (Dismiss/Close)
             - Select the created entity in the dropdown as current value.
             - If you enter something in the dropdown search field and hit enter, than this should result in the "add new entity" dialog to open with the text prefilled - if possible. That way it should be easier to navigate the application just with a keyboard.
             - If possible, externalise the dialog as custom component, and keep only the config stuff for it.
         - Add a goto link beside the entity dropdowns, so one can directly go to the entity detail page to edit it.
         - Some of the boxes have different border radius. Fix that.
-        - Gestaltung von Erfolgs- und Fehlerleiste anpassen.
-        - Button zu Erfolgs + Fehlerleiste hinufügen (Dismiss/Schließen)
 
     - Take over new styling for detail page to all other editor pages..
         - ✅ Build an editor.module.css and import it on every editor page. That way, I can use general stylings for that pages.

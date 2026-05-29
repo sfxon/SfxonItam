@@ -1,5 +1,7 @@
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+
+import * as QuantityUnitService from '@/services/QuantityUnitService'
+import { computed, onMounted, reactive, ref } from 'vue'
 import NcAppContent from '@nextcloud/vue/components/NcAppContent'
 import NcAppNavigation from '@nextcloud/vue/components/NcAppNavigation'
 import NcAppNavigationList from '@nextcloud/vue/components/NcAppNavigationList'
@@ -19,7 +21,6 @@ import { findDeviceTypes } from '@/services/DeviceTypeService'
 import { findItamUsers } from '@/services/ItamUserService'
 import { findMerchants } from '@/services/MerchantService'
 import { findPositions } from '@/services/PositionService'
-import { findQuantityUnits } from '@/services/QuantityUnitService'
 import SfxonBarcode from '@/components/SfxonBarcode'
 import SfxonEditorFormDatePicker from '@/components/SfxonEditorFormDatePicker'
 import SfxonEditorFormEntitySelect from '@/components/SfxonEditorFormEntitySelect'
@@ -32,16 +33,28 @@ import SfxonMainNavigation from '@/components/SfxonMainNavigation'
 import SfxonQrCodeView from '@/components/SfxonQrCodeView'
 import { getCurrentUser } from '@nextcloud/auth'
 
+const services = { QuantityUnitService }
+
 // Formulardaten
-const showAddEntityEntryDialog = ref(false)
+const addEntityEntryDialogHeading = ref('')
+const addEntityEntryDialogEntityName = ref('')
 const assetNumber = ref('')
 const description = ref('')
 const imageFileId = ref<number | null>(null)
 const imagePreviewUrl = ref<string | null>(null)
 const invoiceNumber = ref('')
 const name = ref('')
+const props = defineProps({
+    entityDefinitions: {
+        type: Object,
+        required: true,
+    },
+})
 const purchaseDate = ref<Date | null>(null)
 const quantity = ref('')
+const relations = reactive(buildRelations(props.entityDefinitions))
+const savedSuccessfully = ref(false)
+const showAddEntityEntryDialog = ref(false)
 const selectedDeviceStatus = ref<{ id: string; label: string } | null>(null)
 const selectedDeviceType = ref<{ id: string; label: string } | null>(null)
 const selectedImageFile = ref<File | null>(null)
@@ -52,7 +65,6 @@ const selectedPosition = ref<{ id: string; label: string } | null>(null)
 const selectedQuantityUnit = ref<{ id: string; label: string } | null>(null)
 const serialNumber = ref('')
 const serialNumber2 = ref('')
-const savedSuccessfully = ref(false)
 
 // Ladezustände
 const deviceLoading = ref(false)
@@ -60,10 +72,6 @@ const isSaving = ref(false)
 
 // Fehlerbehandlung
 const { fieldErrors, generalError, handleApiError, clearErrors, clearFieldError } = useApiErrors()
-
-function addItem() {
-    window.location.href = generateUrl('/apps/sfxonitam/device/detail')
-}
 
 // Id und Modus laden.
 const deviceId = computed(() => {
@@ -98,6 +106,10 @@ const selectedImageLabel = computed(() => {
     return ''
 })
 
+function addItem() {
+    window.location.href = generateUrl('/apps/sfxonitam/device/detail')
+}
+
 function addEntityData(entity, dataObject, identifierField, valueFields = null) {
     if('undefined' === typeof dataObject) {
         return
@@ -123,6 +135,84 @@ function addEntityData(entity, dataObject, identifierField, valueFields = null) 
     }
 
     entity.value.push({id: id, label: label})
+}
+
+function buildRelations(entityDefinitions) {
+    let retval = {};
+
+    for(const [entityName, entityDefinition] of Object.entries(entityDefinitions)) {
+        const fields = []
+
+        for(const fieldDefinition of entityDefinition) {
+            if(!fieldDefinition.requiredOnCreate) {
+                continue;
+            }
+
+            const field = {
+                fieldName: fieldDefinition.name,
+                label: t('sfxonitam', fieldDefinition.label) + ':',
+                sfxonType: mapFrontendBackendFieldType(fieldDefinition.type),
+                type: mapFrontendBackendFieldSubtype(fieldDefinition.type),
+                value: ''
+            }
+
+            fields.push(field);
+        }
+
+        const capitalizedEntityName = entityName.charAt(0).toUpperCase() + entityName.slice(1)
+        
+        const entry = {
+            heading: t('sfxonitam', 'Add ' + entityName),
+            fields: fields,
+            saveFunction: services[`${capitalizedEntityName}Service`][`create${capitalizedEntityName}`]
+        }
+
+        retval[entityName] = {
+            addRecordModal: entry
+        }
+    }
+
+    return retval;
+}
+
+function mapFrontendBackendFieldType(backendType) {
+    switch(backendType) {
+        case 'VARCHAR':
+            return 'SfxonEditorFormInput';
+    }
+
+    throw new Error('Unknown field type ' + backendType);
+}
+
+function mapFrontendBackendFieldSubtype(backendType) {
+    switch(backendType) {
+        case 'VARCHAR':
+            return 'text';
+    }
+
+    throw new Error('Unknown field type ' + backendType);
+}
+
+async function onAddEntityEntryDialogSave() {
+    const entityName = addEntityEntryDialogEntityName.value
+    const addRecordModalSettings = relations[entityName].addRecordModal
+
+    const payload = {
+    }
+
+    for(let field of addRecordModalSettings.fields) {
+        payload[field.fieldName] = field.value
+    }
+
+    let result = await addRecordModalSettings.saveFunction(payload)
+
+    // Clear the fields in the editor after successfull saving.
+    for(let field of addRecordModalSettings.fields) {
+        field.value = '';
+    }
+
+    // Close the modal.
+    showAddEntityEntryDialog.value = false;
 }
 
 async function loadDevice(id: number): Promise<void> {
@@ -170,9 +260,11 @@ async function loadDevice(id: number): Promise<void> {
 }
 
 async function openAddEntityDialog(payload: any) {
-    console.log('Open add Entity Dialog, payload: ', payload)
-
-    showAddEntityEntryDialog.value = true;
+    let entityName = payload.entity
+    let addRecordModalSettings = relations[entityName].addRecordModal
+    addEntityEntryDialogEntityName.value = entityName
+    addEntityEntryDialogHeading.value = addRecordModalSettings.heading
+    showAddEntityEntryDialog.value = true
 }
 
 async function searchDeviceStatis(query: string, signal: AbortSignal): Promise<void> {
@@ -264,7 +356,7 @@ async function searchQuantityUnits(query: string, signal: AbortSignal): Promise<
         name: [query]
     };
 
-    const data = await findQuantityUnits({ filters: filters }, signal)
+    const data = await QuantityUnitService.findQuantityUnits({ filters: filters }, signal)
 
     quantityUnits.value = Object.values(data.mainData).map((quantityUnit: any) => ({
         id: quantityUnit.id,
@@ -397,7 +489,7 @@ async function submitForm() {
             ? await updateDevice(deviceId.value!, payload)
             : await createDevice(payload)
 
-        // Backend gibt status: 'error' mit HTTP 200 zurück
+        // Backend returns status: 'error' with HTTP 200
         if (data?.status === 'error') {
             handleApiError(data, t('sfxonitam', 'Bitte korrigiere die markierten Felder.'))
             return
@@ -405,7 +497,7 @@ async function submitForm() {
 
         savedSuccessfully.value = true;
     } catch (error: any) {
-        // HTTP-Fehler (4xx/5xx) – Backend gibt evtl. trotzdem JSON zurück
+        // HTTP-Error (4xx/5xx), backend may despite return JSON .
         const data = error?.response?.data
 
         if (data?.status === 'error') {
@@ -755,11 +847,42 @@ onMounted(async () => {
 
     <NcDialog
         v-if="showAddEntityEntryDialog"
-        :name="t('sfxonitam', 'Add entity') + ':'"
+        :name="addEntityEntryDialogHeading"
         :open="showAddEntityEntryDialog"
         @closing="showAddEntityEntryDialog = false"
     >
-        <p>Testitest</p>
+        <div v-for="(relation, entityName) in relations">
+            <template v-if="entityName === addEntityEntryDialogEntityName">
+                <template
+                    v-if="relation.addRecordModal && relation.addRecordModal.fields"
+                    v-for="field in relation.addRecordModal.fields"
+                >
+                    <template v-if="field.sfxonType == 'SfxonEditorFormInput'">
+                        <SfxonEditorFormInput
+                            field="'addRecordModal' + field.fieldName"
+                            :id="'addRecordModal' + field.fieldName"
+                            v-model="field.value"
+                            :label="field.label"
+                            :type="field.type"
+                        />
+                    </template>
+                </template>
+            </template>
+        </div>
+
+        <template #actions>
+            <NcButton 
+                variant="tertiary" 
+                @click="showAddEntityEntryDialog = false">
+                {{ t('sfxonitam', 'Cancel') }}
+            </NcButton>
+            <NcButton
+                variant="primary"
+                @click="onAddEntityEntryDialogSave"
+            >
+                {{ t('sfxonitam', 'Save') }}
+            </NcButton>
+        </template>
     </NcDialog>
 </template>
 
