@@ -121,7 +121,7 @@ Editor:
             - ✅ Let the user input values.
             - ✅ Implement save action for entities.
             - ✅ Clear the editor fields for the editor (that was used to add a new entry for an entity), when the save function was successful and close the editor.
-            - Button während des Speicherns auf "Processing" setzen und inaktiv machen - so dass der User sieht, dass etwas passiert.
+            - ✅ Set the button to "Processing" and disable it while saving—so that the user sees that something is happening and does not click it multiple times accidentally.
             - Handle success and error messages when the entity is saved. Also fix the error and success bars in this step:
                 - Adjust the design of the success and error bars.
                 - Add button to success/error bar (Dismiss/Close)
@@ -238,6 +238,8 @@ Editor:
     - Unit tests
     - Integration tests
     - E2E Tests
+
+* Add video (or videos) to explain, how the entity layers work: How are entities created, how are there definitions passed to the vuejs layer, how are dynamic dialogs are built upon this architecture? (Modals in the editor view).
 
 
 

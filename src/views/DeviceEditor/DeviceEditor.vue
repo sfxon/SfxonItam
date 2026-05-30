@@ -13,8 +13,8 @@ import { mdiPlus } from '@mdi/js'
 import { translate as t } from '@nextcloud/l10n'
 import { generateUrl, generateRemoteUrl } from '@nextcloud/router'
 import NcNoteCard from '@nextcloud/vue/components/NcNoteCard'
-import { useApiErrors } from '@/composables/useApiErrors'
 import NcIconSvgWrapper from '@nextcloud/vue/components/NcIconSvgWrapper'
+import { NcLoadingIcon } from '@nextcloud/vue'
 import { fetchDevice, createDevice, updateDevice } from '@/services/DeviceService'
 import { findDeviceStatis } from '@/services/DeviceStatusService'
 import { findDeviceTypes } from '@/services/DeviceTypeService'
@@ -32,12 +32,14 @@ import SfxonItamHeader from '@/components/SfxonItamHeader'
 import SfxonMainNavigation from '@/components/SfxonMainNavigation'
 import SfxonQrCodeView from '@/components/SfxonQrCodeView'
 import { getCurrentUser } from '@nextcloud/auth'
+import { useApiErrors } from '@/composables/useApiErrors'
 
 const services = { QuantityUnitService }
 
 // Formulardaten
 const addEntityEntryDialogHeading = ref('')
 const addEntityEntryDialogEntityName = ref('')
+const addEntityEntryDialogIsSaving = ref(false)
 const assetNumber = ref('')
 const description = ref('')
 const imageFileId = ref<number | null>(null)
@@ -194,6 +196,7 @@ function mapFrontendBackendFieldSubtype(backendType) {
 }
 
 async function onAddEntityEntryDialogSave() {
+    addEntityEntryDialogIsSaving.value = true
     const entityName = addEntityEntryDialogEntityName.value
     const addRecordModalSettings = relations[entityName].addRecordModal
 
@@ -212,6 +215,7 @@ async function onAddEntityEntryDialogSave() {
     }
 
     // Close the modal.
+    addEntityEntryDialogIsSaving.value = false
     showAddEntityEntryDialog.value = false;
 }
 
@@ -872,15 +876,18 @@ onMounted(async () => {
 
         <template #actions>
             <NcButton 
+                @click="showAddEntityEntryDialog = false"
                 variant="tertiary" 
-                @click="showAddEntityEntryDialog = false">
+            >
                 {{ t('sfxonitam', 'Cancel') }}
             </NcButton>
             <NcButton
-                variant="primary"
                 @click="onAddEntityEntryDialogSave"
+                :disabled="addEntityEntryDialogIsSaving"
+                variant="primary"
             >
-                {{ t('sfxonitam', 'Save') }}
+                <NcLoadingIcon v-if="addEntityEntryDialogIsSaving" :size="20" />
+                <span v-else>{{ t('sfxonitam', 'Save') }}</span>
             </NcButton>
         </template>
     </NcDialog>
