@@ -129,8 +129,8 @@ Editor:
                 - ✅ Adjust the design of the error bars.
             - ✅ Select the created entity in the dropdown as current value.
             - ✅ Add a keyboard shortcut, to open the "add new entity" dialog for users, that only navigate with keyboard (Alt+N).
-            - If possible, externalise the dialog as custom component, and keep only the config stuff for it.
-        - Add a goto link beside the entity dropdowns, so one can directly go to the entity detail page to edit it.
+            - Add functionality to all the other entity fields.
+            - If possible, externalise the dialog as custom component, and keep only the config stuff for it in the device editor component.
         - Some of the boxes have different border radius. Fix that.
 
     - Take over new styling for detail page to all other editor pages..

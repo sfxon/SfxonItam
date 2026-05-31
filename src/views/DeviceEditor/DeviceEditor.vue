@@ -103,18 +103,13 @@ const quantityUnits = ref<{ id: string; label: string}[]>([])
  */
 const entityConfig = {
     quantityUnit: {
-        // Was das Backend-Feld definiert (bleibt wie gehabt via props)
         selectTarget: selectedQuantityUnit,
         optionsTarget: quantityUnits,
         labelFields: { fields: ['name'] },
     },
 }
 const relations = reactive(buildRelations(props.entityDefinitions, entityConfig))
-
-console.log('relations: ', relations);
 /* End: relation definition */
-
-
 
 const toLocalDateString = (date: Date): string => {
     const y = date.getFullYear()
@@ -371,6 +366,10 @@ async function searchDeviceStatis(query: string, signal: AbortSignal): Promise<v
 
     const data = await findDeviceStatis({ filters: filters }, signal)
 
+    if (data === null || data.mainData === null) {
+        return;
+    }
+
     deviceStatis.value = Object.values(data.mainData).map((deviceStatus: any) => ({
         id: deviceStatus.id,
         label: deviceStatus.name
@@ -383,6 +382,10 @@ async function searchDeviceTypes(query: string, signal: AbortSignal): Promise<vo
     };
 
     const data = await findDeviceTypes({ filters: filters }, signal)
+
+    if (data === null || data.mainData === null) {
+        return;
+    }
 
     deviceTypes.value = Object.values(data.mainData).map((deviceType: any) => ({
         id: deviceType.id,
@@ -399,6 +402,10 @@ async function searchItamUsers(query: string, signal: AbortSignal): Promise<void
 
     const data = await findItamUsers({ filters: filters }, signal)
 
+    if (data === null || data.mainData === null) {
+        return;
+    }
+
     itamUsers.value = Object.values(data.mainData).map((itamUser: any) => ({
         id: itamUser.id,
         label: itamUser.firstname + ' ' + itamUser.lastname
@@ -411,6 +418,10 @@ async function searchMerchants(query: string, signal: AbortSignal): Promise<void
     };
 
     const data = await findMerchants({ filters: filters }, signal)
+
+    if (data === null || data.mainData === null) {
+        return;
+    }
 
     merchants.value = Object.values(data.mainData).map((merchant: any) => ({
         id: merchant.id,
@@ -454,6 +465,10 @@ async function searchQuantityUnits(query: string, signal: AbortSignal): Promise<
     };
 
     const data = await QuantityUnitService.findQuantityUnits({ filters: filters }, signal)
+
+    if (data === null || data.mainData === null) {
+        return;
+    }
 
     quantityUnits.value = Object.values(data.mainData).map((quantityUnit: any) => ({
         id: quantityUnit.id,
