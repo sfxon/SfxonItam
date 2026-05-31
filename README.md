@@ -127,8 +127,8 @@ Editor:
             - ✅ Handle errors on saving: Show error message and highlite fields with input errors.
                 - ✅ Add a general error message.
                 - ✅ Adjust the design of the error bars.
-            - Select the created entity in the dropdown as current value.
-            - If you enter something in the dropdown search field and hit enter, than this should result in the "add new entity" dialog to open with the text prefilled - if possible. That way it should be easier to navigate the application just with a keyboard.
+            - ✅ Select the created entity in the dropdown as current value.
+            - ✅ Add a keyboard shortcut, to open the "add new entity" dialog for users, that only navigate with keyboard (Alt+N).
             - If possible, externalise the dialog as custom component, and keep only the config stuff for it.
         - Add a goto link beside the entity dropdowns, so one can directly go to the entity detail page to edit it.
         - Some of the boxes have different border radius. Fix that.

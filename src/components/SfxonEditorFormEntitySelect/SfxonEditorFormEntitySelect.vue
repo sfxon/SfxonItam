@@ -5,6 +5,7 @@ import NcIconSvgWrapper from '@nextcloud/vue/components/NcIconSvgWrapper'
 import NcSelect from '@nextcloud/vue/components/NcSelect'
 import { ref } from 'vue'
 import SfxonEditorStyles from '@/components/SfxonEditor/SfxonEditor.module.css'
+import { translate as t } from '@nextcloud/l10n'
 
 const isSearching = ref(false)
 const preloaded = ref<boolean>(false)
@@ -109,14 +110,16 @@ function onClickAddIcon() {
                     :class="fieldError ? SfxonEditorStyles.fieldError : ''"
                     @focusin="triggerPreload"
                     :id="id"
+                    @keydown.alt.n.prevent="addRecordFn?.()"
                     :loading="isSearching"
                     :min-input-length="2"
                     :model-value="modelValue"
                     @mouseenter="onMouseEnter"
                     @mouseleave="onMouseLeave"
                     :options="options"
-                    v-on="searchFn ? { search: onSearch } : {}"
+                    :title="t('sfxonitam', 'Add new entry (Alt+N)')"
                     :track-by="trackBy"
+                    v-on="searchFn ? { search: onSearch } : {}"
                     @update:modelValue="onInput" />
                 <span v-if="fieldError" :class="SfxonEditorStyles.errorText">
                     {{ fieldError }}

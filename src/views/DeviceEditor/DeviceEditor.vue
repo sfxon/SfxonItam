@@ -1,7 +1,7 @@
 <script setup lang="ts">
 
 import * as QuantityUnitService from '@/services/QuantityUnitService'
-import { computed, onMounted, reactive, ref } from 'vue'
+import { computed, isRef, onMounted, reactive, ref } from 'vue'
 import NcAppContent from '@nextcloud/vue/components/NcAppContent'
 import NcAppNavigation from '@nextcloud/vue/components/NcAppNavigation'
 import NcAppNavigationList from '@nextcloud/vue/components/NcAppNavigationList'
@@ -54,12 +54,11 @@ const props = defineProps({
 })
 const purchaseDate = ref<Date | null>(null)
 const quantity = ref('')
-const relations = reactive(buildRelations(props.entityDefinitions))
+
 const saveFlashKey = ref(0) // Changing this key re-triggers the CSS animation.
 const saveVisible = ref(false) // Used to control the visibility of symbols.
 const saveIsReflash = ref(false) // Marks the distinction between initial vs. re-trigger animations.
 let saveHideTimer: ReturnType<typeof setTimeout> | null = null
-// const savedSuccessfully = ref(false)
 const showAddEntityEntryDialog = ref(false)
 const selectedDeviceStatus = ref<{ id: string; label: string } | null>(null)
 const selectedDeviceType = ref<{ id: string; label: string } | null>(null)
@@ -90,6 +89,32 @@ const deviceTypes = ref<{ id: string; label: string}[]>([])
 const merchants = ref<{ id: string; label: string }[]>([])
 const positions = ref<{ id: string; label: string}[]>([])
 const quantityUnits = ref<{ id: string; label: string}[]>([])
+
+/**
+ * @deprecated
+ * 
+ * This is in subject to be more streamlined.
+ * Since entities will be even more dynamic in the future, especially when we think of custom fields,
+ * this is only a first draft, on how this could be archived.
+ * Later, the fields "selectTarget, optionsTarget and labelFields" should be dynamically generated in the buildRelations method.
+ * The input fields below should then only be rendered in a loop, with the given input fields.
+ * For the time between, we use this as a middle solution.
+ * 
+ */
+const entityConfig = {
+    quantityUnit: {
+        // Was das Backend-Feld definiert (bleibt wie gehabt via props)
+        selectTarget: selectedQuantityUnit,
+        optionsTarget: quantityUnits,
+        labelFields: { fields: ['name'] },
+    },
+}
+const relations = reactive(buildRelations(props.entityDefinitions, entityConfig))
+
+console.log('relations: ', relations);
+/* End: relation definition */
+
+
 
 const toLocalDateString = (date: Date): string => {
     const y = date.getFullYear()
@@ -139,7 +164,7 @@ function addEntityData(entity, dataObject, identifierField, valueFields = null) 
     entity.value.push({id: id, label: label})
 }
 
-function buildRelations(entityDefinitions) {
+function buildRelations(entityDefinitions, dropdownBindings = {}) {
     let retval = {};
 
     for(const [entityName, entityDefinition] of Object.entries(entityDefinitions)) {
@@ -162,7 +187,6 @@ function buildRelations(entityDefinitions) {
         }
 
         const capitalizedEntityName = entityName.charAt(0).toUpperCase() + entityName.slice(1)
-        
         const entry = {
             heading: t('sfxonitam', 'Add ' + entityName),
             fields: fields,
@@ -171,6 +195,15 @@ function buildRelations(entityDefinitions) {
 
         retval[entityName] = {
             addRecordModal: entry
+        }
+
+        const binding = dropdownBindings[entityName] ?? {}
+
+        retval[entityName] = {
+            addRecordModal: entry,
+            selectTarget: binding.selectTarget ?? null,
+            optionsTarget: binding.optionsTarget ?? null,
+            labelFields: binding.labelFields ?? { fields: ['name'] },
         }
     }
 
@@ -198,7 +231,8 @@ function mapFrontendBackendFieldSubtype(backendType) {
 async function onAddEntityEntryDialogSave() {
     addEntityEntryDialogIsSaving.value = true
     const entityName = addEntityEntryDialogEntityName.value
-    const addRecordModalSettings = relations[entityName].addRecordModal
+    const relation = relations[entityName]
+    const addRecordModalSettings = relation.addRecordModal
     const payload = {}
 
     // Reset error before new attempt.
@@ -211,6 +245,36 @@ async function onAddEntityEntryDialogSave() {
 
     try {
         let result = await addRecordModalSettings.saveFunction(payload)
+
+        // Build the label from the form fields, using the labelFields definition in entityConfig.
+        const label = relation.labelFields.fields
+            .map(fieldName => addRecordModalSettings.fields.find(f => f.fieldName === fieldName)?.value ?? '')
+            .filter(Boolean)
+            .join(relation.labelFields.separator ?? ' ')
+
+        const newOption = { id: String(result.id), label }
+
+        // Add the new option to the dropdown list (so NcSelect knows it).
+        if (relation.optionsTarget) {
+            const list = isRef(relation.optionsTarget) 
+                ? relation.optionsTarget.value 
+                : relation.optionsTarget
+
+            const alreadyExists = list.some(o => o.id === newOption.id)
+
+            if (!alreadyExists) {
+                list.push(newOption)
+            }
+        }
+
+        // Pre-select the newly created entry in the dropdown.
+        if (relation.selectTarget) {
+            if (isRef(relation.selectTarget)) {
+                relation.selectTarget.value = newOption
+            } else {
+                relation.selectTarget = newOption
+            }
+        }
 
         // Clear the fields in the editor after successfull saving.
         for(let field of addRecordModalSettings.fields) {
@@ -232,6 +296,8 @@ async function onAddEntityEntryDialogSave() {
             addEntityEntryDialogError.value = t('sfxon', 'Please check your input.')
         } else {
             addEntityEntryDialogError.value = t('sfxon', 'An error occurred. Please try again. For further details, check the logs. For professional support, the Oishi Team is happy to help.')
+            console.error(error.stack)
+            throw error
         }
     }
 }
