@@ -124,9 +124,9 @@ Editor:
             - ✅ Set the button to "Processing" and disable it while saving—so that the user sees that something is happening and does not click it multiple times accidentally.
             - ✅ Handle success messages.
                 - ✅ Adjust the design of the success element (ReDesign).
-            - Handle error messages when the entity is saved. Also fix the error and success bars in this step:
-                - Adjust the design of the error bars.
-                - Add button to success/error bar (Dismiss/Close)
+            - ✅ Handle errors on saving: Show error message and highlite fields with input errors.
+                - ✅ Add a general error message.
+                - ✅ Adjust the design of the error bars.
             - Select the created entity in the dropdown as current value.
             - If you enter something in the dropdown search field and hit enter, than this should result in the "add new entity" dialog to open with the text prefilled - if possible. That way it should be easier to navigate the application just with a keyboard.
             - If possible, externalise the dialog as custom component, and keep only the config stuff for it.

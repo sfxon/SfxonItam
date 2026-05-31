@@ -47,10 +47,10 @@
     border-width: 0;
 }
 
-.fieldError :deep(input),
-.fieldError :deep(.v-select) {
-    border-color: var(--color-error) !important;
-    box-shadow: 0 0 0 2px var(--color-error-hover) !important;
+.fieldError {
+    --input-border-color: var(--color-error-text, #cc0000);
+    --color-main-background: var(--color-error, #FFE7E7);
+    --color-main-text: var(--color-error-text, #cc0000);
 }
 
 /* Label */

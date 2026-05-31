@@ -18,7 +18,7 @@ class QuantityUnitService {
         );
     }
 
-    public function validateData(array $data) {
-        return $this->quantityUnitValidator->validate($data);
+    public function validateData(array $data, ?int $excludeId = null) {
+        return $this->quantityUnitValidator->validate($data, $excludeId);
     }
 }

@@ -35,10 +35,10 @@ import { getCurrentUser } from '@nextcloud/auth'
 import { useApiErrors } from '@/composables/useApiErrors'
 
 const services = { QuantityUnitService }
-
-// Formulardaten
-const addEntityEntryDialogHeading = ref('')
+const addEntityEntryDialogError = ref('')
 const addEntityEntryDialogEntityName = ref('')
+const addEntityEntryDialogFieldErrors = ref({}) // { [entityName]: { [fieldName]: 'message' } }
+const addEntityEntryDialogHeading = ref('')
 const addEntityEntryDialogIsSaving = ref(false)
 const assetNumber = ref('')
 const description = ref('')
@@ -55,13 +55,11 @@ const props = defineProps({
 const purchaseDate = ref<Date | null>(null)
 const quantity = ref('')
 const relations = reactive(buildRelations(props.entityDefinitions))
-
-const saveFlashKey = ref(0)        // Key-Wechsel triggert CSS-Animation neu
-const saveVisible = ref(false)     // Steuert Sichtbarkeit des Icons
-const saveIsReflash = ref(false)   // Unterscheidet Erst- vs. Re-Trigger-Animation
+const saveFlashKey = ref(0) // Changing this key re-triggers the CSS animation.
+const saveVisible = ref(false) // Used to control the visibility of symbols.
+const saveIsReflash = ref(false) // Marks the distinction between initial vs. re-trigger animations.
 let saveHideTimer: ReturnType<typeof setTimeout> | null = null
-
-const savedSuccessfully = ref(false)
+// const savedSuccessfully = ref(false)
 const showAddEntityEntryDialog = ref(false)
 const selectedDeviceStatus = ref<{ id: string; label: string } | null>(null)
 const selectedDeviceType = ref<{ id: string; label: string } | null>(null)
@@ -73,12 +71,8 @@ const selectedPosition = ref<{ id: string; label: string } | null>(null)
 const selectedQuantityUnit = ref<{ id: string; label: string } | null>(null)
 const serialNumber = ref('')
 const serialNumber2 = ref('')
-
-// Ladezustände
 const deviceLoading = ref(false)
 const isSaving = ref(false)
-
-// Fehlerbehandlung
 const { fieldErrors, generalError, handleApiError, clearErrors, clearFieldError } = useApiErrors()
 
 // Id und Modus laden.
@@ -92,7 +86,7 @@ const isEditMode = computed(() => !!deviceId.value)
 const itamUsers = ref<{ id: string; label: string }[]>([])
 const deviceStatis = ref<{ id: string; label: string}[]>([])
 const deviceTypes = ref<{ id: string; label: string}[]>([])
-const locations = ref<{ id: string; label: string}[]>([])
+/* const locations = ref<{ id: string; label: string}[]>([]) */
 const merchants = ref<{ id: string; label: string }[]>([])
 const positions = ref<{ id: string; label: string}[]>([])
 const quantityUnits = ref<{ id: string; label: string}[]>([])
@@ -205,25 +199,51 @@ async function onAddEntityEntryDialogSave() {
     addEntityEntryDialogIsSaving.value = true
     const entityName = addEntityEntryDialogEntityName.value
     const addRecordModalSettings = relations[entityName].addRecordModal
+    const payload = {}
 
-    const payload = {
-    }
+    // Reset error before new attempt.
+    addEntityEntryDialogError.value = ''
+    addEntityEntryDialogFieldErrors.value[entityName] = {}
 
     for(let field of addRecordModalSettings.fields) {
         payload[field.fieldName] = field.value
     }
 
-    let result = await addRecordModalSettings.saveFunction(payload)
+    try {
+        let result = await addRecordModalSettings.saveFunction(payload)
 
-    // Clear the fields in the editor after successfull saving.
-    for(let field of addRecordModalSettings.fields) {
-        field.value = '';
+        // Clear the fields in the editor after successfull saving.
+        for(let field of addRecordModalSettings.fields) {
+            field.value = '';
+        }
+
+        addEntityEntryDialogIsSaving.value = false
+        onAddEntityEntryDialogClose()
+        resetDialogErrors()
+        triggerSaveSuccess()
+    } catch(error) {
+        addEntityEntryDialogIsSaving.value = false
+
+        const responseData = error?.response?.data
+
+        if (responseData?.status === 'error' && responseData?.errors) {
+            // Set the field specific errors – but only for the currently used entity.
+            addEntityEntryDialogFieldErrors.value[entityName] = responseData.errors
+            addEntityEntryDialogError.value = t('sfxon', 'Please check your input.')
+        } else {
+            addEntityEntryDialogError.value = t('sfxon', 'An error occurred. Please try again. For further details, check the logs. For professional support, the Oishi Team is happy to help.')
+        }
     }
+}
 
-    // Close the modal.
-    addEntityEntryDialogIsSaving.value = false
-    showAddEntityEntryDialog.value = false;
-    triggerSaveSuccess()
+function onAddEntityEntryDialogClose() {
+    showAddEntityEntryDialog.value = false
+    resetDialogErrors()
+}
+
+function resetDialogErrors() {
+    addEntityEntryDialogError.value = ''
+    addEntityEntryDialogFieldErrors.value = {}
 }
 
 async function loadDevice(id: number): Promise<void> {
@@ -642,14 +662,6 @@ onMounted(async () => {
                 >
                     {{ generalError }}
                 </NcNoteCard>
-
-                <!-- Success Messages. -->
-                <NcNoteCard
-                    v-if="savedSuccessfully"
-                    type="success"
-                >
-                    {{ t('sfxonitam', 'Changes have been saved.') }}
-                </NcNoteCard>
             </div>
 
             <!-- Form -->
@@ -899,8 +911,19 @@ onMounted(async () => {
         v-if="showAddEntityEntryDialog"
         :name="addEntityEntryDialogHeading"
         :open="showAddEntityEntryDialog"
-        @closing="showAddEntityEntryDialog = false"
+        @closing="onAddEntityEntryDialogClose()"
     >
+        <!-- Error Messages. -->
+        <div :class="$style.MyfavNotificationContainer">
+            <NcNoteCard
+                :class="$style.sfxonModalDialogErrorMsg"
+                v-if="addEntityEntryDialogError"
+                type="error"
+            >
+                {{ addEntityEntryDialogError }}
+            </NcNoteCard>
+        </div>
+
         <div v-for="(relation, entityName) in relations">
             <template v-if="entityName === addEntityEntryDialogEntityName">
                 <template
@@ -909,7 +932,8 @@ onMounted(async () => {
                 >
                     <template v-if="field.sfxonType == 'SfxonEditorFormInput'">
                         <SfxonEditorFormInput
-                            field="'addRecordModal' + field.fieldName"
+                            :field="'addRecordModal' + field.fieldName"
+                            :fieldError="addEntityEntryDialogFieldErrors[entityName]?.[field.fieldName] ?? ''"
                             :id="'addRecordModal' + field.fieldName"
                             v-model="field.value"
                             :label="field.label"
@@ -922,7 +946,7 @@ onMounted(async () => {
 
         <template #actions>
             <NcButton 
-                @click="showAddEntityEntryDialog = false"
+                @click="onAddEntityEntryDialogClose()"
                 variant="tertiary" 
             >
                 {{ t('sfxonitam', 'Cancel') }}
@@ -1049,5 +1073,15 @@ onMounted(async () => {
     0%   { box-shadow: 0 6px 20px color-mix(in srgb, var(--color-success) 50%, transparent), 0 2px 6px rgba(0,0,0,0.15); }
     30%  { box-shadow: 0 0 0 10px color-mix(in srgb, var(--color-success) 35%, transparent), 0 8px 30px color-mix(in srgb, var(--color-success) 70%, transparent); }
     100% { box-shadow: 0 6px 20px color-mix(in srgb, var(--color-success) 50%, transparent), 0 2px 6px rgba(0,0,0,0.15); }
+}
+
+/* Error Messages */
+.sfxonModalDialogErrorMsg {
+    margin-top: 0!important;
+}
+
+.sfxonModalDialogErrorMsg :global(span.icon-vue) {
+    align-self: start;
+    padding-top: 3px;
 }
 </style>

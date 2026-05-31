@@ -177,7 +177,7 @@ class QuantityUnitController extends Controller {
     #[OpenAPI(OpenAPI::SCOPE_IGNORE)]
     #[FrontpageRoute(verb: 'PUT', url: '/quantity-unit/{id}')]
     public function update(int $id): DataResponse {
-        // Gerät laden – 404 wenn nicht vorhanden
+        // Load Device – 404 if not found.
         try {
             $quantityUnit = $this->quantityUnitMapper->findById($id);
         } catch (\OCP\AppFramework\Db\DoesNotExistException) {
@@ -191,7 +191,7 @@ class QuantityUnitController extends Controller {
 
         $data = $this->quantityUnitService->getDataFromRequest($this->request->getParams(), $expectedFields);
 
-        $result = $this->quantityUnitService->validateData($data);
+        $result = $this->quantityUnitService->validateData($data, $id);
 
         if ($result['valid'] === false) {
             return new DataResponse([
