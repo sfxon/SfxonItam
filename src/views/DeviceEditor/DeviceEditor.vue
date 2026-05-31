@@ -55,6 +55,12 @@ const props = defineProps({
 const purchaseDate = ref<Date | null>(null)
 const quantity = ref('')
 const relations = reactive(buildRelations(props.entityDefinitions))
+
+const saveFlashKey = ref(0)        // Key-Wechsel triggert CSS-Animation neu
+const saveVisible = ref(false)     // Steuert Sichtbarkeit des Icons
+const saveIsReflash = ref(false)   // Unterscheidet Erst- vs. Re-Trigger-Animation
+let saveHideTimer: ReturnType<typeof setTimeout> | null = null
+
 const savedSuccessfully = ref(false)
 const showAddEntityEntryDialog = ref(false)
 const selectedDeviceStatus = ref<{ id: string; label: string } | null>(null)
@@ -217,6 +223,7 @@ async function onAddEntityEntryDialogSave() {
     // Close the modal.
     addEntityEntryDialogIsSaving.value = false
     showAddEntityEntryDialog.value = false;
+    triggerSaveSuccess()
 }
 
 async function loadDevice(id: number): Promise<void> {
@@ -458,7 +465,6 @@ async function openNextcloudFilePicker(): Promise<void> {
 
 async function submitForm() {
     clearErrors()
-    savedSuccessfully.value = false;
     isSaving.value = true
 
     try {
@@ -499,7 +505,7 @@ async function submitForm() {
             return
         }
 
-        savedSuccessfully.value = true;
+        triggerSaveSuccess()
     } catch (error: any) {
         // HTTP-Error (4xx/5xx), backend may despite return JSON .
         const data = error?.response?.data
@@ -512,6 +518,26 @@ async function submitForm() {
     } finally {
         isSaving.value = false
     }
+}
+
+function triggerSaveSuccess() {
+    const HIDE_DELAY = 3500 // ms
+
+    if (saveVisible.value) {
+        // Retrigger: with prominent highlighting.
+        saveIsReflash.value = true
+        saveFlashKey.value++
+        setTimeout(() => { saveIsReflash.value = false }, 600)
+    } else {
+        saveVisible.value = true
+        saveIsReflash.value = false
+        saveFlashKey.value++
+    }
+
+    if (saveHideTimer) clearTimeout(saveHideTimer)
+    saveHideTimer = setTimeout(() => {
+        saveVisible.value = false
+    }, HIDE_DELAY)
 }
 
 async function uploadImageIfNeeded(): Promise<void> {
@@ -607,25 +633,45 @@ onMounted(async () => {
                     </NcButton>
                 </template>
             </SfxonItamHeader>
-                
 
-            <!-- Allgemeine Fehlermeldung -->
-            <NcNoteCard
-                v-if="generalError"
-                type="error"
-            >
-                {{ generalError }}
-            </NcNoteCard>
+            <div :class="$style.MyfavNotificationContainer">
+                <!-- Error Messages. -->
+                <NcNoteCard
+                    v-if="generalError"
+                    type="error"
+                >
+                    {{ generalError }}
+                </NcNoteCard>
 
-            <!-- Erfolgsmeldung -->
-            <NcNoteCard
-                v-if="savedSuccessfully"
-                type="success"
-            >
-                {{ t('sfxonitam', 'Changes have been saved.') }}
-            </NcNoteCard>
+                <!-- Success Messages. -->
+                <NcNoteCard
+                    v-if="savedSuccessfully"
+                    type="success"
+                >
+                    {{ t('sfxonitam', 'Changes have been saved.') }}
+                </NcNoteCard>
+            </div>
 
+            <!-- Form -->
             <div :class="SfxonEditorStyles.form">
+                <!-- Save animation -->
+                <div :class="$style.saveBadgeOuter">
+                    <Transition name="save-badge">
+                        <div
+                            v-if="saveVisible"
+                            :key="saveFlashKey"
+                            :class="[$style.saveBadge, saveIsReflash && $style.saveBadgeReflash]"
+                            aria-live="polite"
+                            role="status"
+                        >
+                            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" :class="$style.saveBadgeIcon">
+                                <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="1.8" fill="rgba(255,255,255,0.1)"/>
+                                <polyline points="7,12.5 10.5,16 17,9" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+                            </svg>
+                        </div>
+                    </Transition>
+                </div>
+
                 <div :class="[SfxonEditorStyles.sfxonFormRow, $style.sfxonFormRow1]">
                     <div :class="[SfxonEditorStyles.sfxonFormSection, $style.sfxonFormSection1]">
                         <div :class="SfxonEditorStyles.sfxonFormColumn">
@@ -927,5 +973,81 @@ onMounted(async () => {
 .sfxonFormColumnDescription {
     min-height: 200px;
     width: 100%;
+}
+
+/* Save Badge */
+.saveBadgeOuter {
+    position: absolute;
+    top: 6px;
+    right: -134px;
+    width: 126px;
+    height: 100%;
+    overflow: visible;
+    pointer-events: none;
+    z-index: 1500;
+}
+
+.saveBadge {
+    align-items: center;
+    animation: saveBadgeEnter 0.45s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+    background: color-mix(in srgb, var(--color-success) 80%, transparent);
+    border-radius: var(--border-radius-large, 12px);
+    box-shadow:
+        0 6px 20px color-mix(in srgb, var(--color-success) 50%, transparent),
+        0 2px 6px rgba(0,0,0,0.15),
+        inset 0 1px 0 rgba(255,255,255,0.15);
+    display: flex;
+    height: 108px;
+    justify-content: center;
+    pointer-events: auto;
+    position: sticky;
+    right: 0;
+    top: 12px; /*top: calc(var(--header-height, 50px) + 50px);*/
+    transform-origin: top right;
+    translate: -126px 0;
+    width: 108px;
+    z-index: 9999;
+}
+
+@media screen and (min-width: 1024px) {
+    .saveBadge {
+
+    }
+}
+
+.saveBadgeIcon {
+    color: var(--color-success-text);
+    height: 66px;
+    width: 66px;
+}
+
+/* Retrigger: Bounce and Flash */
+.saveBadgeReflash {
+    animation:
+        saveBadgeEnter 0.45s cubic-bezier(0.34, 1.56, 0.64, 1) both,
+        saveBadgeFlash 0.55s ease-out both;
+}
+
+/* Vue Transition for fadeout. */
+:global(.save-badge-leave-active) {
+    display: none;
+    position: absolute; /* Step out of the flow, so that the new icon can stick at the top. */
+    transition: opacity 0.4s ease, transform 0.4s ease;
+}
+
+:global(.save-badge-leave-to) {
+    opacity: 0;
+    transform: scale(0.8) translateY(-4px);
+}
+
+@keyframes saveBadgeEnter {
+    0%   { opacity: 0; transform: scale(0.5) translateY(-8px); }
+    100% { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+@keyframes saveBadgeFlash {
+    0%   { box-shadow: 0 6px 20px color-mix(in srgb, var(--color-success) 50%, transparent), 0 2px 6px rgba(0,0,0,0.15); }
+    30%  { box-shadow: 0 0 0 10px color-mix(in srgb, var(--color-success) 35%, transparent), 0 8px 30px color-mix(in srgb, var(--color-success) 70%, transparent); }
+    100% { box-shadow: 0 6px 20px color-mix(in srgb, var(--color-success) 50%, transparent), 0 2px 6px rgba(0,0,0,0.15); }
 }
 </style>
