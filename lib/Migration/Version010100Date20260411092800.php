@@ -117,10 +117,6 @@ class Version010100Date20260411092800 extends SimpleMigrationStep {
                 'notnull' => false,
             ]);
 
-            $table->addColumn('custom_fields', Types::TEXT, [
-                'notnull' => false,
-            ]);
-
             $table->addColumn('description', Types::TEXT, [
                 'notnull' => false,
             ]);

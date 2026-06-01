@@ -130,6 +130,13 @@ Editor:
             - ✅ Select the created entity in the dropdown as current value.
             - ✅ Add a keyboard shortcut, to open the "add new entity" dialog for users, that only navigate with keyboard (Alt+N).
             - Add functionality to all the other entity fields.
+                - ✅ Add getFieldDefinition to every entity.
+                - ✅ Remove custom fields entity from device.
+                - Implement new functionality from QuantityUnitMapper into the other entity mappers.
+                - Implement new functionality from QuantityValidator into the other validators.
+                - Implement new functionality from QuantityController into the other entity controllers.
+                - Let device entities detail page also load the other entities field definitions and hand them by the template over to the vuejs.
+                - Implement entity modals in deviceEditor.vue.
             - If possible, externalise the dialog as custom component, and keep only the config stuff for it in the device editor component.
         - Some of the boxes have different border radius. Fix that.
 
@@ -251,11 +258,12 @@ Keine
 
 ## Kommende Funktionen
 
-1. Hardware Inventar
-2. Lizenz Management
-3. Reporte
-4. Export
-5. Import
+1. Hardware Inventory
+2. History
+3. License Management
+4. Reports + Stats
+5. Exports
+6. Imports
 
 
 ### Kommende Funktionen: 1. Hardware Inventar
