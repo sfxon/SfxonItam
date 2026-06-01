@@ -37,6 +37,20 @@ class MerchantMapper extends QBMapper {
         return $this->findEntity($qb);
     }
 
+    public function findByName(string $name): ?Merchant {
+        $qb = $this->db->getQueryBuilder();
+        $qb->select('*')
+            ->from($this->getTableName())
+            ->where($qb->expr()->eq('name', $qb->createNamedParameter($name)))
+            ->setMaxResults(1);
+
+        try {
+            return $this->findEntity($qb);
+        } catch (\OCP\AppFramework\Db\DoesNotExistException) {
+            return null;
+        }
+    }
+
     #[\Deprecated(message: "Will be removed.", since: "1.9")]
     /** @return Merchant[] */
     public function findAll(): array {

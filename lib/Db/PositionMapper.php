@@ -28,28 +28,6 @@ class PositionMapper extends QBMapper {
         return (int) $qb->executeQuery()->fetchOne();
     }
 
-    public function isEntityValueInUse($entityFieldName, $id) {
-        $allowedEntityIdFields = ['location_id'];
-
-        if(!in_array($entityFieldName, $allowedEntityIdFields)) {
-            throw new \Exception('Entity field name \'' . $entityFieldName . '\' is not allowed.');
-        }
-
-        $qb = $this->db->getQueryBuilder();
-        $qb->select('*')
-            ->from($this->getTableName())
-            ->where($qb->expr()->eq($entityFieldName, $qb->createNamedParameter($id, IQueryBuilder::PARAM_INT)))
-            ->setMaxResults(1);
-
-        $result = $qb->executeQuery()->fetchAssociative();
-
-        if ($result === false) {
-            return false;
-        }
-
-        return true;
-    }
-
     public function findById(int $id): Position {
         $qb = $this->db->getQueryBuilder();
         $qb->select('*')
@@ -57,6 +35,20 @@ class PositionMapper extends QBMapper {
             ->where($qb->expr()->eq('id', $qb->createNamedParameter($id, IQueryBuilder::PARAM_INT)));
 
         return $this->findEntity($qb);
+    }
+
+    public function findByName(string $name): ?Position {
+        $qb = $this->db->getQueryBuilder();
+        $qb->select('*')
+            ->from($this->getTableName())
+            ->where($qb->expr()->eq('name', $qb->createNamedParameter($name)))
+            ->setMaxResults(1);
+
+        try {
+            return $this->findEntity($qb);
+        } catch (\OCP\AppFramework\Db\DoesNotExistException) {
+            return null;
+        }
     }
 
     #[\Deprecated(message: "Will be removed.", since: "1.9")]
@@ -88,6 +80,28 @@ class PositionMapper extends QBMapper {
             ->setFirstResult($offset);
 
         return $this->findEntities($qb);
+    }
+
+    public function isEntityValueInUse($entityFieldName, $id) {
+        $allowedEntityIdFields = ['location_id'];
+
+        if(!in_array($entityFieldName, $allowedEntityIdFields)) {
+            throw new \Exception('Entity field name \'' . $entityFieldName . '\' is not allowed.');
+        }
+
+        $qb = $this->db->getQueryBuilder();
+        $qb->select('*')
+            ->from($this->getTableName())
+            ->where($qb->expr()->eq($entityFieldName, $qb->createNamedParameter($id, IQueryBuilder::PARAM_INT)))
+            ->setMaxResults(1);
+
+        $result = $qb->executeQuery()->fetchAssociative();
+
+        if ($result === false) {
+            return false;
+        }
+
+        return true;
     }
 
     /** @return Position[] */

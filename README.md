@@ -132,12 +132,13 @@ Editor:
             - Add functionality to all the other entity fields.
                 - ✅ Add getFieldDefinition to every entity.
                 - ✅ Remove custom fields entity from device.
-                - Implement new functionality from QuantityUnitMapper into the other entity mappers.
+                - ✅ Implement the new functionality  that was implemented in QuantityUnitMapper into the other entity mappers.
                 - Implement new functionality from QuantityValidator into the other validators.
                 - Implement new functionality from QuantityController into the other entity controllers.
                 - Let device entities detail page also load the other entities field definitions and hand them by the template over to the vuejs.
                 - Implement entity modals in deviceEditor.vue.
             - If possible, externalise the dialog as custom component, and keep only the config stuff for it in the device editor component.
+            - Check, if our "unique" tests in the validators (findByName, findByEmail) are working case-insensitive. Fix, if not.
         - Some of the boxes have different border radius. Fix that.
 
     - Take over new styling for detail page to all other editor pages..
@@ -219,6 +220,7 @@ Editor:
     So if you ever need that data again, it would be possible to build easy loaders for that.
     If you need to reconstruct more complex data, that would also be possible, but for foreign entities you'd have the efford to follow their complete history. Not the nicest way, but possible.
 
+* Go through the code and check all TODO's.
 
 * ✅ Start a devlog instead of twitch streams - because it might be more of an interest. For now I choose bluesky and short messages. Bsky: https://bsky.app/profile/eska1000.bsky.social
 

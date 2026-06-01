@@ -37,6 +37,7 @@ class QuantityUnitMapper extends QBMapper {
         return $this->findEntity($qb);
     }
 
+    // TODO: Have to check, what happens with case sensitivity.
     public function findByName(string $name): ?QuantityUnit {
         $qb = $this->db->getQueryBuilder();
         $qb->select('*')
@@ -88,7 +89,7 @@ class QuantityUnitMapper extends QBMapper {
         string $direction = 'ASC',
         int $limit = 20,
         int $offset = 0,
-        ?array $filters = null
+        ?array $filters = null,
     ): array {
         $allowedColumns = [ 'name', ];
         $col = in_array($orderBy, $allowedColumns, true) ? $orderBy : 'name';
