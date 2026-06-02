@@ -17,6 +17,13 @@ use OCA\SfxonItam\Db\Device;
 use OCA\SfxonItam\Db\DeviceMapper;
 use OCA\SfxonItam\Service\DeviceService;
 
+use OCA\SfxonItam\Db\DeviceStatus;
+use OCA\SfxonItam\Db\DeviceType;
+use OCA\SfxonItam\Db\ItamUser;
+use OCA\SfxonItam\Db\Location;
+use OCA\SfxonItam\Db\Manufacturer;
+use OCA\SfxonItam\Db\Merchant;
+use OCA\SfxonItam\Db\Position;
 use OCA\SfxonItam\Db\QuantityUnit;
 
 /**
@@ -74,7 +81,14 @@ class DeviceController extends Controller
     public function deviceDetail(): TemplateResponse
     {
         $entityDefinitions = [
-            'quantityUnit' => QuantityUnit::getFieldDefinition()
+            'deviceStatus' => DeviceStatus::getFieldDefinition(),
+            'deviceType' => DeviceType::getFieldDefinition(),
+            'itamUser' => ItamUser::getFieldDefinition(),
+            'location' => Location::getFieldDefinition(),
+            'manufacturer' => Manufacturer::getFieldDefinition(),
+            'merchant' => Merchant::getFieldDefinition(),
+            'position' => Position::getFieldDefinition(),
+            'quantityUnit' => QuantityUnit::getFieldDefinition(),
         ];
 
         return new TemplateResponse(

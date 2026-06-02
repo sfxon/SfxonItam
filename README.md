@@ -136,7 +136,7 @@ Editor:
                 - ✅ Implement new functionality from QuantityValidator into the other validators.
                 - ✅ Implement new functionality from QuantityController into the other entity controllers.
                 - ✅ Implement new functionality from QuantityUnitService into the other services.
-                - Let device entities detail page also load the other entities field definitions and hand them by the template over to the vuejs.
+                - ✅ Let device entities detail page also load the other entities field definitions and hand them by the template over to vuejs.
                 - Implement entity modals in deviceEditor.vue.
             - If possible, externalise the dialog as custom component, and keep only the config stuff for it in the device editor component.
             - Check, if our "unique" tests in the validators (findByName, findByEmail) are working case-insensitive. Fix, if not.

@@ -1,5 +1,13 @@
 <script setup lang="ts">
 
+import * as DeviceService from '@/services/DeviceService'
+import * as DeviceStatusService from '@/services/DeviceStatusService'
+import * as DeviceTypeService from '@/services/DeviceTypeService'
+import * as ItamUserService from '@/services/ItamUserService'
+import * as LocationService from '@/services/LocationService'
+import * as ManufacturerService from '@/services/ManufacturerService'
+import * as MerchantService from '@/services/MerchantService'
+import * as PositionService from '@/services/PositionService'
 import * as QuantityUnitService from '@/services/QuantityUnitService'
 import { computed, isRef, onMounted, reactive, ref } from 'vue'
 import NcAppContent from '@nextcloud/vue/components/NcAppContent'
@@ -15,12 +23,6 @@ import { generateUrl, generateRemoteUrl } from '@nextcloud/router'
 import NcNoteCard from '@nextcloud/vue/components/NcNoteCard'
 import NcIconSvgWrapper from '@nextcloud/vue/components/NcIconSvgWrapper'
 import { NcLoadingIcon } from '@nextcloud/vue'
-import { fetchDevice, createDevice, updateDevice } from '@/services/DeviceService'
-import { findDeviceStatis } from '@/services/DeviceStatusService'
-import { findDeviceTypes } from '@/services/DeviceTypeService'
-import { findItamUsers } from '@/services/ItamUserService'
-import { findMerchants } from '@/services/MerchantService'
-import { findPositions } from '@/services/PositionService'
 import SfxonBarcode from '@/components/SfxonBarcode'
 import SfxonEditorFormDatePicker from '@/components/SfxonEditorFormDatePicker'
 import SfxonEditorFormEntitySelect from '@/components/SfxonEditorFormEntitySelect'
@@ -34,7 +36,17 @@ import SfxonQrCodeView from '@/components/SfxonQrCodeView'
 import { getCurrentUser } from '@nextcloud/auth'
 import { useApiErrors } from '@/composables/useApiErrors'
 
-const services = { QuantityUnitService }
+const services = {
+    DeviceService,
+    DeviceStatusService,
+    DeviceTypeService,
+    ItamUserService,
+    ManufacturerService,
+    MerchantService,
+    LocationService,
+    PositionService,
+    QuantityUnitService
+}
 const addEntityEntryDialogError = ref('')
 const addEntityEntryDialogEntityName = ref('')
 const addEntityEntryDialogFieldErrors = ref({}) // { [entityName]: { [fieldName]: 'message' } }
@@ -310,7 +322,7 @@ function resetDialogErrors() {
 async function loadDevice(id: number): Promise<void> {
     try {
         deviceLoading.value = true
-        const data = await fetchDevice(id)
+        const data = await DeviceService.fetchDevice(id)
 
         /* Setup dropdowns */
         addEntityData(deviceStatis, Object.values(data.relations.deviceStatus)[0], 'id')
@@ -364,7 +376,7 @@ async function searchDeviceStatis(query: string, signal: AbortSignal): Promise<v
         name: [query]
     };
 
-    const data = await findDeviceStatis({ filters: filters }, signal)
+    const data = await DeviceStatusService.findDeviceStatis({ filters: filters }, signal)
 
     if (data === null || data.mainData === null) {
         return;
@@ -381,7 +393,7 @@ async function searchDeviceTypes(query: string, signal: AbortSignal): Promise<vo
         name: [query]
     };
 
-    const data = await findDeviceTypes({ filters: filters }, signal)
+    const data = await DeviceTypeService.findDeviceTypes({ filters: filters }, signal)
 
     if (data === null || data.mainData === null) {
         return;
@@ -400,7 +412,7 @@ async function searchItamUsers(query: string, signal: AbortSignal): Promise<void
         email: [query]
     };
 
-    const data = await findItamUsers({ filters: filters }, signal)
+    const data = await ItamUserService.findItamUsers({ filters: filters }, signal)
 
     if (data === null || data.mainData === null) {
         return;
@@ -417,7 +429,7 @@ async function searchMerchants(query: string, signal: AbortSignal): Promise<void
         name: [query]
     };
 
-    const data = await findMerchants({ filters: filters }, signal)
+    const data = await MerchantService.findMerchants({ filters: filters }, signal)
 
     if (data === null || data.mainData === null) {
         return;
@@ -438,7 +450,7 @@ async function searchPositions(query: string, signal: AbortSignal): Promise<void
         location: {}
     };
 
-    const data = await findPositions(
+    const data = await PositionService.findPositions(
         { 
             filters: filters,
             include: include
@@ -597,8 +609,8 @@ async function submitForm() {
 
     try {
         const data = isEditMode.value
-            ? await updateDevice(deviceId.value!, payload)
-            : await createDevice(payload)
+            ? await DeviceService.updateDevice(deviceId.value!, payload)
+            : await DeviceService.createDevice(payload)
 
         // Backend returns status: 'error' with HTTP 200
         if (data?.status === 'error') {
