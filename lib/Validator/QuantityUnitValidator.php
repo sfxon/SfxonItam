@@ -1,6 +1,4 @@
-<?php
-
-declare(strict_types=1);
+<?php declare(strict_types=1);
 
 namespace OCA\SfxonItam\Validator;
 
@@ -10,12 +8,12 @@ use OCP\IL10N;
 class QuantityUnitValidator {
     public function __construct(
         private IL10N $l,
-        private QuantityUnitMapper $mapper,
-    )
-    {
+        private QuantityUnitMapper $mapper,)
+        {
     }
 
-    public function validate(array $data, ?int $excludeId = null): array {
+    public function validate(array $data, ?int $excludeId = null): array
+    {
         $errors = [];
 
         // a) name: at least 1 signs.
@@ -26,6 +24,7 @@ class QuantityUnitValidator {
         } else {
             // b) name: must be unique.
             $existing = $this->mapper->findByName(trim($data['name']));
+
             if ($existing !== null && $existing->getId() !== $excludeId) {
                 $errors['name'] = $this->l->t('A quantity unit with this name already exists.');
             }
