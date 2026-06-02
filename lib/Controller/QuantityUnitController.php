@@ -1,5 +1,4 @@
-<?php
-declare(strict_types=1);
+<?php declare(strict_types=1);
 
 namespace OCA\SfxonItam\Controller;
 
@@ -23,19 +22,22 @@ use OCA\SfxonItam\Service\QuantityUnitService;
  * @psalm-suppress UnusedClass
  */
 class QuantityUnitController extends Controller {
+    private array $expectedFields = ['name', 'comment'];
+
     public function __construct(
         string $appName,
         IRequest $request,
         private DeviceMapper $deviceMapper,
         private QuantityUnitMapper $quantityUnitMapper,
-        private readonly QuantityUnitService $quantityUnitService
-    ) {
+        private readonly QuantityUnitService $quantityUnitService,)
+    {
         parent::__construct($appName, $request);
     }
 
     #[OpenAPI(OpenAPI::SCOPE_IGNORE)]
     #[FrontpageRoute(verb: 'DELETE', url: '/quantity-unit/{id}')]
-    public function delete(int $id): JsonResponse {
+    public function delete(int $id): JsonResponse
+    {
         // Only allow delete, if the deviceStatus is still used by another entity.
         $hasEntries = $this->deviceMapper->isEntityValueInUse('quantity_unit_id', $id);
 
@@ -62,7 +64,8 @@ class QuantityUnitController extends Controller {
     #[NoCSRFRequired]
     #[OpenAPI(OpenAPI::SCOPE_IGNORE)]
     #[FrontpageRoute(verb: 'GET', url: '/quantity-unit/detail')]
-    public function quantityUnitDetail(): TemplateResponse {
+    public function quantityUnitDetail(): TemplateResponse
+    {
         return new TemplateResponse(
             Application::APP_ID,
             'quantity-unit/editor',
@@ -72,7 +75,8 @@ class QuantityUnitController extends Controller {
     #[NoCSRFRequired]
     #[OpenAPI(OpenAPI::SCOPE_IGNORE)]
     #[FrontpageRoute(verb: 'GET', url: '/quantity-unit/')]
-    public function index(): TemplateResponse {
+    public function index(): TemplateResponse
+    {
         return new TemplateResponse(
             Application::APP_ID,
             'quantity-unit/list',
@@ -86,8 +90,8 @@ class QuantityUnitController extends Controller {
         string $orderBy = 'name',
         string $direction = 'ASC',
         int $page = 1,
-        int $limit = 20
-    ): JSONResponse {
+        int $limit = 20,): JSONResponse
+    {
         $offset = ($page - 1) * $limit;
         $quantityUnits = $this->quantityUnitMapper->findAllPaged($orderBy, $direction, $limit, $offset);
         $total   = $this->quantityUnitMapper->countAll();
@@ -100,10 +104,12 @@ class QuantityUnitController extends Controller {
         ]);
     }
 
+    #[\Deprecated(message: "Will be removed.", since: "1.9")]
     #[NoCSRFRequired]
     #[OpenAPI(OpenAPI::SCOPE_IGNORE)]
     #[FrontpageRoute(verb: 'GET', url: '/quantity-unit/listall')]
-    public function listall(): JSONResponse {
+    public function listall(): JSONResponse
+    {
         $quantityUnits = $this->quantityUnitMapper->findAll();
 
         return new JSONResponse([
@@ -113,9 +119,9 @@ class QuantityUnitController extends Controller {
 
     #[OpenAPI(OpenAPI::SCOPE_IGNORE)]
     #[FrontpageRoute(verb: 'POST', url: '/quantity-unit/save')]
-    public function save(): DataResponse {
-        $expectedFields = ['name', 'comment'];
-        $data = $this->quantityUnitService->getDataFromRequest($this->request->getParams(), $expectedFields);
+    public function save(): DataResponse
+    {
+        $data = $this->quantityUnitService->getDataFromRequest($this->request->getParams(), $this->expectedFields);
         $result = $this->quantityUnitService->validateData($data);
 
         if($result['valid'] === false) {
@@ -144,7 +150,8 @@ class QuantityUnitController extends Controller {
         string $direction = 'ASC',
         int $page = 1,
         int $limit = 20,
-    ): JSONResponse {
+    ): JSONResponse
+    {
         $offset = ($page - 1) * $limit;
         $filters = $this->request->getParam('filters');
         $result = $this->quantityUnitMapper->searchPaged($orderBy, $direction, $limit, $offset, $filters);
@@ -161,7 +168,8 @@ class QuantityUnitController extends Controller {
     #[NoCSRFRequired]
     #[OpenAPI(OpenAPI::SCOPE_IGNORE)]
     #[FrontpageRoute(verb: 'GET', url: '/quantity-unit/{id}')]
-    public function show(int $id): JSONResponse {
+    public function show(int $id): JSONResponse
+    {
         try {
             $quantityUnit = $this->quantityUnitMapper->findById($id);
         } catch (DoesNotExistException) {
@@ -176,7 +184,8 @@ class QuantityUnitController extends Controller {
 
     #[OpenAPI(OpenAPI::SCOPE_IGNORE)]
     #[FrontpageRoute(verb: 'PUT', url: '/quantity-unit/{id}')]
-    public function update(int $id): DataResponse {
+    public function update(int $id): DataResponse
+    {
         // Load Device – 404 if not found.
         try {
             $quantityUnit = $this->quantityUnitMapper->findById($id);
@@ -187,9 +196,7 @@ class QuantityUnitController extends Controller {
             );
         }
 
-        $expectedFields = ['name', 'comment'];
-
-        $data = $this->quantityUnitService->getDataFromRequest($this->request->getParams(), $expectedFields);
+        $data = $this->quantityUnitService->getDataFromRequest($this->request->getParams(), $this->expectedFields);
 
         $result = $this->quantityUnitService->validateData($data, $id);
 

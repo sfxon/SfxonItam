@@ -1,5 +1,4 @@
-<?php
-declare(strict_types=1);
+<?php declare(strict_types=1);
 
 namespace OCA\SfxonItam\Controller;
 
@@ -22,20 +21,24 @@ use OCA\SfxonItam\Service\DeviceStatusService;
 /**
  * @psalm-suppress UnusedClass
  */
-class DeviceStatusController extends Controller {
+class DeviceStatusController extends Controller
+{
+    private array $expectedFields = ['name', 'comment'];
+
     public function __construct(
         string $appName,
         IRequest $request,
         private DeviceMapper $deviceMapper,
         private DeviceStatusMapper $deviceStatusMapper,
-        private readonly DeviceStatusService $deviceStatusService
-    ) {
+        private readonly DeviceStatusService $deviceStatusService,)
+    {
         parent::__construct($appName, $request);
     }
 
     #[OpenAPI(OpenAPI::SCOPE_IGNORE)]
     #[FrontpageRoute(verb: 'DELETE', url: '/device-status/{id}')]
-    public function delete(int $id): JsonResponse {
+    public function delete(int $id): JsonResponse
+    {
         // Only allow delete, if the deviceStatus is still used by another entity.
         $hasEntries = $this->deviceMapper->isEntityValueInUse('device_status_id', $id);
 
@@ -62,7 +65,8 @@ class DeviceStatusController extends Controller {
     #[NoCSRFRequired]
     #[OpenAPI(OpenAPI::SCOPE_IGNORE)]
     #[FrontpageRoute(verb: 'GET', url: '/device-status/detail')]
-    public function deviceDetail(): TemplateResponse {
+    public function deviceDetail(): TemplateResponse
+    {
         return new TemplateResponse(
             Application::APP_ID,
             'device-status/editor',
@@ -72,7 +76,8 @@ class DeviceStatusController extends Controller {
     #[NoCSRFRequired]
     #[OpenAPI(OpenAPI::SCOPE_IGNORE)]
     #[FrontpageRoute(verb: 'GET', url: '/device-status/')]
-    public function index(): TemplateResponse {
+    public function index(): TemplateResponse
+    {
         return new TemplateResponse(
             Application::APP_ID,
             'device-status/list',
@@ -86,8 +91,8 @@ class DeviceStatusController extends Controller {
         string $orderBy = 'name',
         string $direction = 'ASC',
         int $page = 1,
-        int $limit = 20
-    ): JSONResponse {
+        int $limit = 20,): JSONResponse
+    {
         $offset = ($page - 1) * $limit;
         $deviceStatis = $this->deviceStatusMapper->findAllPaged($orderBy, $direction, $limit, $offset);
         $total   = $this->deviceStatusMapper->countAll();
@@ -100,10 +105,12 @@ class DeviceStatusController extends Controller {
         ]);
     }
 
+    #[\Deprecated(message: "Will be removed.", since: "1.9")]
     #[NoCSRFRequired]
     #[OpenAPI(OpenAPI::SCOPE_IGNORE)]
     #[FrontpageRoute(verb: 'GET', url: '/device-status/listall')]
-    public function listall(): JSONResponse {
+    public function listall(): JSONResponse
+    {
         $deviceStatis = $this->deviceStatusMapper->findAll();
 
         return new JSONResponse([
@@ -113,9 +120,9 @@ class DeviceStatusController extends Controller {
 
     #[OpenAPI(OpenAPI::SCOPE_IGNORE)]
     #[FrontpageRoute(verb: 'POST', url: '/device-status/save')]
-    public function save(): DataResponse {
-        $expectedFields = ['name', 'comment'];
-        $data = $this->deviceStatusService->getDataFromRequest($this->request->getParams(), $expectedFields);
+    public function save(): DataResponse
+    {
+        $data = $this->deviceStatusService->getDataFromRequest($this->request->getParams(), $this->expectedFields);
         $result = $this->deviceStatusService->validateData($data);
 
         if($result['valid'] === false) {
@@ -143,8 +150,8 @@ class DeviceStatusController extends Controller {
         string $orderBy = 'name',
         string $direction = 'ASC',
         int $page = 1,
-        int $limit = 20,
-    ): JSONResponse {
+        int $limit = 20,): JSONResponse
+    {
         $offset = ($page - 1) * $limit;
         $filters = $this->request->getParam('filters');
         $result = $this->deviceStatusMapper->searchPaged($orderBy, $direction, $limit, $offset, $filters);
@@ -161,7 +168,8 @@ class DeviceStatusController extends Controller {
     #[NoCSRFRequired]
     #[OpenAPI(OpenAPI::SCOPE_IGNORE)]
     #[FrontpageRoute(verb: 'GET', url: '/device-status/{id}')]
-    public function show(int $id): JSONResponse {
+    public function show(int $id): JSONResponse
+    {
         try {
             $deviceStatus = $this->deviceStatusMapper->findById($id);
         } catch (DoesNotExistException) {
@@ -176,8 +184,9 @@ class DeviceStatusController extends Controller {
 
     #[OpenAPI(OpenAPI::SCOPE_IGNORE)]
     #[FrontpageRoute(verb: 'PUT', url: '/device-status/{id}')]
-    public function update(int $id): DataResponse {
-        // Gerät laden – 404 wenn nicht vorhanden
+    public function update(int $id): DataResponse
+    {
+        // Return 404 if entry was not found.
         try {
             $deviceStatus = $this->deviceStatusMapper->findById($id);
         } catch (\OCP\AppFramework\Db\DoesNotExistException) {
@@ -187,11 +196,9 @@ class DeviceStatusController extends Controller {
             );
         }
 
-        $expectedFields = ['name', 'comment'];
+        $data = $this->deviceStatusService->getDataFromRequest($this->request->getParams(), $this->expectedFields);
 
-        $data = $this->deviceStatusService->getDataFromRequest($this->request->getParams(), $expectedFields);
-
-        $result = $this->deviceStatusService->validateData($data);
+        $result = $this->deviceStatusService->validateData($data, $id);
 
         if ($result['valid'] === false) {
             return new DataResponse([
@@ -200,7 +207,7 @@ class DeviceStatusController extends Controller {
             ], Http::STATUS_UNPROCESSABLE_ENTITY);
         }
 
-        // Felder aktualisieren
+        // Update fields.
         $deviceStatus->setName($this->request->getParam('name'));
         $deviceStatus->setComment($this->request->getParam('comment') ?? '');
 

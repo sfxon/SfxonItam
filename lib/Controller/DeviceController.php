@@ -1,5 +1,4 @@
-<?php
-declare(strict_types=1);
+<?php declare(strict_types=1);
 
 namespace OCA\SfxonItam\Controller;
 
@@ -23,7 +22,8 @@ use OCA\SfxonItam\Db\QuantityUnit;
 /**
  * @psalm-suppress UnusedClass
  */
-class DeviceController extends Controller {
+class DeviceController extends Controller
+{
     private array $expectedFields = [
         'assetNumber',
         'deviceStatusId',
@@ -46,14 +46,15 @@ class DeviceController extends Controller {
         string $appName,
         IRequest $request,
         private DeviceMapper $deviceMapper,
-        private readonly DeviceService $deviceService
-    ) {
+        private readonly DeviceService $deviceService,)
+    {
         parent::__construct($appName, $request);
     }
 
     #[OpenAPI(OpenAPI::SCOPE_IGNORE)]
     #[FrontpageRoute(verb: 'DELETE', url: '/device/{id}')]
-    public function delete(int $id): JsonResponse {
+    public function delete(int $id): JsonResponse
+    {
         // Put this in a try-catch block, since findById will throw an error,
         // if it does not find an element with the given id.
         try {
@@ -70,7 +71,8 @@ class DeviceController extends Controller {
     #[NoCSRFRequired]
     #[OpenAPI(OpenAPI::SCOPE_IGNORE)]
     #[FrontpageRoute(verb: 'GET', url: '/device/detail')]
-    public function deviceDetail(): TemplateResponse {
+    public function deviceDetail(): TemplateResponse
+    {
         $entityDefinitions = [
             'quantityUnit' => QuantityUnit::getFieldDefinition()
         ];
@@ -85,7 +87,8 @@ class DeviceController extends Controller {
     #[NoCSRFRequired]
     #[OpenAPI(OpenAPI::SCOPE_IGNORE)]
     #[FrontpageRoute(verb: 'GET', url: '/')]
-    public function index(): TemplateResponse {
+    public function index(): TemplateResponse
+    {
         return new TemplateResponse(
             Application::APP_ID,
             'device/list',
@@ -100,8 +103,8 @@ class DeviceController extends Controller {
         string $direction = 'ASC',
         int $page = 1,
         int $limit = 20,
-        ?array $filters = null
-    ): JSONResponse {
+        ?array $filters = null,): JSONResponse
+    {
         $offset = ($page - 1) * $limit;
         $devices = $this->deviceMapper->findAllPaged($orderBy, $direction, $limit, $offset, $filters);
         $total   = $this->deviceMapper->countAll($filters);
@@ -116,7 +119,8 @@ class DeviceController extends Controller {
 
     #[OpenAPI(OpenAPI::SCOPE_IGNORE)]
     #[FrontpageRoute(verb: 'POST', url: '/device/save')]
-    public function save(): DataResponse {
+    public function save(): DataResponse
+    {
         $data = $this->deviceService->getDataFromRequest($this->request->getParams(), $this->expectedFields);
         $result = $this->deviceService->validateData($data);
 
@@ -141,7 +145,8 @@ class DeviceController extends Controller {
     #[NoCSRFRequired]
     #[OpenAPI(OpenAPI::SCOPE_IGNORE)]
     #[FrontpageRoute(verb: 'POST', url: '/device/{id}')]
-    public function show(int $id): JSONResponse {
+    public function show(int $id): JSONResponse
+    {
         try {
             $include = $this->request->getParam('include');
 
@@ -161,8 +166,9 @@ class DeviceController extends Controller {
 
     #[OpenAPI(OpenAPI::SCOPE_IGNORE)]
     #[FrontpageRoute(verb: 'PUT', url: '/device/{id}')]
-    public function update(int $id): DataResponse {
-        // Gerät laden – 404 wenn nicht vorhanden
+    public function update(int $id): DataResponse
+    {
+        // Return 404 if entry was not found.
         try {
             $device = $this->deviceMapper->findById($id)['mainData'];
         } catch (\OCP\AppFramework\Db\DoesNotExistException) {
@@ -173,7 +179,7 @@ class DeviceController extends Controller {
         }
 
         $data = $this->deviceService->getDataFromRequest($this->request->getParams(), $this->expectedFields);
-        $result = $this->deviceService->validateData($data);
+        $result = $this->deviceService->validateData($data, $id);
 
         if ($result['valid'] === false) {
             return new DataResponse([
@@ -182,7 +188,7 @@ class DeviceController extends Controller {
             ], Http::STATUS_UNPROCESSABLE_ENTITY);
         }
 
-        // Datensatz aktualisieren
+        // Update.
         $device = $this->setDeviceDataFromRequest($device);
         $updated = $this->deviceMapper->update($device);
 
@@ -192,11 +198,13 @@ class DeviceController extends Controller {
         ]);
     }
 
-    private function sanitizeForeignKey($foreignKeyValue) {
+    private function sanitizeForeignKey($foreignKeyValue)
+    {
         return ($foreignKeyValue == 0 || $foreignKeyValue == '0' || $foreignKeyValue == '') ? null : $foreignKeyValue;
     }
 
-    private function setDeviceDataFromRequest($device) {
+    private function setDeviceDataFromRequest($device)
+    {
         $device->setAssetNumber($this->request->getParam('assetNumber'));
 
         $deviceStatusId = $this->sanitizeForeignKey($this->request->getParam('deviceStatusId') ?? '');

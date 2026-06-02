@@ -1,5 +1,4 @@
-<?php
-declare(strict_types=1);
+<?php declare(strict_types=1);
 
 namespace OCA\SfxonItam\Controller;
 
@@ -23,19 +22,22 @@ use OCA\SfxonItam\Service\PositionService;
  * @psalm-suppress UnusedClass
  */
 class PositionController extends Controller {
+    private array $expectedFields = ['name', 'comment'];
+
     public function __construct(
         string $appName,
         IRequest $request,
         private DeviceMapper $deviceMapper,
         private PositionMapper $positionMapper,
-        private readonly PositionService $positionService
-    ) {
+        private readonly PositionService $positionService,)
+    {
         parent::__construct($appName, $request);
     }
 
     #[OpenAPI(OpenAPI::SCOPE_IGNORE)]
     #[FrontpageRoute(verb: 'DELETE', url: '/position/{id}')]
-    public function delete(int $id): JsonResponse {
+    public function delete(int $id): JsonResponse
+    {
         // Only allow delete, if the deviceStatus is still used by another entity.
         $hasEntries = $this->deviceMapper->isEntityValueInUse('position_id', $id);
 
@@ -62,7 +64,8 @@ class PositionController extends Controller {
     #[NoCSRFRequired]
     #[OpenAPI(OpenAPI::SCOPE_IGNORE)]
     #[FrontpageRoute(verb: 'GET', url: '/position/detail')]
-    public function positionDetail(): TemplateResponse {
+    public function positionDetail(): TemplateResponse
+    {
         return new TemplateResponse(
             Application::APP_ID,
             'position/editor',
@@ -72,7 +75,8 @@ class PositionController extends Controller {
     #[NoCSRFRequired]
     #[OpenAPI(OpenAPI::SCOPE_IGNORE)]
     #[FrontpageRoute(verb: 'GET', url: '/position/')]
-    public function index(): TemplateResponse {
+    public function index(): TemplateResponse
+    {
         return new TemplateResponse(
             Application::APP_ID,
             'position/list',
@@ -86,8 +90,8 @@ class PositionController extends Controller {
         string $orderBy = 'name',
         string $direction = 'ASC',
         int $page = 1,
-        int $limit = 20
-    ): JSONResponse {
+        int $limit = 20): JSONResponse
+    {
         $offset = ($page - 1) * $limit;
         $positions = $this->positionMapper->findAllPaged($orderBy, $direction, $limit, $offset);
         $total   = $this->positionMapper->countAll();
@@ -100,6 +104,7 @@ class PositionController extends Controller {
         ]);
     }
 
+    #[\Deprecated(message: "Will be removed.", since: "1.9")]
     #[NoCSRFRequired]
     #[OpenAPI(OpenAPI::SCOPE_IGNORE)]
     #[FrontpageRoute(verb: 'GET', url: '/position/listall')]
@@ -113,9 +118,9 @@ class PositionController extends Controller {
 
     #[OpenAPI(OpenAPI::SCOPE_IGNORE)]
     #[FrontpageRoute(verb: 'POST', url: '/position/save')]
-    public function save(): DataResponse {
-        $expectedFields = ['name', 'comment'];
-        $data = $this->positionService->getDataFromRequest($this->request->getParams(), $expectedFields);
+    public function save(): DataResponse
+    {
+        $data = $this->positionService->getDataFromRequest($this->request->getParams(), $this->expectedFields);
         $result = $this->positionService->validateData($data);
 
         if($result['valid'] === false) {
@@ -151,7 +156,8 @@ class PositionController extends Controller {
         string $direction = 'ASC',
         int $page = 1,
         int $limit = 20,
-    ): JSONResponse {
+    ): JSONResponse
+    {
         $offset = ($page - 1) * $limit;
         $filters = $this->request->getParam('filters');
         $include = $this->request->getParam('include');
@@ -184,8 +190,9 @@ class PositionController extends Controller {
 
     #[OpenAPI(OpenAPI::SCOPE_IGNORE)]
     #[FrontpageRoute(verb: 'PUT', url: '/position/{id}')]
-    public function update(int $id): DataResponse {
-        // Gerät laden – 404 wenn nicht vorhanden
+    public function update(int $id): DataResponse
+    {
+        // Return 404 if entry was not found.
         try {
             $position = $this->positionMapper->findById($id);
         } catch (\OCP\AppFramework\Db\DoesNotExistException) {
@@ -195,11 +202,9 @@ class PositionController extends Controller {
             );
         }
 
-        $expectedFields = ['name', 'comment'];
+        $data = $this->positionService->getDataFromRequest($this->request->getParams(), $this->expectedFields);
 
-        $data = $this->positionService->getDataFromRequest($this->request->getParams(), $expectedFields);
-
-        $result = $this->positionService->validateData($data);
+        $result = $this->positionService->validateData($data, $id);
 
         if ($result['valid'] === false) {
             return new DataResponse([
@@ -214,7 +219,7 @@ class PositionController extends Controller {
             $locationId = null;
         }
 
-        // Felder aktualisieren
+        // Update fields.
         $position->setName($this->request->getParam('name'));
         $position->setLocationId($locationId);
         $position->setComment($this->request->getParam('comment') ?? '');

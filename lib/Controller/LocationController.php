@@ -1,5 +1,4 @@
-<?php
-declare(strict_types=1);
+<?php declare(strict_types=1);
 
 namespace OCA\SfxonItam\Controller;
 
@@ -23,19 +22,22 @@ use OCA\SfxonItam\Service\LocationService;
  * @psalm-suppress UnusedClass
  */
 class LocationController extends Controller {
+    private array $expectedFields = ['name', 'comment'];
+
     public function __construct(
         string $appName,
         IRequest $request,
         private PositionMapper $positionMapper,
         private LocationMapper $locationMapper,
-        private readonly LocationService $locationService
-    ) {
+        private readonly LocationService $locationService,)
+    {
         parent::__construct($appName, $request);
     }
 
     #[OpenAPI(OpenAPI::SCOPE_IGNORE)]
     #[FrontpageRoute(verb: 'DELETE', url: '/location/{id}')]
-    public function delete(int $id): JsonResponse {
+    public function delete(int $id): JsonResponse
+    {
         // Only allow delete, if the deviceStatus is still used by another entity.
         $hasEntries = $this->positionMapper->isEntityValueInUse('location_id', $id);
 
@@ -62,7 +64,8 @@ class LocationController extends Controller {
     #[NoCSRFRequired]
     #[OpenAPI(OpenAPI::SCOPE_IGNORE)]
     #[FrontpageRoute(verb: 'GET', url: '/location/detail')]
-    public function locationDetail(): TemplateResponse {
+    public function locationDetail(): TemplateResponse
+    {
         return new TemplateResponse(
             Application::APP_ID,
             'location/editor',
@@ -72,7 +75,8 @@ class LocationController extends Controller {
     #[NoCSRFRequired]
     #[OpenAPI(OpenAPI::SCOPE_IGNORE)]
     #[FrontpageRoute(verb: 'GET', url: '/location/')]
-    public function index(): TemplateResponse {
+    public function index(): TemplateResponse
+    {
         return new TemplateResponse(
             Application::APP_ID,
             'location/list',
@@ -86,8 +90,8 @@ class LocationController extends Controller {
         string $orderBy = 'name',
         string $direction = 'ASC',
         int $page = 1,
-        int $limit = 20
-    ): JSONResponse {
+        int $limit = 20,): JSONResponse
+    {
         $offset = ($page - 1) * $limit;
         $locations = $this->locationMapper->findAllPaged($orderBy, $direction, $limit, $offset);
         $total   = $this->locationMapper->countAll();
@@ -100,10 +104,12 @@ class LocationController extends Controller {
         ]);
     }
 
+    #[\Deprecated(message: "Will be removed.", since: "1.9")]
     #[NoCSRFRequired]
     #[OpenAPI(OpenAPI::SCOPE_IGNORE)]
     #[FrontpageRoute(verb: 'GET', url: '/location/listall')]
-    public function listall(): JSONResponse {
+    public function listall(): JSONResponse
+    {
         $locations = $this->locationMapper->findAll();
 
         return new JSONResponse([
@@ -113,9 +119,9 @@ class LocationController extends Controller {
 
     #[OpenAPI(OpenAPI::SCOPE_IGNORE)]
     #[FrontpageRoute(verb: 'POST', url: '/location/save')]
-    public function save(): DataResponse {
-        $expectedFields = ['name', 'comment'];
-        $data = $this->locationService->getDataFromRequest($this->request->getParams(), $expectedFields);
+    public function save(): DataResponse
+    {
+        $data = $this->locationService->getDataFromRequest($this->request->getParams(), $this->expectedFields);
         $result = $this->locationService->validateData($data);
 
         if($result['valid'] === false) {
@@ -143,8 +149,8 @@ class LocationController extends Controller {
         string $orderBy = 'name',
         string $direction = 'ASC',
         int $page = 1,
-        int $limit = 20,
-    ): JSONResponse {
+        int $limit = 20,): JSONResponse
+    {
         $offset = ($page - 1) * $limit;
         $filters = $this->request->getParam('filters');
         $result = $this->locationMapper->searchPaged($orderBy, $direction, $limit, $offset, $filters);
@@ -161,7 +167,8 @@ class LocationController extends Controller {
     #[NoCSRFRequired]
     #[OpenAPI(OpenAPI::SCOPE_IGNORE)]
     #[FrontpageRoute(verb: 'GET', url: '/location/{id}')]
-    public function show(int $id): JSONResponse {
+    public function show(int $id): JSONResponse
+    {
         try {
             $location = $this->locationMapper->findById($id);
         } catch (DoesNotExistException) {
@@ -176,8 +183,9 @@ class LocationController extends Controller {
 
     #[OpenAPI(OpenAPI::SCOPE_IGNORE)]
     #[FrontpageRoute(verb: 'PUT', url: '/location/{id}')]
-    public function update(int $id): DataResponse {
-        // Gerät laden – 404 wenn nicht vorhanden
+    public function update(int $id): DataResponse
+    {
+        // Return 404 if entry was not found.
         try {
             $location = $this->locationMapper->findById($id);
         } catch (\OCP\AppFramework\Db\DoesNotExistException) {
@@ -187,11 +195,9 @@ class LocationController extends Controller {
             );
         }
 
-        $expectedFields = ['name', 'comment'];
+        $data = $this->locationService->getDataFromRequest($this->request->getParams(), $this->expectedFields);
 
-        $data = $this->locationService->getDataFromRequest($this->request->getParams(), $expectedFields);
-
-        $result = $this->locationService->validateData($data);
+        $result = $this->locationService->validateData($data, $id);
 
         if ($result['valid'] === false) {
             return new DataResponse([

@@ -1,5 +1,4 @@
-<?php
-declare(strict_types=1);
+<?php declare(strict_types=1);
 
 namespace OCA\SfxonItam\Controller;
 
@@ -22,7 +21,8 @@ use OCA\SfxonItam\Service\DeviceTypeService;
 /**
  * @psalm-suppress UnusedClass
  */
-class DeviceTypeController extends Controller {
+class DeviceTypeController extends Controller
+{
     private array $expectedFields = ['name', 'manufacturer_id', 'comment'];
 
     public function __construct(
@@ -30,14 +30,15 @@ class DeviceTypeController extends Controller {
         IRequest $request,
         private DeviceMapper $deviceMapper,
         private DeviceTypeMapper $deviceTypeMapper,
-        private readonly DeviceTypeService $deviceTypeService
-    ) {
+        private readonly DeviceTypeService $deviceTypeService,)
+    {
         parent::__construct($appName, $request);
     }
 
     #[OpenAPI(OpenAPI::SCOPE_IGNORE)]
     #[FrontpageRoute(verb: 'DELETE', url: '/device-type/{id}')]
-    public function delete(int $id): JsonResponse {
+    public function delete(int $id): JsonResponse
+    {
         // Only allow delete, if the deviceStatus is still used by another entity.
         $hasEntries = $this->deviceMapper->isEntityValueInUse('device_type_id', $id);
 
@@ -64,7 +65,8 @@ class DeviceTypeController extends Controller {
     #[NoCSRFRequired]
     #[OpenAPI(OpenAPI::SCOPE_IGNORE)]
     #[FrontpageRoute(verb: 'GET', url: '/device-type/detail')]
-    public function deviceTypeDetail(): TemplateResponse {
+    public function deviceTypeDetail(): TemplateResponse
+    {
         return new TemplateResponse(
             Application::APP_ID,
             'device-type/editor',
@@ -74,7 +76,8 @@ class DeviceTypeController extends Controller {
     #[NoCSRFRequired]
     #[OpenAPI(OpenAPI::SCOPE_IGNORE)]
     #[FrontpageRoute(verb: 'GET', url: '/device-type/')]
-    public function index(): TemplateResponse {
+    public function index(): TemplateResponse
+    {
         return new TemplateResponse(
             Application::APP_ID,
             'device-type/list',
@@ -88,8 +91,8 @@ class DeviceTypeController extends Controller {
         string $orderBy = 'name',
         string $direction = 'ASC',
         int $page = 1,
-        int $limit = 20
-    ): JSONResponse {
+        int $limit = 20,): JSONResponse
+    {
         $offset = ($page - 1) * $limit;
         $deviceTypes = $this->deviceTypeMapper->findAllPaged($orderBy, $direction, $limit, $offset);
         $total   = $this->deviceTypeMapper->countAll();
@@ -102,10 +105,12 @@ class DeviceTypeController extends Controller {
         ]);
     }
 
+    #[\Deprecated(message: "Will be removed.", since: "1.9")]
     #[NoCSRFRequired]
     #[OpenAPI(OpenAPI::SCOPE_IGNORE)]
     #[FrontpageRoute(verb: 'GET', url: '/device-type/listall')]
-    public function listall(): JSONResponse {
+    public function listall(): JSONResponse
+    {
         $deviceTypes = $this->deviceTypeMapper->findAll();
 
         return new JSONResponse([
@@ -115,7 +120,8 @@ class DeviceTypeController extends Controller {
 
     #[OpenAPI(OpenAPI::SCOPE_IGNORE)]
     #[FrontpageRoute(verb: 'POST', url: '/device-type/save')]
-    public function save(): DataResponse {
+    public function save(): DataResponse
+    {
         $data = $this->deviceTypeService->getDataFromRequest($this->request->getParams(), $this->expectedFields);
         $result = $this->deviceTypeService->validateData($data);
 
@@ -151,8 +157,8 @@ class DeviceTypeController extends Controller {
         string $orderBy = 'name',
         string $direction = 'ASC',
         int $page = 1,
-        int $limit = 20,
-    ): JSONResponse {
+        int $limit = 20,): JSONResponse
+    {
         $offset = ($page - 1) * $limit;
         $filters = $this->request->getParam('filters');
         $result = $this->deviceTypeMapper->searchPaged($orderBy, $direction, $limit, $offset, $filters);
@@ -169,7 +175,8 @@ class DeviceTypeController extends Controller {
     #[NoCSRFRequired]
     #[OpenAPI(OpenAPI::SCOPE_IGNORE)]
     #[FrontpageRoute(verb: 'GET', url: '/device-type/{id}')]
-    public function show(int $id): JSONResponse {
+    public function show(int $id): JSONResponse
+    {
         try {
             $deviceType = $this->deviceTypeMapper->findById($id);
         } catch (DoesNotExistException) {
@@ -185,7 +192,7 @@ class DeviceTypeController extends Controller {
     #[OpenAPI(OpenAPI::SCOPE_IGNORE)]
     #[FrontpageRoute(verb: 'PUT', url: '/device-type/{id}')]
     public function update(int $id): DataResponse {
-        // Gerät laden – 404 wenn nicht vorhanden
+        // Return 404 if entry was not found.
         try {
             $deviceType = $this->deviceTypeMapper->findById($id);
         } catch (\OCP\AppFramework\Db\DoesNotExistException) {
@@ -197,7 +204,7 @@ class DeviceTypeController extends Controller {
 
         $data = $this->deviceTypeService->getDataFromRequest($this->request->getParams(), $this->expectedFields);
 
-        $result = $this->deviceTypeService->validateData($data);
+        $result = $this->deviceTypeService->validateData($data, $id);
 
         if ($result['valid'] === false) {
             return new DataResponse([

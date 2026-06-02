@@ -1,5 +1,4 @@
-<?php
-declare(strict_types=1);
+<?php declare(strict_types=1);
 
 namespace OCA\SfxonItam\Controller;
 
@@ -23,19 +22,22 @@ use OCA\SfxonItam\Service\MerchantService;
  * @psalm-suppress UnusedClass
  */
 class MerchantController extends Controller {
+    private array $expectedFields = ['name', 'comment'];
+
     public function __construct(
         string $appName,
         IRequest $request,
         private DeviceMapper $deviceMapper,
         private MerchantMapper $merchantMapper,
-        private readonly MerchantService $merchantService
-    ) {
+        private readonly MerchantService $merchantService,)
+    {
         parent::__construct($appName, $request);
     }
 
     #[OpenAPI(OpenAPI::SCOPE_IGNORE)]
     #[FrontpageRoute(verb: 'DELETE', url: '/merchant/{id}')]
-    public function delete(int $id): JsonResponse {
+    public function delete(int $id): JsonResponse
+    {
         // Only allow delete, if the deviceStatus is still used by another entity.
         $hasEntries = $this->deviceMapper->isEntityValueInUse('merchant_id', $id);
 
@@ -62,7 +64,8 @@ class MerchantController extends Controller {
     #[NoCSRFRequired]
     #[OpenAPI(OpenAPI::SCOPE_IGNORE)]
     #[FrontpageRoute(verb: 'GET', url: '/merchant/detail')]
-    public function merchantDetail(): TemplateResponse {
+    public function merchantDetail(): TemplateResponse
+    {
         return new TemplateResponse(
             Application::APP_ID,
             'merchant/editor',
@@ -72,7 +75,8 @@ class MerchantController extends Controller {
     #[NoCSRFRequired]
     #[OpenAPI(OpenAPI::SCOPE_IGNORE)]
     #[FrontpageRoute(verb: 'GET', url: '/merchant/')]
-    public function index(): TemplateResponse {
+    public function index(): TemplateResponse
+    {
         return new TemplateResponse(
             Application::APP_ID,
             'merchant/list',
@@ -86,8 +90,8 @@ class MerchantController extends Controller {
         string $orderBy = 'name',
         string $direction = 'ASC',
         int $page = 1,
-        int $limit = 20
-    ): JSONResponse {
+        int $limit = 20): JSONResponse
+    {
         $offset = ($page - 1) * $limit;
         $merchants = $this->merchantMapper->findAllPaged($orderBy, $direction, $limit, $offset);
         $total   = $this->merchantMapper->countAll();
@@ -100,10 +104,12 @@ class MerchantController extends Controller {
         ]);
     }
 
+    #[\Deprecated(message: "Will be removed.", since: "1.9")]
     #[NoCSRFRequired]
     #[OpenAPI(OpenAPI::SCOPE_IGNORE)]
     #[FrontpageRoute(verb: 'GET', url: '/merchant/listall')]
-    public function listall(): JSONResponse {
+    public function listall(): JSONResponse
+    {
         $merchants = $this->merchantMapper->findAll();
 
         return new JSONResponse([
@@ -113,9 +119,9 @@ class MerchantController extends Controller {
 
     #[OpenAPI(OpenAPI::SCOPE_IGNORE)]
     #[FrontpageRoute(verb: 'POST', url: '/merchant/save')]
-    public function save(): DataResponse {
-        $expectedFields = ['name', 'comment'];
-        $data = $this->merchantService->getDataFromRequest($this->request->getParams(), $expectedFields);
+    public function save(): DataResponse
+    {
+        $data = $this->merchantService->getDataFromRequest($this->request->getParams(), $this->expectedFields);
         $result = $this->merchantService->validateData($data);
 
         if($result['valid'] === false) {
@@ -143,8 +149,8 @@ class MerchantController extends Controller {
         string $orderBy = 'name',
         string $direction = 'ASC',
         int $page = 1,
-        int $limit = 20,
-    ): JSONResponse {
+        int $limit = 20,): JSONResponse
+    {
         $offset = ($page - 1) * $limit;
         $filters = $this->request->getParam('filters');
         $result = $this->merchantMapper->searchPaged($orderBy, $direction, $limit, $offset, $filters);
@@ -161,7 +167,8 @@ class MerchantController extends Controller {
     #[NoCSRFRequired]
     #[OpenAPI(OpenAPI::SCOPE_IGNORE)]
     #[FrontpageRoute(verb: 'GET', url: '/merchant/{id}')]
-    public function show(int $id): JSONResponse {
+    public function show(int $id): JSONResponse
+    {
         try {
             $merchant = $this->merchantMapper->findById($id);
         } catch (DoesNotExistException) {
@@ -176,7 +183,8 @@ class MerchantController extends Controller {
 
     #[OpenAPI(OpenAPI::SCOPE_IGNORE)]
     #[FrontpageRoute(verb: 'PUT', url: '/merchant/{id}')]
-    public function update(int $id): DataResponse {
+    public function update(int $id): DataResponse
+    {
         // Gerät laden – 404 wenn nicht vorhanden
         try {
             $merchant = $this->merchantMapper->findById($id);
@@ -187,11 +195,9 @@ class MerchantController extends Controller {
             );
         }
 
-        $expectedFields = ['name', 'comment'];
+        $data = $this->merchantService->getDataFromRequest($this->request->getParams(), $this->expectedFields);
 
-        $data = $this->merchantService->getDataFromRequest($this->request->getParams(), $expectedFields);
-
-        $result = $this->merchantService->validateData($data);
+        $result = $this->merchantService->validateData($data, $id);
 
         if ($result['valid'] === false) {
             return new DataResponse([

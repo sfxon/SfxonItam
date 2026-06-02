@@ -1,5 +1,4 @@
-<?php
-declare(strict_types=1);
+<?php declare(strict_types=1);
 
 namespace OCA\SfxonItam\Controller;
 
@@ -22,7 +21,8 @@ use OCA\SfxonItam\Service\ItamUserService;
 /**
  * @psalm-suppress UnusedClass
  */
-class ItamUserController extends Controller {
+class ItamUserController extends Controller
+{
     private array $expectedFields = ['firstname', 'lastname', 'email', 'comment'];
 
     public function __construct(
@@ -30,14 +30,15 @@ class ItamUserController extends Controller {
         IRequest $request,
         private DeviceMapper $deviceMapper,
         private ItamUserMapper $itamUserMapper,
-        private readonly ItamUserService $itamUserService
-    ) {
+        private readonly ItamUserService $itamUserService,)
+    {
         parent::__construct($appName, $request);
     }
 
     #[OpenAPI(OpenAPI::SCOPE_IGNORE)]
     #[FrontpageRoute(verb: 'DELETE', url: '/itam-user/{id}')]
-    public function delete(int $id): JsonResponse {
+    public function delete(int $id): JsonResponse
+    {
         // Only allow delete, if the deviceStatus is still used by another entity.
         $hasEntries = $this->deviceMapper->isEntityValueInUse('itam_user_id', $id);
 
@@ -64,7 +65,8 @@ class ItamUserController extends Controller {
     #[NoCSRFRequired]
     #[OpenAPI(OpenAPI::SCOPE_IGNORE)]
     #[FrontpageRoute(verb: 'GET', url: '/itam-user/detail')]
-    public function itamUserDetail(): TemplateResponse {
+    public function itamUserDetail(): TemplateResponse
+    {
         return new TemplateResponse(
             Application::APP_ID,
             'itam-user/editor',
@@ -74,7 +76,8 @@ class ItamUserController extends Controller {
     #[NoCSRFRequired]
     #[OpenAPI(OpenAPI::SCOPE_IGNORE)]
     #[FrontpageRoute(verb: 'GET', url: '/itam-user/')]
-    public function index(): TemplateResponse {
+    public function index(): TemplateResponse
+    {
         return new TemplateResponse(
             Application::APP_ID,
             'itam-user/list',
@@ -88,8 +91,8 @@ class ItamUserController extends Controller {
         string $orderBy = 'name',
         string $direction = 'ASC',
         int $page = 1,
-        int $limit = 20
-    ): JSONResponse {
+        int $limit = 20,): JSONResponse
+    {
         $offset = ($page - 1) * $limit;
         $itamUsers = $this->itamUserMapper->findAllPaged($orderBy, $direction, $limit, $offset);
         $total   = $this->itamUserMapper->countAll();
@@ -102,10 +105,12 @@ class ItamUserController extends Controller {
         ]);
     }
 
+    #[\Deprecated(message: "Will be removed.", since: "1.9")]
     #[NoCSRFRequired]
     #[OpenAPI(OpenAPI::SCOPE_IGNORE)]
     #[FrontpageRoute(verb: 'GET', url: '/itam-user/listall')]
-    public function listall(): JSONResponse {
+    public function listall(): JSONResponse
+    {
         $itamUsers = $this->itamUserMapper->findAll();
 
         return new JSONResponse([
@@ -115,7 +120,8 @@ class ItamUserController extends Controller {
 
     #[OpenAPI(OpenAPI::SCOPE_IGNORE)]
     #[FrontpageRoute(verb: 'POST', url: '/itam-user/save')]
-    public function save(): DataResponse {
+    public function save(): DataResponse
+    {
         $data = $this->itamUserService->getDataFromRequest($this->request->getParams(), $this->expectedFields);
         $result = $this->itamUserService->validateData($data);
 
@@ -143,8 +149,8 @@ class ItamUserController extends Controller {
         string $orderBy = 'firstname',
         string $direction = 'ASC',
         int $page = 1,
-        int $limit = 20,
-    ): JSONResponse {
+        int $limit = 20,): JSONResponse
+    {
         $offset = ($page - 1) * $limit;
         $filters = $this->request->getParam('filters');
         $result = $this->itamUserMapper->searchPaged($orderBy, $direction, $limit, $offset, $filters);
@@ -161,7 +167,8 @@ class ItamUserController extends Controller {
     #[NoCSRFRequired]
     #[OpenAPI(OpenAPI::SCOPE_IGNORE)]
     #[FrontpageRoute(verb: 'GET', url: '/itam-user/{id}')]
-    public function show(int $id): JSONResponse {
+    public function show(int $id): JSONResponse
+    {
         try {
             $itamUser = $this->itamUserMapper->findById($id);
         } catch (DoesNotExistException) {
@@ -176,8 +183,9 @@ class ItamUserController extends Controller {
 
     #[OpenAPI(OpenAPI::SCOPE_IGNORE)]
     #[FrontpageRoute(verb: 'PUT', url: '/itam-user/{id}')]
-    public function update(int $id): DataResponse {
-        // Gerät laden – 404 wenn nicht vorhanden
+    public function update(int $id): DataResponse
+    {
+        // Return 404 if entity is not found.
         try {
             $itamUser = $this->itamUserMapper->findById($id);
         } catch (\OCP\AppFramework\Db\DoesNotExistException) {
@@ -187,11 +195,9 @@ class ItamUserController extends Controller {
             );
         }
 
-        $expectedFields = ['name', 'comment'];
-
         $data = $this->itamUserService->getDataFromRequest($this->request->getParams(), $this->expectedFields);
 
-        $result = $this->itamUserService->validateData($data);
+        $result = $this->itamUserService->validateData($data, $id);
 
         if ($result['valid'] === false) {
             return new DataResponse([

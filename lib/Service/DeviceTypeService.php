@@ -1,24 +1,26 @@
-<?php
-declare(strict_types=1);
+<?php declare(strict_types=1);
 
 namespace OCA\SfxonItam\Service;
 
 use OCA\SfxonItam\Validator\DeviceTypeValidator;
 
-class DeviceTypeService {
+class DeviceTypeService
+{
     public function __construct(
-        private readonly DeviceTypeValidator $deviceTypeValidator
-    ) {
+        private readonly DeviceTypeValidator $deviceTypeValidator,)
+    {
     }
 
-    public function getDataFromRequest($requestArray, $expectedFields) {
+    public function getDataFromRequest($requestArray, $expectedFields)
+    {
         return array_intersect_key(
             $requestArray,
             array_flip($expectedFields)
         );
     }
 
-    public function validateData(array $data) {
-        return $this->deviceTypeValidator->validate($data);
+    public function validateData(array $data, ?int $excludeId = null)
+    {
+        return $this->deviceTypeValidator->validate($data, $excludeId);
     }
 }

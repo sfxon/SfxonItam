@@ -1,5 +1,4 @@
-<?php
-declare(strict_types=1);
+<?php declare(strict_types=1);
 
 namespace OCA\SfxonItam\Controller;
 
@@ -23,19 +22,22 @@ use OCA\SfxonItam\Service\ManufacturerService;
  * @psalm-suppress UnusedClass
  */
 class ManufacturerController extends Controller {
+    private array $expectedFields = ['name', 'comment'];
+
     public function __construct(
         string $appName,
         IRequest $request,
         private DeviceTypeMapper $deviceTypeMapper,
         private ManufacturerMapper $manufacturerMapper,
-        private readonly ManufacturerService $manufacturerService
-    ) {
+        private readonly ManufacturerService $manufacturerService,)
+    {
         parent::__construct($appName, $request);
     }
 
     #[OpenAPI(OpenAPI::SCOPE_IGNORE)]
     #[FrontpageRoute(verb: 'DELETE', url: '/manufacturer/{id}')]
-    public function delete(int $id): JsonResponse {
+    public function delete(int $id): JsonResponse
+    {
         // Only allow delete, if the deviceStatus is still used by another entity.
         $hasEntries = $this->deviceTypeMapper->isEntityValueInUse('manufacturer_id', $id);
 
@@ -62,7 +64,8 @@ class ManufacturerController extends Controller {
     #[NoCSRFRequired]
     #[OpenAPI(OpenAPI::SCOPE_IGNORE)]
     #[FrontpageRoute(verb: 'GET', url: '/manufacturer/detail')]
-    public function manufacturerDetail(): TemplateResponse {
+    public function manufacturerDetail(): TemplateResponse
+    {
         return new TemplateResponse(
             Application::APP_ID,
             'manufacturer/editor',
@@ -72,7 +75,8 @@ class ManufacturerController extends Controller {
     #[NoCSRFRequired]
     #[OpenAPI(OpenAPI::SCOPE_IGNORE)]
     #[FrontpageRoute(verb: 'GET', url: '/manufacturer/')]
-    public function index(): TemplateResponse {
+    public function index(): TemplateResponse
+    {
         return new TemplateResponse(
             Application::APP_ID,
             'manufacturer/list',
@@ -86,8 +90,8 @@ class ManufacturerController extends Controller {
         string $orderBy = 'name',
         string $direction = 'ASC',
         int $page = 1,
-        int $limit = 20
-    ): JSONResponse {
+        int $limit = 20,): JSONResponse
+    {
         $offset = ($page - 1) * $limit;
         $manufacturers = $this->manufacturerMapper->findAllPaged($orderBy, $direction, $limit, $offset);
         $total   = $this->manufacturerMapper->countAll();
@@ -100,10 +104,12 @@ class ManufacturerController extends Controller {
         ]);
     }
 
+    #[\Deprecated(message: "Will be removed.", since: "1.9")]
     #[NoCSRFRequired]
     #[OpenAPI(OpenAPI::SCOPE_IGNORE)]
     #[FrontpageRoute(verb: 'GET', url: '/manufacturer/listall')]
-    public function listall(): JSONResponse {
+    public function listall(): JSONResponse
+    {
         $manufacturers = $this->manufacturerMapper->findAll();
 
         return new JSONResponse([
@@ -113,9 +119,9 @@ class ManufacturerController extends Controller {
 
     #[OpenAPI(OpenAPI::SCOPE_IGNORE)]
     #[FrontpageRoute(verb: 'POST', url: '/manufacturer/save')]
-    public function save(): DataResponse {
-        $expectedFields = ['name', 'comment'];
-        $data = $this->manufacturerService->getDataFromRequest($this->request->getParams(), $expectedFields);
+    public function save(): DataResponse
+    {
+        $data = $this->manufacturerService->getDataFromRequest($this->request->getParams(), $this->expectedFields);
         $result = $this->manufacturerService->validateData($data);
 
         if($result['valid'] === false) {
@@ -139,7 +145,8 @@ class ManufacturerController extends Controller {
     #[NoCSRFRequired]
     #[OpenAPI(OpenAPI::SCOPE_IGNORE)]
     #[FrontpageRoute(verb: 'GET', url: '/manufacturer/{id}')]
-    public function show(int $id): JSONResponse {
+    public function show(int $id): JSONResponse
+    {
         try {
             $manufacturer = $this->manufacturerMapper->findById($id);
         } catch (DoesNotExistException) {
@@ -159,8 +166,8 @@ class ManufacturerController extends Controller {
         string $orderBy = 'name',
         string $direction = 'ASC',
         int $page = 1,
-        int $limit = 20,
-    ): JSONResponse {
+        int $limit = 20,): JSONResponse
+    {
         $offset = ($page - 1) * $limit;
         $filters = $this->request->getParam('filters');
         $result = $this->manufacturerMapper->searchPaged($orderBy, $direction, $limit, $offset, $filters);
@@ -176,7 +183,8 @@ class ManufacturerController extends Controller {
 
     #[OpenAPI(OpenAPI::SCOPE_IGNORE)]
     #[FrontpageRoute(verb: 'PUT', url: '/manufacturer/{id}')]
-    public function update(int $id): DataResponse {
+    public function update(int $id): DataResponse
+    {
         // Gerät laden – 404 wenn nicht vorhanden
         try {
             $manufacturer = $this->manufacturerMapper->findById($id);
@@ -187,11 +195,9 @@ class ManufacturerController extends Controller {
             );
         }
 
-        $expectedFields = ['name', 'comment'];
+        $data = $this->manufacturerService->getDataFromRequest($this->request->getParams(), $this->expectedFields);
 
-        $data = $this->manufacturerService->getDataFromRequest($this->request->getParams(), $expectedFields);
-
-        $result = $this->manufacturerService->validateData($data);
+        $result = $this->manufacturerService->validateData($data, $id);
 
         if ($result['valid'] === false) {
             return new DataResponse([
