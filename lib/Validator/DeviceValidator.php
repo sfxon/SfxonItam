@@ -1,31 +1,38 @@
-<?php
-
-declare(strict_types=1);
+<?php declare(strict_types=1);
 
 namespace OCA\SfxonItam\Validator;
 
+use OCA\SfxonItam\Db\DeviceMapper;
 use OCA\SfxonItam\Db\DeviceStatusMapper;
 use OCP\IL10N;
 
 class DeviceValidator {
     public function __construct(
+        private DeviceMapper $mapper,
         private DeviceStatusMapper $deviceStatusMapper,
         private IL10N $l,
     )
     {
     }
 
-    public function validate(array $data): array {
+    public function validate(array $data, ?int $excludeId = null): array
+    {
         $errors = [];
 
-        // name: mindestens 3 Zeichen
+        // a) name: at least 3 signs.
         if (empty($data['name'])) {
             $errors['name'] = $this->l->t('The field "name" is required.');
         } elseif (mb_strlen(trim($data['name'])) < 3) {
             $errors['name'] = $this->l->t('The name must be at least 3 characters long.');
+        } else {
+            // b) name: must be unique.
+            $existing = $this->mapper->findByName(trim($data['name']));
+            if ($existing !== null && $existing->getId() !== $excludeId) {
+                $errors['name'] = $this->l->t('A device with this name already exists.');
+            }
         }
 
-        // deviceStatusId: Must be a valid DeviceStatus Entry from the database or null.
+        // c) deviceStatusId: Must be a valid DeviceStatus Entry from the database or null.
         if (empty($data['deviceStatusId']) && null !== $data['deviceStatusId'] ) {
             $errors['deviceStatusId'] = $this->l->t('The field deviceStatusId is required.');
         } else if(null !== $data['deviceStatusId']) {
@@ -36,7 +43,7 @@ class DeviceValidator {
             }
         }
 
-        // purchaseDate
+        // d) purchaseDate
         if (empty($data['purchaseDate']) && null !== $data['purchaseDate'] ) {
             $errors['purchaseDate'] = $this->l->t('The field purchaseDate is required.');
         } else if(null !== $data['purchaseDate']) {

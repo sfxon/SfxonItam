@@ -76,6 +76,22 @@ class DeviceMapper extends QBMapper {
         return $result;
     }
 
+    // TODO: Have to check, what happens with case sensitivity.
+    public function findByName(string $name): ?Device
+    {
+        $qb = $this->db->getQueryBuilder();
+        $qb->select('*')
+            ->from($this->getTableName())
+            ->where($qb->expr()->eq('name', $qb->createNamedParameter($name)))
+            ->setMaxResults(1);
+
+        try {
+            return $this->findEntity($qb);
+        } catch (\OCP\AppFramework\Db\DoesNotExistException) {
+            return null;
+        }
+    }
+
     /** @return Device[] */
     public function findAll(): array {
         $qb = $this->db->getQueryBuilder();
