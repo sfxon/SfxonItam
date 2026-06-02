@@ -93,11 +93,10 @@ const deviceId = computed(() => {
 })
 const isEditMode = computed(() => !!deviceId.value)
 
-// Abhängige Entitäten definieren.
+// Define related entities.
 const itamUsers = ref<{ id: string; label: string }[]>([])
 const deviceStatis = ref<{ id: string; label: string}[]>([])
 const deviceTypes = ref<{ id: string; label: string}[]>([])
-/* const locations = ref<{ id: string; label: string}[]>([]) */
 const merchants = ref<{ id: string; label: string }[]>([])
 const positions = ref<{ id: string; label: string}[]>([])
 const quantityUnits = ref<{ id: string; label: string}[]>([])
@@ -114,9 +113,34 @@ const quantityUnits = ref<{ id: string; label: string}[]>([])
  * 
  */
 const entityConfig = {
+    deviceStatus: {
+        selectTarget: selectedDeviceStatus,
+        optionsTarget: deviceStatis,
+        labelFields: { fields: ['name'] },
+    },
+    deviceType: {
+        selectTarget: selectedDeviceType,
+        optionsTarget: deviceTypes,
+        labelFields: { fields: ['name'] },
+    },
     quantityUnit: {
         selectTarget: selectedQuantityUnit,
         optionsTarget: quantityUnits,
+        labelFields: { fields: ['name'] },
+    },
+    itamUser: {
+        selectTarget: selectedItamUser,
+        optionsTarget: itamUsers,
+        labelFields: { fields: ['firstname', 'lastname'], technique: 'concat', separator: ' ' },
+    },
+    merchant: {
+        selectTarget: selectedMerchant,
+        optionsTarget: merchants,
+        labelFields: { fields: ['name'] },
+    },
+    position: {
+        selectTarget: selectedPosition,
+        optionsTarget: positions,
         labelFields: { fields: ['name'] },
     },
 }
@@ -815,9 +839,10 @@ onMounted(async () => {
                             />
 
                             <SfxonEditorFormEntitySelect
-                                field="userSelect"
+                                :addRecordFn="() => openAddEntityDialog({ entity: 'itamUser' })"
+                                field="itamUserId"
                                 :fieldError="fieldErrors.itamUserId"
-                                id="user-select"
+                                id="itam-user-select"
                                 @input="clearFieldError('itamUserId')"
                                 :label="t('sfxonitam', 'User') + ':'"
                                 :options="itamUsers"
@@ -827,7 +852,8 @@ onMounted(async () => {
                             />
 
                             <SfxonEditorFormEntitySelect
-                                field="positionSelect"
+                                :addRecordFn="() => openAddEntityDialog({ entity: 'position' })"
+                                field="positionId"
                                 :fieldError="fieldErrors.positionId"
                                 id="position-select"
                                 @input="clearFieldError('positionId')"
@@ -870,7 +896,8 @@ onMounted(async () => {
                         </div>
                         <div :class="[SfxonEditorStyles.sfxonFormColumn, $style.sfxonFormColumnGeneralRight]">
                             <SfxonEditorFormEntitySelect
-                                field="deviceStatusSelect"
+                                :addRecordFn="() => openAddEntityDialog({ entity: 'deviceStatus' })"
+                                field="deviceStatusId"
                                 :fieldError="fieldErrors.deviceStatusId"
                                 id="device-status-select"
                                 @input="clearFieldError('deviceStatusId')"
@@ -882,7 +909,8 @@ onMounted(async () => {
                             />
 
                             <SfxonEditorFormEntitySelect
-                                field="deviceTypeSelect"
+                                :addRecordFn="() => openAddEntityDialog({ entity: 'deviceType' })"
+                                field="deviceTypeId"
                                 :fieldError="fieldErrors.deviceTypeId"
                                 id="device-type-select"
                                 @input="clearFieldError('deviceTypeId')"
@@ -928,7 +956,8 @@ onMounted(async () => {
                     <div :class="SfxonEditorStyles.sfxonFormSection">
                         <div :class="SfxonEditorStyles.sfxonFormColumn">
                             <SfxonEditorFormEntitySelect
-                                field="merchantSelect"
+                                :addRecordFn="() => openAddEntityDialog({ entity: 'merchant' })"
+                                field="merchantId"
                                 :fieldError="fieldErrors.merchantId"
                                 id="device-type-select"
                                 @input="clearFieldError('merchantId')"

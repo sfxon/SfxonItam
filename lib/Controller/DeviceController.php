@@ -214,7 +214,9 @@ class DeviceController extends Controller
 
     private function sanitizeForeignKey($foreignKeyValue)
     {
-        return ($foreignKeyValue == 0 || $foreignKeyValue == '0' || $foreignKeyValue == '') ? null : $foreignKeyValue;
+        $foreignKeyValue = intval($foreignKeyValue);
+
+        return ($foreignKeyValue === 0) ? null : $foreignKeyValue;
     }
 
     private function setDeviceDataFromRequest($device)

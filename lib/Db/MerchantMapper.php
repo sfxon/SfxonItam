@@ -41,7 +41,12 @@ class MerchantMapper extends QBMapper {
         $qb = $this->db->getQueryBuilder();
         $qb->select('*')
             ->from($this->getTableName())
-            ->where($qb->expr()->eq('name', $qb->createNamedParameter($name)))
+            ->where(
+                $qb->expr()->eq(
+                    $qb->func()->lower('name'),
+                    $qb->createNamedParameter(strtolower(trim($name)))
+                )
+            )
             ->setMaxResults(1);
 
         try {

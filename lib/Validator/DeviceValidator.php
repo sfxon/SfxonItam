@@ -32,18 +32,7 @@ class DeviceValidator {
             }
         }
 
-        // c) deviceStatusId: Must be a valid DeviceStatus Entry from the database or null.
-        if (empty($data['deviceStatusId']) && null !== $data['deviceStatusId'] ) {
-            $errors['deviceStatusId'] = $this->l->t('The field deviceStatusId is required.');
-        } else if(null !== $data['deviceStatusId']) {
-            try {
-                $this->deviceStatusMapper->findById($data['deviceStatusId']);
-            } catch(\Exception $e) {
-                $errors['deviceStatusId'] = $this->l->t('Invalid deviceStatusId.');
-            }
-        }
-
-        // d) purchaseDate
+        // b) purchaseDate
         if (empty($data['purchaseDate']) && null !== $data['purchaseDate'] ) {
             $errors['purchaseDate'] = $this->l->t('The field purchaseDate is required.');
         } else if(null !== $data['purchaseDate']) {

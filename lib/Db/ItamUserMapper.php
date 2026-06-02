@@ -42,7 +42,12 @@ class ItamUserMapper extends QBMapper {
         $qb = $this->db->getQueryBuilder();
         $qb->select('*')
             ->from($this->getTableName())
-            ->where($qb->expr()->eq('email', $qb->createNamedParameter($email)))
+            ->where(
+                $qb->expr()->eq(
+                    $qb->func()->lower('email'),
+                    $qb->createNamedParameter(strtolower(trim($email)))
+                )
+            )
             ->setMaxResults(1);
 
         try {
