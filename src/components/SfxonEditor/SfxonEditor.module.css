@@ -199,3 +199,15 @@
 .sfxonDescriptionInput :global(.textarea__label) {
     inset-block-start: 6px!important;
 }
+
+.myfavNotificationContainer {
+    margin: 0 15px;
+}
+
+.myfavNotificationContainer :global(.notecard) {
+    margin-bottom: 0!important;
+}
+
+.sfxonFormColumnRowError {
+    margin-bottom: 6px;
+}

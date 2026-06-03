@@ -138,7 +138,9 @@ Editor:
                 - ✅ Implement new functionality from QuantityUnitService into the other services.
                 - ✅ Let device entities detail page also load the other entities field definitions and hand them by the template over to vuejs.
                 - ✅ Implement entity modals in deviceEditor.vue.
-                - Check, if our "unique" tests in the validators (findByName, findByEmail) are working case-insensitive. They are working case sensitive. I change this behaviour for this fields: ItamUser.email, Position.name, DeviceStatus.name, DeviceType.name, Merchant.name, but not for Quantity Unit, since in Quantity Unit there might be a use to accept a minor a and a major A.
+                - ✅ Check, if our "unique" tests in the validators (findByName, findByEmail) are working case-insensitive. They are working case sensitive. I change this behaviour for this fields: ItamUser.email, Position.name, DeviceStatus.name, DeviceType.name, Merchant.name, but not for Quantity Unit, since in Quantity Unit there might be a use to accept a minor a and a major A.
+                - ✅ Fix the design of the general error message for the device editor view.
+                - ✅ Fix layout of label and field alignment on errournous rows in the editor.
             - If possible, externalise the dialog as custom component, and keep only the config stuff for it in the device editor component.
         - Some of the boxes have different border radius. Fix that.
 

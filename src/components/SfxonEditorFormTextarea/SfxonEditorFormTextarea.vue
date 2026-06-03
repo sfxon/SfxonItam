@@ -40,10 +40,15 @@ function onInput(value: string | Event) {
                     @update:modelValue="onInput"
                 >
                 </NcTextArea>
-                <span v-if="fieldError" :class="SfxonEditorStyles.errorText">
-                    {{ fieldError }}
-                </span>
             </div>
+        </div>
+    </div>
+    <div :class="[SfxonEditorStyles.sfxonFormColumnRow, SfxonEditorStyles.sfxonFormColumnRowError]" v-if="fieldError">
+        <div :class="SfxonEditorStyles.sfxonFormColumnLabel">&nbsp;</div>
+        <div :class="SfxonEditorStyles.sfxonFormColumnInput">
+            <span :class="SfxonEditorStyles.errorText">
+                {{ fieldError }}
+            </span>
         </div>
     </div>
 </template>

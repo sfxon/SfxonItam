@@ -771,18 +771,17 @@ onMounted(async () => {
                 </template>
             </SfxonItamHeader>
 
-            <div :class="$style.MyfavNotificationContainer">
-                <!-- Error Messages. -->
-                <NcNoteCard
-                    v-if="generalError"
-                    type="error"
-                >
-                    {{ generalError }}
-                </NcNoteCard>
-            </div>
-
             <!-- Form -->
             <div :class="SfxonEditorStyles.form">
+                <div
+                    :class="SfxonEditorStyles.myfavNotificationContainer"
+                    v-if="generalError"
+                >
+                    <NcNoteCard type="error">
+                        {{ generalError }}
+                    </NcNoteCard>
+                </div>
+
                 <!-- Save animation -->
                 <div :class="$style.saveBadgeOuter">
                     <Transition name="save-badge">

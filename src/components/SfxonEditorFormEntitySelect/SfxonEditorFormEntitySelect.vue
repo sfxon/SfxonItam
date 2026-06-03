@@ -121,10 +121,15 @@ function onClickAddIcon() {
                     :track-by="trackBy"
                     v-on="searchFn ? { search: onSearch } : {}"
                     @update:modelValue="onInput" />
-                <span v-if="fieldError" :class="SfxonEditorStyles.errorText">
-                    {{ fieldError }}
-                </span>
             </div>
+        </div>
+    </div>
+    <div :class="[SfxonEditorStyles.sfxonFormColumnRow, SfxonEditorStyles.sfxonFormColumnRowError]" v-if="fieldError">
+        <div :class="SfxonEditorStyles.sfxonFormColumnLabel">&nbsp;</div>
+        <div :class="SfxonEditorStyles.sfxonFormColumnInput">
+            <span :class="SfxonEditorStyles.errorText">
+                {{ fieldError }}
+            </span>
         </div>
     </div>
 </template>
