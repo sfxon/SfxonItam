@@ -16,13 +16,11 @@ import NcAppNavigationList from '@nextcloud/vue/components/NcAppNavigationList'
 import NcAppNavigationNew from '@nextcloud/vue/components/NcAppNavigationNew'
 import NcButton from '@nextcloud/vue/components/NcButton'
 import NcContent from '@nextcloud/vue/components/NcContent'
-import NcDialog from '@nextcloud/vue/components/NcDialog'
 import { mdiPlus } from '@mdi/js'
 import { translate as t } from '@nextcloud/l10n'
 import { generateUrl, generateRemoteUrl } from '@nextcloud/router'
 import NcNoteCard from '@nextcloud/vue/components/NcNoteCard'
 import NcIconSvgWrapper from '@nextcloud/vue/components/NcIconSvgWrapper'
-import { NcLoadingIcon } from '@nextcloud/vue'
 import SfxonBarcode from '@/components/SfxonBarcode'
 import SfxonEditorFormDatePicker from '@/components/SfxonEditorFormDatePicker'
 import SfxonEditorFormEntitySelect from '@/components/SfxonEditorFormEntitySelect'
@@ -30,6 +28,7 @@ import SfxonEditorFormImageSelector from '@/components/SfxonEditorFormImageSelec
 import SfxonEditorFormInput from '@/components/SfxonEditorFormInput'
 import SfxonEditorFormTextarea from '@/components/SfxonEditorFormTextarea'
 import SfxonEditorStyles from '@/components/SfxonEditor/SfxonEditor.module.css'
+import SfxonEntityDialog from '@/components/SfxonEntityDialog'
 import SfxonItamHeader from '@/components/SfxonItamHeader'
 import SfxonMainNavigation from '@/components/SfxonMainNavigation'
 import SfxonQrCodeView from '@/components/SfxonQrCodeView'
@@ -47,11 +46,7 @@ const services = {
     PositionService,
     QuantityUnitService
 }
-const addEntityEntryDialogError = ref('')
 const addEntityEntryDialogEntityName = ref('')
-const addEntityEntryDialogFieldErrors = ref({}) // { [entityName]: { [fieldName]: 'message' } }
-const addEntityEntryDialogHeading = ref('')
-const addEntityEntryDialogIsSaving = ref(false)
 const assetNumber = ref('')
 const description = ref('')
 const imageFileId = ref<number | null>(null)
@@ -71,7 +66,6 @@ const saveFlashKey = ref(0) // Changing this key re-triggers the CSS animation.
 const saveVisible = ref(false) // Used to control the visibility of symbols.
 const saveIsReflash = ref(false) // Marks the distinction between initial vs. re-trigger animations.
 let saveHideTimer: ReturnType<typeof setTimeout> | null = null
-const showAddEntityEntryDialog = ref(false)
 const selectedDeviceStatus = ref<{ id: string; label: string } | null>(null)
 const selectedDeviceType = ref<{ id: string; label: string } | null>(null)
 const selectedImageFile = ref<File | null>(null)
@@ -259,90 +253,6 @@ function mapFrontendBackendFieldSubtype(backendType) {
     throw new Error('Unknown field type ' + backendType);
 }
 
-async function onAddEntityEntryDialogSave() {
-    addEntityEntryDialogIsSaving.value = true
-    const entityName = addEntityEntryDialogEntityName.value
-    const relation = relations[entityName]
-    const addRecordModalSettings = relation.addRecordModal
-    const payload = {}
-
-    // Reset error before new attempt.
-    addEntityEntryDialogError.value = ''
-    addEntityEntryDialogFieldErrors.value[entityName] = {}
-
-    for(let field of addRecordModalSettings.fields) {
-        payload[field.fieldName] = field.value
-    }
-
-    try {
-        let result = await addRecordModalSettings.saveFunction(payload)
-
-        // Build the label from the form fields, using the labelFields definition in entityConfig.
-        const label = relation.labelFields.fields
-            .map(fieldName => addRecordModalSettings.fields.find(f => f.fieldName === fieldName)?.value ?? '')
-            .filter(Boolean)
-            .join(relation.labelFields.separator ?? ' ')
-
-        const newOption = { id: String(result.id), label }
-
-        // Add the new option to the dropdown list (so NcSelect knows it).
-        if (relation.optionsTarget) {
-            const list = isRef(relation.optionsTarget) 
-                ? relation.optionsTarget.value 
-                : relation.optionsTarget
-
-            const alreadyExists = list.some(o => o.id === newOption.id)
-
-            if (!alreadyExists) {
-                list.push(newOption)
-            }
-        }
-
-        // Pre-select the newly created entry in the dropdown.
-        if (relation.selectTarget) {
-            if (isRef(relation.selectTarget)) {
-                relation.selectTarget.value = newOption
-            } else {
-                relation.selectTarget = newOption
-            }
-        }
-
-        // Clear the fields in the editor after successfull saving.
-        for(let field of addRecordModalSettings.fields) {
-            field.value = '';
-        }
-
-        addEntityEntryDialogIsSaving.value = false
-        onAddEntityEntryDialogClose()
-        resetDialogErrors()
-        triggerSaveSuccess()
-    } catch(error) {
-        addEntityEntryDialogIsSaving.value = false
-
-        const responseData = error?.response?.data
-
-        if (responseData?.status === 'error' && responseData?.errors) {
-            // Set the field specific errors – but only for the currently used entity.
-            addEntityEntryDialogFieldErrors.value[entityName] = responseData.errors
-            addEntityEntryDialogError.value = t('sfxon', 'Please check your input.')
-        } else {
-            addEntityEntryDialogError.value = t('sfxon', 'An error occurred. Please try again. For further details, check the logs. For professional support, the Oishi Team is happy to help.')
-            console.error(error.stack)
-            throw error
-        }
-    }
-}
-
-function onAddEntityEntryDialogClose() {
-    showAddEntityEntryDialog.value = false
-    resetDialogErrors()
-}
-
-function resetDialogErrors() {
-    addEntityEntryDialogError.value = ''
-    addEntityEntryDialogFieldErrors.value = {}
-}
-
 async function loadDevice(id: number): Promise<void> {
     try {
         deviceLoading.value = true
@@ -387,12 +297,35 @@ async function loadDevice(id: number): Promise<void> {
     }
 }
 
+function onEntitySaved(payload: { entityName: string; newOption: { id: string; label: string } }) {
+    const { entityName, newOption } = payload
+    const relation = relations[entityName]
+
+    // Add new option in entity list.
+    if (relation?.optionsTarget) {
+        const list = isRef(relation.optionsTarget)
+            ? relation.optionsTarget.value
+            : relation.optionsTarget
+
+        if (!list.some((o: any) => o.id === newOption.id)) {
+            list.push(newOption)
+        }
+    }
+
+    // Select new option in entity list.
+    if (relation?.selectTarget) {
+        if (isRef(relation.selectTarget)) {
+            relation.selectTarget.value = newOption
+        } else {
+            relation.selectTarget = newOption
+        }
+    }
+
+    triggerSaveSuccess()
+}
+
 async function openAddEntityDialog(payload: any) {
-    let entityName = payload.entity
-    let addRecordModalSettings = relations[entityName].addRecordModal
-    addEntityEntryDialogEntityName.value = entityName
-    addEntityEntryDialogHeading.value = addRecordModalSettings.heading
-    showAddEntityEntryDialog.value = true
+    addEntityEntryDialogEntityName.value = payload.entity
 }
 
 async function searchDeviceStatis(query: string, signal: AbortSignal): Promise<void> {
@@ -1028,60 +961,12 @@ onMounted(async () => {
         </NcAppContent>
     </NcContent>
 
-    <NcDialog
-        v-if="showAddEntityEntryDialog"
-        :name="addEntityEntryDialogHeading"
-        :open="showAddEntityEntryDialog"
-        @closing="onAddEntityEntryDialogClose()"
-    >
-        <!-- Error Messages. -->
-        <div :class="$style.MyfavNotificationContainer">
-            <NcNoteCard
-                :class="$style.sfxonModalDialogErrorMsg"
-                v-if="addEntityEntryDialogError"
-                type="error"
-            >
-                {{ addEntityEntryDialogError }}
-            </NcNoteCard>
-        </div>
-
-        <div v-for="(relation, entityName) in relations">
-            <template v-if="entityName === addEntityEntryDialogEntityName">
-                <template
-                    v-if="relation.addRecordModal && relation.addRecordModal.fields"
-                    v-for="field in relation.addRecordModal.fields"
-                >
-                    <template v-if="field.sfxonType == 'SfxonEditorFormInput'">
-                        <SfxonEditorFormInput
-                            :field="'addRecordModal' + field.fieldName"
-                            :fieldError="addEntityEntryDialogFieldErrors[entityName]?.[field.fieldName] ?? ''"
-                            :id="'addRecordModal' + field.fieldName"
-                            v-model="field.value"
-                            :label="field.label"
-                            :type="field.type"
-                        />
-                    </template>
-                </template>
-            </template>
-        </div>
-
-        <template #actions>
-            <NcButton 
-                @click="onAddEntityEntryDialogClose()"
-                variant="tertiary" 
-            >
-                {{ t('sfxonitam', 'Cancel') }}
-            </NcButton>
-            <NcButton
-                @click="onAddEntityEntryDialogSave"
-                :disabled="addEntityEntryDialogIsSaving"
-                variant="primary"
-            >
-                <NcLoadingIcon v-if="addEntityEntryDialogIsSaving" :size="20" />
-                <span v-else>{{ t('sfxonitam', 'Save') }}</span>
-            </NcButton>
-        </template>
-    </NcDialog>
+    <SfxonEntityDialog
+        :relations="relations"
+        :entity-name="addEntityEntryDialogEntityName"
+        @close="addEntityEntryDialogEntityName = ''"
+        @saved="onEntitySaved"
+    />
 </template>
 
 <style module>

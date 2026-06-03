@@ -141,7 +141,7 @@ Editor:
                 - ✅ Check, if our "unique" tests in the validators (findByName, findByEmail) are working case-insensitive. They are working case sensitive. I change this behaviour for this fields: ItamUser.email, Position.name, DeviceStatus.name, DeviceType.name, Merchant.name, but not for Quantity Unit, since in Quantity Unit there might be a use to accept a minor a and a major A.
                 - ✅ Fix the design of the general error message for the device editor view.
                 - ✅ Fix layout of label and field alignment on errournous rows in the editor.
-            - If possible, externalise the dialog as custom component, and keep only the config stuff for it in the device editor component.
+            - ✅ Externalise entity dialog as custom component, and keep only the config variables and functions which have custom functionality in the device editor component.
         - Some of the boxes have different border radius. Fix that.
 
     - Take over new styling for detail page to all other editor pages..
