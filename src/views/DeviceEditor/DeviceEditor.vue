@@ -163,7 +163,7 @@ function addItem() {
 }
 
 function addEntityData(entity, dataObject, identifierField, valueFields = null) {
-    if('undefined' === typeof dataObject) {
+    if (dataObject == null) {
         return
     }
 
@@ -259,12 +259,15 @@ async function loadDevice(id: number): Promise<void> {
         const data = await DeviceService.fetchDevice(id)
 
         /* Setup dropdowns */
-        addEntityData(deviceStatis, Object.values(data.relations.deviceStatus)[0], 'id')
-        addEntityData(deviceTypes, Object.values(data.relations.deviceType)[0], 'id')
-        addEntityData(itamUsers, Object.values(data.relations.itamUser)[0], 'id', { fields: ['firstname', 'lastname'], technique: 'concat', separator: ' '})
-        addEntityData(merchants, Object.values(data.relations.merchant)[0], 'id')
-        addEntityData(positions, Object.values(data.relations.position)[0], 'id')
-        addEntityData(quantityUnits, Object.values(data.relations.quantityUnit)[0], 'id')
+        // Helper for checking, if object is set. If there was no relation set and so no relation loaded, this prevents a faulty access on the object.
+       const firstOf = (obj: any) => obj ? Object.values(obj)[0] ?? null : null 
+
+        addEntityData(deviceStatis, firstOf(data.relations.deviceStatus), 'id')
+        addEntityData(deviceTypes, firstOf(data.relations.deviceType), 'id')
+        addEntityData(itamUsers, firstOf(data.relations.itamUser), 'id', { fields: ['firstname', 'lastname'], technique: 'concat', separator: ' ' })
+        addEntityData(merchants, firstOf(data.relations.merchant), 'id')
+        addEntityData(positions, firstOf(data.relations.position), 'id')
+        addEntityData(quantityUnits, firstOf(data.relations.quantityUnit), 'id')
         
         /* Load main data. */
         const d = data.mainData;
@@ -300,25 +303,16 @@ async function loadDevice(id: number): Promise<void> {
 function onEntitySaved(payload: { entityName: string; newOption: { id: string; label: string } }) {
     const { entityName, newOption } = payload
     const relation = relations[entityName]
+    const config = entityConfig[entityName]
 
-    // Add new option in entity list.
-    if (relation?.optionsTarget) {
-        const list = isRef(relation.optionsTarget)
-            ? relation.optionsTarget.value
-            : relation.optionsTarget
-
-        if (!list.some((o: any) => o.id === newOption.id)) {
-            list.push(newOption)
+     if (relation?.optionsTarget) {
+        if (!relation.optionsTarget.some((o: any) => o.id === newOption.id)) {
+            relation.optionsTarget.push(newOption)
         }
     }
 
-    // Select new option in entity list.
-    if (relation?.selectTarget) {
-        if (isRef(relation.selectTarget)) {
-            relation.selectTarget.value = newOption
-        } else {
-            relation.selectTarget = newOption
-        }
+    if (config?.selectTarget) {
+        config.selectTarget.value = newOption
     }
 
     triggerSaveSuccess()

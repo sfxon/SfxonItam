@@ -142,7 +142,13 @@ Editor:
                 - ✅ Fix the design of the general error message for the device editor view.
                 - ✅ Fix layout of label and field alignment on errournous rows in the editor.
             - ✅ Externalise entity dialog as custom component, and keep only the config variables and functions which have custom functionality in the device editor component.
+            - ✅ Fix a bug that occures, when the entity editor is loading, but some related entities are set to null (no value was selected for them beforehand).
+            - ✅ When an related entity is not set, when the editor is loaded, a new entity that was created by the modal is not added to the dropdown field.
+            - On Creation there should be three buttons: a) Save and create another one, b) Save and back (to listview), c) Save.
+            - On Update there should be two buttons: a) Save and back (to listview), b) Save.
         - Some of the boxes have different border radius. Fix that.
+
+        - Plan Custom-Fields.
 
     - Take over new styling for detail page to all other editor pages..
         - ✅ Build an editor.module.css and import it on every editor page. That way, I can use general stylings for that pages.
@@ -163,6 +169,7 @@ Editor:
 
     * Take over device loading optimization from device list view to other entities.
 
+* Fix all texts and translations.
 
 * Rechte-Verwaltung integrieren. Die Bestandteile dürfen nur mit der notwendigen Berechtigung verwendet werden dürfen.
 
@@ -306,8 +313,6 @@ Es werden 2 Export-Formate unterstützt: druckbare HTML-Seiten und CSV-Dateien.
 * ✅ Bilder der Assets hinterlegen (Chlorophylllius - Twitch)
 
 * ✅ Mengen-Angaben (bspw. bei Kabeln und Displays) (Chlorophylllius - Twitch)
-
-* Custom-Fields
 
 * Ausgeliehen an (Chlorophylllius - Twitch)
     - E-Mail Bestätigung / Ausgeliehen, zurückgegeben.
