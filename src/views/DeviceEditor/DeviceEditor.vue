@@ -322,6 +322,22 @@ async function openAddEntityDialog(payload: any) {
     addEntityEntryDialogEntityName.value = payload.entity
 }
 
+async function saveAndBack() {
+    const submitSuccess = await submitForm()
+    
+    if (submitSuccess) {
+        window.location.href = generateUrl('/apps/sfxonitam')
+    }
+}
+
+async function saveAndNew() {
+    const submitSuccess = await submitForm()
+    
+    if (submitSuccess) {
+        window.location.href = generateUrl('/apps/sfxonitam/device/detail')
+    }
+}
+
 async function searchDeviceStatis(query: string, signal: AbortSignal): Promise<void> {
     let filters = {
         name: [query]
@@ -570,6 +586,8 @@ async function submitForm() {
         }
 
         triggerSaveSuccess()
+        isSaving.value = false
+        return true
     } catch (error: any) {
         // HTTP-Error (4xx/5xx), backend may despite return JSON .
         const data = error?.response?.data
@@ -579,9 +597,11 @@ async function submitForm() {
         } else {
             generalError.value = t('sfxonitam', 'Unbekannter Fehler beim Speichern.')
         }
-    } finally {
+
         isSaving.value = false
     }
+
+    return false
 }
 
 function triggerSaveSuccess() {
@@ -943,9 +963,25 @@ onMounted(async () => {
                             <div :class="SfxonEditorStyles.actions">
                                 <NcButton
                                     :disabled="isSaving"
+                                    variant="secondary"
+                                    @click="saveAndBack"
+                                >
+                                    {{ t('sfxonitam', 'Save & Back') }}
+                                </NcButton>
+
+                                <NcButton
+                                    :disabled="isSaving"
+                                    variant="secondary"
+                                    @click="saveAndNew"
+                                >
+                                    {{ t('sfxonitam', 'Save & New') }}
+                                </NcButton>
+                                
+                                <NcButton
+                                    :disabled="isSaving"
                                     variant="primary"
                                     @click="submitForm">
-                                    {{ t('sfxonitam', 'Save Changes') }}
+                                    {{ t('sfxonitam', 'Save') }}
                                 </NcButton>
                             </div>
                         </div>
@@ -1031,12 +1067,6 @@ onMounted(async () => {
     translate: -126px 0;
     width: 108px;
     z-index: 9999;
-}
-
-@media screen and (min-width: 1024px) {
-    .saveBadge {
-
-    }
 }
 
 .saveBadgeIcon {

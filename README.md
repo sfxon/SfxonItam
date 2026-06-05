@@ -144,13 +144,18 @@ Editor:
             - ✅ Externalise entity dialog as custom component, and keep only the config variables and functions which have custom functionality in the device editor component.
             - ✅ Fix a bug that occures, when the entity editor is loading, but some related entities are set to null (no value was selected for them beforehand).
             - ✅ When an related entity is not set, when the editor is loaded, a new entity that was created by the modal is not added to the dropdown field.
-            - On Creation there should be three buttons: a) Save and create another one, b) Save and back (to listview), c) Save.
-            - On Update there should be two buttons: a) Save and back (to listview), b) Save.
+            - ✅ On Creation there should be three buttons: a) Save & New, b) Save & Back (to listview), c) Save.
         - Some of the boxes have different border radius. Fix that.
 
         - Plan Custom-Fields.
 
-    - Take over new styling for detail page to all other editor pages..
+    - Optimize data loading in device list view.
+
+    - List views: The filter dropdowns should be loaded lazy, not all after the load and not with full data. Use same strategy as for dropdowns on the device detail page.
+
+    - Add a results per page dropdown/input, so we can also show 100 results or 1000 results on one page. Load data paged then too - meaning to not overload the server - so the loading should be junked to junks of size 20 (configurable in code).
+
+    - Take over new functionality for detail page and listing to all other editor pages..
         - ✅ Build an editor.module.css and import it on every editor page. That way, I can use general stylings for that pages.
         - ✅ Create SfxonEditorFormInput component, to wrap common layout and logic for repeating fields. This improves code quality.
         - ✅ Create SfxonEditorFormEntitySelect component.
@@ -158,11 +163,7 @@ Editor:
         - ✅ Create SfxonEditorFormDate component.
         - Implement style, new fields and functionality on all the other editor views.
 
-    - Optimize data loading in device list view.
-
-    - List views: The filter dropdowns should be loaded lazy, not all after the load and not with full data. Use same strategy as for dropdowns on the device detail page.
-
-    - Add a results per page dropdown/input, so we can also show 100 results or 1000 results on one page. Load data paged then too - meaning to not overload the server - so the loading should be junked to junks of size 20 (configurable in code).
+    
 
     - Geräteliste auch nach Entitäten sortierbar machen.
     - Menü hinzufügen, mit dem die Reihenfolge der Spalten geändert werden kann, sowie eingestellt werden kann, in welcher Reihenfolge gefiltert werden kann und welche Spalten überhaupt angezeigt werden sollen.
@@ -262,6 +263,11 @@ Editor:
 
 * Add video (or videos) to explain, how the entity layers work: How are entities created, how are there definitions passed to the vuejs layer, how are dynamic dialogs are built upon this architecture? (Modals in the editor view).
 
+* Add batch processing to list views:
+    - batch delete
+
+* Add batch editing for entities
+    - change common values (same field), like shopware allows this.
 
 
 ## Aktuelle Funktionen
@@ -313,6 +319,10 @@ Es werden 2 Export-Formate unterstützt: druckbare HTML-Seiten und CSV-Dateien.
 * ✅ Bilder der Assets hinterlegen (Chlorophylllius - Twitch)
 
 * ✅ Mengen-Angaben (bspw. bei Kabeln und Displays) (Chlorophylllius - Twitch)
+
+* Wizards
+    Wizards could be used, to add complexer functionality, that saves time for users.
+    Example: Wizard for creating 20 devices: User selects the fields he want to set with specific values, presses go and the system creates the entries and presents the created entries in a list.
 
 * Ausgeliehen an (Chlorophylllius - Twitch)
     - E-Mail Bestätigung / Ausgeliehen, zurückgegeben.

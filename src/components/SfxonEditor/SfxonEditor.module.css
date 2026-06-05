@@ -84,6 +84,11 @@
     justify-content: flex-end;
 }
 
+.actions :global(button) {
+    border-radius: 3px!important;
+    margin-left: 12px;
+}
+
 .form {
     display: flex;
     flex-direction: column;
