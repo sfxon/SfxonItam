@@ -147,7 +147,29 @@ Editor:
             - ✅ On Creation there should be three buttons: a) Save & New, b) Save & Back (to listview), c) Save.
         - ✅ Some of the boxes have different border radius. Fix that.
 
-        - Plan Custom-Fields.
+        - Integrate Custom-Fields in DeviceEditor.
+            The editor is a little different to the other ones. It lists the groups, but the groups are not extendable,
+            also they come with a database table/entity definition. The groups define, to which entity a custom field belongs.
+            You have first to select a group -> which leads to the fields page, where you can CRUD the different fields.
+            There are also internal fields, that are already defined, which are not editable,
+            but they are here for completeness. Maybe at a later point in time, we render only from what this data setup -
+            to have an integrated and common system. Sounds crazy, but is actually pretty nice, I imagine.
+
+            - Add migration
+                sfxon_custom_field_group: id BIGINT
+                sfxon_custom_field: id BIGINT, sfxon_custom_field_group_id BIGINT FK, technical_name (VARCHAR 32), name (VARCHAR 300), type (VARCHAR 16), position (int 11), options (LONGTEXT, JSON), editable (INT(1) 1 = yes, 0 = no
+            - Add entity class CustomField.php
+            - Add entity mapper CustomFieldMapper.php
+            - Add Controller CustomFieldController.php
+            - Add Service CustomFieldService.php
+            - Add template templates/custom-field/list.php
+            - Add template templates/custom-field/editor.php
+            - Add vuejs listing
+            - Add vuejs editor
+            - ...
+            - Add custom fields to the device editor view.
+            - Make custom fields saveable.
+            - Add custom fields to the list view (dynamically).
 
     - Optimize data loading in device list view.
 
@@ -163,14 +185,19 @@ Editor:
         - ✅ Create SfxonEditorFormDate component.
         - Implement style, new fields and functionality on all the other editor views.
 
-    
-
     - Geräteliste auch nach Entitäten sortierbar machen.
     - Menü hinzufügen, mit dem die Reihenfolge der Spalten geändert werden kann, sowie eingestellt werden kann, in welcher Reihenfolge gefiltert werden kann und welche Spalten überhaupt angezeigt werden sollen.
 
     * Take over device loading optimization from device list view to other entities.
 
 * Fix all texts and translations.
+
+* Add number-range generator, for example used for the names of the devices.
+    - The number-range generator will be assigned to the "device_type" entity (there you can select, which number generator you want to use).
+      With that solution, some device types can share the same number-range. For example one might want to have the same number-range for laptops and desktop pcs. With this kind of generator, this is possible.
+      The dialog to create a number-range should check, if one is using the same prefix. Numbers should not be allowed at the
+      end or the beginning of a prefix, to not get in trouble with overlapping number ranges.
+      For example DEKA0[001] might get in trouble with DEKA[0001] as a final number, because DEKA0001 === DEKA0001.
 
 * Rechte-Verwaltung integrieren. Die Bestandteile dürfen nur mit der notwendigen Berechtigung verwendet werden dürfen.
 
