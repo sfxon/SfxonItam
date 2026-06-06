@@ -195,6 +195,7 @@
 }
 
 .sfxonDescriptionInput :global(textarea) {
+    border-radius: 3px!important;
     height: 100%!important;
     margin-top: 0!important;
     padding-top: 1.6rem!important;
@@ -203,6 +204,11 @@
 
 .sfxonDescriptionInput :global(.textarea__label) {
     inset-block-start: 6px!important;
+}
+
+.sfxonEditorFormDatePicker :global(.native-datetime-picker__input),
+.sfxonEditorFormDatePickerBtn {
+    border-radius: 3px!important;
 }
 
 .myfavNotificationContainer {

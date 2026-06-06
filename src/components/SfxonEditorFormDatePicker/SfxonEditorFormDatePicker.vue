@@ -40,7 +40,7 @@ function onClear() {
             <div :class="SfxonEditorStyles.field">
                 <div :class="SfxonEditorStyles.dateRow">
                     <NcDateTimePickerNative
-                        :class="fieldError ? SfxonEditorStyles.fieldError : ''"    
+                        :class="[SfxonEditorStyles.sfxonEditorFormDatePicker, fieldError ? SfxonEditorStyles.fieldError : '']"
                         :id="id"
                         :label="''"
                         :model-value="modelValue"
@@ -49,6 +49,7 @@ function onClear() {
                         @update:modelValue="onInput"
                     />
                     <NcButton
+                        :class="SfxonEditorStyles.sfxonEditorFormDatePickerBtn"
                         :disabled="modelValue === null || modelValue === undefined"
                         type="button"
                         :aria-label="t('sfxonitam', 'Clear date')"

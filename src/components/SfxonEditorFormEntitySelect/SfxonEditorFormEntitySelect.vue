@@ -134,6 +134,14 @@ function onClickAddIcon() {
     </div>
 </template>
 
+<style>
+/* Change the border-radius of the select dropdown */
+.vs__dropdown-menu--floating {
+    border-bottom-left-radius: 3px !important;
+    border-bottom-right-radius: 3px !important;
+}
+</style>
+
 <style module>
 .addNewEntityButton {
     color: var(--color-primary-element);

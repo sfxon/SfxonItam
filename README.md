@@ -145,7 +145,7 @@ Editor:
             - ✅ Fix a bug that occures, when the entity editor is loading, but some related entities are set to null (no value was selected for them beforehand).
             - ✅ When an related entity is not set, when the editor is loaded, a new entity that was created by the modal is not added to the dropdown field.
             - ✅ On Creation there should be three buttons: a) Save & New, b) Save & Back (to listview), c) Save.
-        - Some of the boxes have different border radius. Fix that.
+        - ✅ Some of the boxes have different border radius. Fix that.
 
         - Plan Custom-Fields.
 

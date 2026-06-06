@@ -36,7 +36,7 @@ function onInput(value: string | number) {
                     :model-value="modelValue"
                     :label-outside="true"
                     :placeholder="placeholder"
-                    :class="fieldError ? SfxonEditorStyles.fieldError : ''"
+                    :class="[$style.inputField, fieldError ? SfxonEditorStyles.fieldError : '']"
                     @update:modelValue="onInput"
                     :type="type"
                 />
@@ -54,4 +54,8 @@ function onInput(value: string | number) {
 </template>
 
 <style module>
+.inputField :global(.input-field__main-wrapper) {
+    margin: 0 0 var(--default-grid-baseline);
+    padding: 0!important;
+}
 </style>

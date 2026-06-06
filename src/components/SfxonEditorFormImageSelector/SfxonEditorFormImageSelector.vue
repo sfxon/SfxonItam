@@ -81,6 +81,7 @@ function onNextcloudFilePicker() {
 <style module>
 /* File Upload */
 .fileUploadInput {
+    border-radius: 3px!important;
     margin-left: auto!important;
     margin-right: auto!important;
     max-width: 200px;
@@ -88,6 +89,7 @@ function onNextcloudFilePicker() {
 }
 
 .fileSelectInput {
+    border-radius: 3px!important;
     max-width: 200px;
     width: 100%!important;
 }
