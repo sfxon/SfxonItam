@@ -102,6 +102,7 @@ async function onSave() {
 
 <template>
     <NcDialog
+        :class="$style.sfxonEntityDialog"
         v-if="entityName"
         :name="heading"
         :open="!!entityName"
@@ -158,6 +159,13 @@ async function onSave() {
 </template>
 
 <style module>
+.sfxonEntityDialog :global(.modal-container__content) :global(.dialog__content) {
+    /* Important, because otherwise the top border of the first element will be not visible.
+     * The reason for this behaviour is, that Nextcloud css uses box-shadows instead of border to display the border.
+     */
+    padding-top: 2px!important;
+}
+
 .errorMsg {
     margin-top: 0 !important;
 }
