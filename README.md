@@ -157,7 +157,7 @@ Editor:
 
             - Add migration
                 sfxon_custom_field_group: id BIGINT
-                sfxon_custom_field: id BIGINT, sfxon_custom_field_group_id BIGINT FK, technical_name (VARCHAR 32), name (VARCHAR 300), type (VARCHAR 16), position (int 11), options (LONGTEXT, JSON), editable (INT(1) 1 = yes, 0 = no
+                sfxon_custom_field: id BIGINT, sfxon_custom_field_group_id BIGINT FK, technical_name (VARCHAR 32), name (VARCHAR 300), type (VARCHAR 16), position (int 11), options (LONGTEXT, JSON), editable (INT(1) 1 = yes, 0 = no, validation (JSON, LONGTEXT, null)
             - Add entity class CustomField.php
             - Add entity mapper CustomFieldMapper.php
             - Add Controller CustomFieldController.php
@@ -189,6 +189,11 @@ Editor:
     - Menü hinzufügen, mit dem die Reihenfolge der Spalten geändert werden kann, sowie eingestellt werden kann, in welcher Reihenfolge gefiltert werden kann und welche Spalten überhaupt angezeigt werden sollen.
 
     * Take over device loading optimization from device list view to other entities.
+
+* Icons für Gerätetypen integrieren
+    - Sie sollen dann auch im ListView der Geräte angezeigt werden können, bzw. standardmäßig statt der Gerätebilder angezeigt werden.
+    - Die Icons sollen die selben sein, die auch auf der Content-Webseite verwendet werden. Ein vordefiniertes Set werden wir schon
+      mitbringen - wenigstens für alles, was ich im Büro/Festanstellung benötige.
 
 * Fix all texts and translations.
 
@@ -371,6 +376,9 @@ Es werden 2 Export-Formate unterstützt: druckbare HTML-Seiten und CSV-Dateien.
           - Ein Ticket System für Nextcloud kommt ja geplant später auch noch,
             aber ich hätte die Dinge gern flexibel und nicht zwingend gebunden,
             auf der anderen Seite hätte ich sie auch gern so komfortabel wie irgendwie möglich.
+
+* Filter-Presets
+    When I think of filter presets, I think of DATEV. They have that nice filter setup on the top left of all of their listings in *"DATEV Arbeitsplatz"*.
 
 
 ## Systemvoraussetzungen
