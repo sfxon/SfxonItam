@@ -147,6 +147,12 @@ Editor:
             - ✅ On Creation there should be three buttons: a) Save & New, b) Save & Back (to listview), c) Save.
         - ✅ Some of the boxes have different border radius. Fix that.
 
+    - Optimize data loading in device list view.
+
+    * Device Entity custom Fields:
+        Moved it a little further > maybe I get some feedback on the planning in the nextcloud forum:
+        https://help.nextcloud.com/t/morphing-database-tables-vs-json-vs-eav-model/245588
+
         - Integrate Custom-Fields in DeviceEditor.
             The editor is a little different to the other ones. It lists the groups, but the groups are not extendable,
             also they come with a database table/entity definition. The groups define, to which entity a custom field belongs.
@@ -171,7 +177,7 @@ Editor:
             - Make custom fields saveable.
             - Add custom fields to the list view (dynamically).
 
-    - Optimize data loading in device list view.
+    
 
     - List views: The filter dropdowns should be loaded lazy, not all after the load and not with full data. Use same strategy as for dropdowns on the device detail page.
 
@@ -1076,6 +1082,16 @@ Morphing the schema brings **native columns** to the database. **Default search 
 * All three major supported dbms (**SQLite, MySQL/MariaDB, PostgresSQL**) handle **JSON fields** a little bit **different**. There are also differences in the syntax for MySQL/MariaDB - meaning for those databases, that should be the most compatible.
 
 * SQLite only supports **DROP COLUMN** for tables **from version 3.35** (2021). I consider to **just show a warning** in the **custom field edit screens**. I hope to be able to **detect the database version**, and only show the warning, when this kind of database is used. I'll also **disable the "Remove Custom Field" option** for older or incompatible dbms.
+
+#### Important implementation conciderations
+
+`ALTER TABLE` can take long time on large databases in some dbms.
+Show a warning, that this could happen, and should be used cautios.
+
+Strict validation: Check Field name, type, length and more features where needed, check if field name already is taken.
+
+Secure `DROP COLUMN` with a forced input "i accept", to make sure, that the user is sure,
+that this will delete the data in this columns forever.
 
 
 ## Performance Optimization
