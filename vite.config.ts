@@ -4,6 +4,7 @@ import { copyFileSync, mkdirSync } from 'fs'
 
 export default createAppConfig(
     {
+        customFieldGroupList: resolve(join('src', 'views', 'CustomFieldGroupList', 'index.ts')),
         deviceList: resolve(join('src', 'views', 'DeviceList', 'index.ts')),
         deviceEditor: resolve(join('src', 'views', 'DeviceEditor', 'index.ts')),
         deviceStatusList: resolve(join('src', 'views', 'DeviceStatusList', 'index.ts')),

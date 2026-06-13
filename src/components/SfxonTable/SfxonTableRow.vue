@@ -148,7 +148,10 @@ function getRelatedEntityData(col: any) {
                     </template>
                     Bearbeiten
                 </NcActionButton>
-                <NcActionButton @click="props.deleteCallback && props.deleteCallback(props.dataRow)">
+                <NcActionButton
+                    @click="props.deleteCallback && props.deleteCallback(props.dataRow)"
+                    v-if="props.deleteCallback"
+                >
                     <template #icon>
                         <NcIconSvgWrapper :path="mdiDelete" :size="20" />
                     </template>

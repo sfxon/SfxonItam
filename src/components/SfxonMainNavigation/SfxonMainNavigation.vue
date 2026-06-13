@@ -17,6 +17,9 @@ function navigateToPage(pageName: String) {
     console.log('navigate to page: ', pageName);
 
     switch(pageName) {
+        case 'customFieldGroups':
+            window.location.href = generateUrl(`/apps/sfxonitam/custom-field-group`)
+            break
         case 'devices':
             window.location.href = generateUrl(`/apps/sfxonitam/`)
             break
@@ -64,5 +67,6 @@ function navigateToPage(pageName: String) {
         <NcAppNavigationItem name="Mitarbeiter" @click="navigateToPage('itamUsers')" :active="currentPage == 'itamUsers'" />
         <NcAppNavigationItem name="Positionen" @click="navigateToPage('positions')" :active="currentPage == 'positions'" />
         <NcAppNavigationItem name="Standorte" @click="navigateToPage('locations')" :active="currentPage == 'locations'" />
+        <NcAppNavigationItem name="Custom Fields" @click="navigateToPage('customFieldGroups')" :active="currentPage == 'customFieldGroups'" />
     </NcAppNavigationList>
 </template>
