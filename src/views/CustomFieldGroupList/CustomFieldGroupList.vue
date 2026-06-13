@@ -58,8 +58,7 @@ async function loadCustomFieldGroups() {
 
 
 function onEditCustomFieldGroup(customFieldGroup: CustomFieldGroup) {
-    //window.location.href = generateUrl(`/apps/sfxonitam/position/detail?positionId=${position.id}`);
-    alert('Edit group');
+    window.location.href = generateUrl(`/apps/sfxonitam/custom-field/?customFieldGroupId=${customFieldGroup.id}`);
 }
 
 watch(() => listState, loadCustomFieldGroups, { deep: true })

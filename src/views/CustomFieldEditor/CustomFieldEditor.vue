@@ -9,72 +9,56 @@ import NcContent from '@nextcloud/vue/components/NcContent'
 import NcButton from '@nextcloud/vue/components/NcButton'
 import NcIconSvgWrapper from '@nextcloud/vue/components/NcIconSvgWrapper'
 import NcNoteCard from '@nextcloud/vue/components/NcNoteCard'
-import NcSelect from '@nextcloud/vue/components/NcSelect'
 import NcTextArea from '@nextcloud/vue/components/NcTextArea'
 import NcTextField from '@nextcloud/vue/components/NcTextField'
 import { translate as t } from '@nextcloud/l10n'
 import { generateUrl } from '@nextcloud/router'
 import { useApiErrors } from '@/composables/useApiErrors'
-import { fetchPosition, createPosition, updatePosition } from '@/services/PositionService'
+import { fetchCustomField, createCustomField } from '@/services/CustomFieldService'
+import SfxonEditorFormEntitySelect from '@/components/SfxonEditorFormEntitySelect'
 import SfxonMainNavigation from '@/components/SfxonMainNavigation'
-import { fetchAllLocations } from '@/services/LocationService'
 
-// Formulardaten
-const name = ref('')
-const selectedLocation = ref<{ id: string; label: string } | null>(null)
 const comment = ref('')
-const savedSuccessfully = ref(false);
-const locationsLoading = ref(false)
-const positionLoading = ref(false)
-const isSaving = ref(false)
-
-// Fehlerbehandlung
-const { fieldErrors, generalError, handleApiError, clearErrors, clearFieldError } = useApiErrors()
-
-// Id und Modus laden.
-const positionId = computed(() => {
-    const param = new URLSearchParams(window.location.search).get('positionId')
+const customFieldId = computed(() => {
+    const param = new URLSearchParams(window.location.search).get('customFieldId')
     return param ? parseInt(param, 10) : undefined
 })
-const isEditMode = computed(() => !!positionId.value)
-// Abhängige Entitäten definieren.
-const locations = ref<{ id: string; label: string}[]>([])
+const customFieldLoading = ref(false)
+const { fieldErrors, generalError, handleApiError, clearErrors, clearFieldError } = useApiErrors()
+const isEditMode = computed(() => !!customFieldId.value)
+const isSaving = ref(false)
+const name = ref('')
+const position = ref('')
+const props = defineProps({
+    customFieldGroupId: {
+        type: Number,
+        required: true,
+    },
+})
+const savedSuccessfully = ref(false)
+const selectedType = ref<{ id: string; label: string } | null>(null)
+const technicalName = ref('')
+const types = [{
+    id: 'text',
+    label: 'Text'
+}]
 
-// Funktionen definieren.
 function addItem() {
-    window.location.href = generateUrl('/apps/sfxonitam/position/detail')
+    window.location.href = generateUrl('/apps/sfxonitam/custom-field/detail?customFieldGroupId=' + props.customFieldGroupId)
 }
 
-async function loadPosition(id: number): Promise<void> {
-    positionLoading.value = true
+async function loadCustomField(id: number): Promise<void> {
+    customFieldLoading.value = true
 
     try {
-        const d = await fetchPosition(id)
+        const d = await fetchCustomField(id)
         name.value = d.name ?? ''
-        selectedLocation.value = locations.value.find(s => s.id == d.locationId) ?? null
         comment.value = d.comment ? d.comment : ''
     } catch (e: any) {
-        generalError.value = t('sfxonitam', 'Position konnte nicht geladen werden.')
-        console.error('Fehler beim Laden der Position:', e)
+        generalError.value = t('sfxonitam', 'Could not load custom field.')
+        console.error('Could not load custom field:', e)
     } finally {
-        positionLoading.value = false
-    }
-}
-
-async function loadLocations() {
-    locationsLoading.value = true;
-
-    try {
-        const data = await fetchAllLocations({})
-
-        locations.value = Object.values(data.locations).map((location: any) => ({
-            id: location.id,
-            label: location.name
-        }))
-    } catch(e) {
-        console.error('Fehler beim Laden der Locations', e)
-    } finally {
-        locationsLoading.value = false
+        customFieldLoading.value = false
     }
 }
 
@@ -85,49 +69,44 @@ async function submitForm() {
 
     const payload = {
         name: name.value,
-        locationId: selectedLocation.value?.id ?? null,
         comment: comment.value,
     }
 
     try {
-        const data = isEditMode.value
-            ? await updatePosition(positionId.value!, payload)
-            : await createPosition(payload)
+        const data = await createCustomField(payload)
 
-        // Backend gibt status: 'error' mit HTTP 200 zurück
+        // On error the backend returns HTTP Status 200.
         if (data?.status === 'error') {
-            handleApiError(data, t('sfxonitam', 'Bitte korrigiere die markierten Felder.'))
+            handleApiError(data, t('sfxonitam', 'Please check your input.'))
             return
         }
 
         savedSuccessfully.value = true;
     } catch (error: any) {
-        // HTTP-Fehler (4xx/5xx) – Backend gibt evtl. trotzdem JSON zurück
+        // HTTP error (4xx/5xx) – Backend still might return json with more information.
         const data = error?.response?.data
 
         if (data?.status === 'error') {
-            handleApiError(data, t('sfxonitam', 'Bitte korrigiere die markierten Felder.'))
+            handleApiError(data, t('sfxonitam', 'Please correct the marked fields.'))
         } else {
-            generalError.value = t('sfxonitam', 'Unbekannter Fehler beim Speichern.')
+            generalError.value = t('sfxonitam', 'Could not save the changes.')
         }
     }
 }
 
 onMounted(async () => {
-    await loadLocations()
-
-    if (positionId.value) {
-        await loadPosition(positionId.value)
+    if (customFieldId.value) {
+        await loadCustomField(customFieldId.value)
     }
 })
 </script>
 
 <template>
-    <NcContent app-name="sfxonitampositioneditor">
+    <NcContent app-name="sfxonitamcustomfieldeditor">
         <NcAppNavigation>
             <NcAppNavigationList>
                 <NcAppNavigationNew
-                :text="t('sfxonitam', 'Neue Position')"
+                :text="t('sfxonitam', 'Create Custom Field')"
                 @click="addItem"
                 >
                     <template #icon>
@@ -135,41 +114,36 @@ onMounted(async () => {
                     </template>
                 </NcAppNavigationNew>
             </NcAppNavigationList>
-            <SfxonMainNavigation :currentPage="'positions'" />
+            <SfxonMainNavigation :currentPage="'customFields'" />
         </NcAppNavigation>
 
-        <!-- Inhaltsbereich -->
         <NcAppContent :class="$style.content">
             <div :class="$style.form">
                 <h2>
                     {{ isEditMode
-                        ? t('sfxonitam', 'Position bearbeiten')
-                        : t('sfxonitam', 'Position erfassen') }}
+                        ? t('sfxonitam', 'Custom Field Detail Information')
+                        : t('sfxonitam', 'Create Custom Field') }}
                 </h2>
 
-                <!-- Allgemeine Fehlermeldung -->
                 <NcNoteCard
                     v-if="generalError"
                     type="error"
                 >
                     {{ generalError }}
                 </NcNoteCard>
-
-                <!-- Erfolgsmeldung -->
                 <NcNoteCard
                     v-if="savedSuccessfully"
                     type="success"
                 >
-                    {{ t('sfxonitam', 'Die Änderungen wurden gespeichert.') }}
+                    {{ t('sfxonitam', 'Changes have been saved') }}
                 </NcNoteCard>
 
-                <!-- Name -->
                 <div :class="$style.field">
                     <NcTextField
                         id="name"
                         v-model="name"
                         :label="t('sfxonitam', 'Name')"
-                        :placeholder="t('sfxonitam', 'z.B. In Nutzung')"
+                        :placeholder="''"
                         :class="fieldErrors.name ? $style.fieldError : ''"
                         @input="clearFieldError('name')"
                     />
@@ -178,33 +152,50 @@ onMounted(async () => {
                     </span>
                 </div>
 
-                <!-- Location -->
                 <div :class="$style.field">
-                    <label for="location-select" :class="$style.label">
-                        {{ t('sfxonitam', 'Location') }}
-                    </label>
-                    <NcSelect
-                        id="device-status-select"
-                        v-model="selectedLocation"
-                        :options="locations"
-                        :loading="locationsLoading"
-                        :placeholder="t('sfxonitam', 'Position auswählen')"
-                        :label="'label'"
-                        track-by="id"
-                        :class="fieldErrors.locationId ? $style.fieldError : ''"
-                        @input="clearFieldError('locationId')"
+                    <NcTextField
+                        id="technicalName"
+                        v-model="technicalName"
+                        :label="t('sfxonitam', 'Technical Name')"
+                        :placeholder="''"
+                        :class="fieldErrors.technicalName ? $style.fieldError : ''"
+                        @input="clearFieldError('technicalName')"
                     />
-                    <span v-if="fieldErrors.locationId" :class="$style.errorText">
-                        {{ fieldErrors.locationId }}
+                    <span v-if="fieldErrors.technicalName" :class="$style.errorText">
+                        {{ fieldErrors.technicalName }}
                     </span>
                 </div>
 
-                <!-- Kommentar -->
+                <SfxonEditorFormEntitySelect
+                    field="type"
+                    :fieldError="fieldErrors.type"
+                    id="type-select"
+                    @input="clearFieldError('type')"
+                    :label="t('sfxonitam', 'Type') + ':'"
+                    :options="types"
+                    trackBy="id"
+                    v-model="selectedType"
+                />
+
+                <div :class="$style.field">
+                    <NcTextField
+                        id="position"
+                        v-model="position"
+                        :label="t('sfxonitam', 'Position')"
+                        :placeholder="''"
+                        :class="fieldErrors.position ? $style.fieldError : ''"
+                        @input="clearFieldError('position')"
+                    />
+                    <span v-if="fieldErrors.position" :class="$style.errorText">
+                        {{ fieldErrors.position }}
+                    </span>
+                </div>
+
                 <div :class="$style.field">
                     <NcTextArea
                         id="comment"
                         v-model="comment"
-                        :label="t('sfxonitam', 'Beschreibung/Kommentare')"
+                        :label="t('sfxonitam', 'Comment')"
                         :class="fieldErrors.comment ? $style.fieldError : ''"
                         @input="clearFieldError('comment')"
                     />
@@ -214,10 +205,9 @@ onMounted(async () => {
                 </div>
 
 
-                <!-- Absenden -->
                 <div :class="$style.actions">
                     <NcButton variant="primary" @click="submitForm">
-                        {{ t('sfxonitam', 'Speichern') }}
+                        {{ t('sfxonitam', 'Save') }}
                     </NcButton>
                 </div>
             </div>

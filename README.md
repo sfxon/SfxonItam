@@ -161,18 +161,20 @@ Editor:
             but they are here for completeness. Maybe at a later point in time, we render only from what this data setup -
             to have an integrated and common system. Sounds crazy, but is actually pretty nice, I imagine.
 
-            - Add migration
-                * sfxon_custom_field_group: id BIGINT
-                * sfxon_custom_field: id BIGINT,
-                * sfxon_custom_field_group_id BIGINT FK,
-                * technical_name (VARCHAR 32),
-                * name (VARCHAR 300),
-                * type (VARCHAR 16),
-                * position (int 11),
-                * options (LONGTEXT, JSON),
-                * editable (INT(1) 1 = yes, 0 = no,
-                * validation (JSON, LONGTEXT, null),
-                * comment
+            - Add migrations
+                a) sfxon_custom_field_group
+
+                b) sfxon_custom_field
+                    * id BIGINT,
+                    * sfxon_custom_field_group_id BIGINT FK,
+                    * technical_name (VARCHAR 32),
+                    * name (VARCHAR 300),
+                    * type (VARCHAR 16),
+                    * position (int 11),
+                    * options (LONGTEXT, JSON),
+                    * editable (INT(1) 1 = yes, 0 = no,
+                    * validation (JSON, LONGTEXT, null),
+                    * comment
             - Add entity class CustomField.php
             - Add entity mapper CustomFieldMapper.php
             - Add Controller CustomFieldController.php

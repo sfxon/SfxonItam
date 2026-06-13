@@ -13,13 +13,19 @@ class CustomFieldMapper extends QBMapper {
     private string $tableNameAlias = 'cuf';
 
     public function __construct(IDBConnection $db) {
-        parent::__construct($db, 'sfxon_custom_field_group', CustomField::class);
+        parent::__construct($db, 'sfxon_custom_field', CustomField::class);
     }
 
-    public function countAll(?array $filters = null): int {
+    public function countAll(int $customFieldGroupId, ?array $filters = null): int {
         $qb = $this->db->getQueryBuilder();
         $qb->select($qb->func()->count('*', 'count'));
         $qb->from($this->getTableName(), $this->tableNameAlias);
+        $qb->where(
+            $qb->expr()->eq(
+                $this->tableNameAlias . '.custom_field_group_id',
+                $qb->createNamedParameter($customFieldGroupId, IQueryBuilder::PARAM_INT)
+            )
+        );
 
         if ($filters !== null) {
             $this->applyFilters($qb, $filters);
@@ -56,8 +62,61 @@ class CustomFieldMapper extends QBMapper {
         }
     }
 
-    /** @return CustomField[] */
+    public function findByNameAndCustomFieldGroupId(string $name, int $customFieldGroupId): ?CustomField {
+        $qb = $this->db->getQueryBuilder();
+        $qb->select('*')
+            ->from($this->getTableName())
+            ->where(
+                $qb->expr()->eq(
+                    $qb->func()->lower('name'),
+                    $qb->createNamedParameter(strtolower(trim($name)))
+                )
+            )
+            ->andWhere(
+                $qb->expr()->eq(
+                    $this->tableNameAlias . '.custom_field_group_id',
+                    $qb->createNamedParameter($customFieldGroupId, \OCP\DB\QueryBuilder\IQueryBuilder::PARAM_INT)
+                )
+            )
+            ->setMaxResults(1);
+
+        try {
+            return $this->findEntity($qb);
+        } catch (\OCP\AppFramework\Db\DoesNotExistException) {
+            return null;
+        }
+    }
+
+    public function findByTechnicalNameAndCustomFieldGroupId(string $technicalName, int $customFieldGroupId): ?CustomField {
+        $qb = $this->db->getQueryBuilder();
+        $qb->select('*')
+            ->from($this->getTableName())
+            ->where(
+                $qb->expr()->eq(
+                    $qb->func()->lower('technical_name'),
+                    $qb->createNamedParameter(strtolower(trim($technicalName)))
+                )
+            )
+            ->andWhere(
+                $qb->expr()->eq(
+                    $this->tableNameAlias . '.custom_field_group_id',
+                    $qb->createNamedParameter($customFieldGroupId, \OCP\DB\QueryBuilder\IQueryBuilder::PARAM_INT)
+                )
+            )
+            ->setMaxResults(1);
+
+        try {
+            return $this->findEntity($qb);
+        } catch (\OCP\AppFramework\Db\DoesNotExistException) {
+            return null;
+        }
+    }
+
+    /**
+     *  @return array{mainData: array<int, mixed>, relations: array<string, mixed>}
+     */
     public function searchPaged(
+        int $customFieldGroupId,
         string $orderBy = 'name',
         string $direction = 'ASC',
         int $limit = 64,
@@ -73,6 +132,12 @@ class CustomFieldMapper extends QBMapper {
         $qb = $this->db->getQueryBuilder();
         $qb->select('*')
             ->from($this->getTableName(), $this->tableNameAlias)
+            ->where(
+                $qb->expr()->eq(
+                    $this->tableNameAlias . '.custom_field_group_id',
+                    $qb->createNamedParameter($customFieldGroupId, IQueryBuilder::PARAM_INT)
+                )
+            )
             ->orderBy($col, $dir)
             ->setMaxResults($limit)
             ->setFirstResult($offset);
