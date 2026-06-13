@@ -1,10 +1,11 @@
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { reactive, ref, computed, onMounted, watch } from 'vue'
 import { mdiPlus } from '@mdi/js'
 import NcAppContent from '@nextcloud/vue/components/NcAppContent'
 import NcAppNavigation from '@nextcloud/vue/components/NcAppNavigation'
 import NcAppNavigationList from '@nextcloud/vue/components/NcAppNavigationList'
 import NcAppNavigationNew from '@nextcloud/vue/components/NcAppNavigationNew'
+import NcCheckboxRadioSwitch from '@nextcloud/vue/components/NcCheckboxRadioSwitch'
 import NcContent from '@nextcloud/vue/components/NcContent'
 import NcButton from '@nextcloud/vue/components/NcButton'
 import NcIconSvgWrapper from '@nextcloud/vue/components/NcIconSvgWrapper'
@@ -24,6 +25,7 @@ const customFieldId = computed(() => {
     return param ? parseInt(param, 10) : undefined
 })
 const customFieldLoading = ref(false)
+const editable = ref(true)
 const { fieldErrors, generalError, handleApiError, clearErrors, clearFieldError } = useApiErrors()
 const isEditMode = computed(() => !!customFieldId.value)
 const isSaving = ref(false)
@@ -42,6 +44,7 @@ const types = [{
     id: 'text',
     label: 'Text'
 }]
+const validation = reactive<Record<string, any>>({})
 
 function addItem() {
     window.location.href = generateUrl('/apps/sfxonitam/custom-field/detail?customFieldGroupId=' + props.customFieldGroupId)
@@ -93,6 +96,16 @@ async function submitForm() {
         }
     }
 }
+
+watch(() => selectedType.value?.id, (newType) => {
+    if (newType === 'text' && !validation.text) {
+        validation.text = {
+            enabled: false,
+            minLength: '',
+            maxLength: '',
+        }
+    }
+})
 
 onMounted(async () => {
     if (customFieldId.value) {
@@ -190,6 +203,36 @@ onMounted(async () => {
                         {{ fieldErrors.position }}
                     </span>
                 </div>
+
+                <div :class="$style.field">
+                    <NcCheckboxRadioSwitch
+                        id="editable"
+                        v-model="editable"
+                        :placeholder="''"
+                        :class="fieldErrors.editable ? $style.fieldError : ''"
+                        @input="clearFieldError('editable')"
+                        type="switch"
+                    >
+                        {{ t('sfxonitam', 'Editable') }}
+                    </NcCheckboxRadioSwitch>
+                    <span v-if="fieldErrors.editable" :class="$style.errorText">
+                        {{ fieldErrors.editable }}
+                    </span>
+                </div>
+
+                <!-- Add validation options here -->
+                <template v-if="selectedType !== null">
+                    <template v-if="selectedType.id === 'text' && validation.text">
+                        <NcCheckboxRadioSwitch v-model="validation.text.enabled">
+                            {{ t('sfxonitam', 'Validate') }}
+                        </NcCheckboxRadioSwitch>
+
+                        <template v-if="validation.text.enabled">
+                            <NcTextField v-model="validation.text.minLength" :label="t('sfxonitam', 'Min length')" />
+                            <NcTextField v-model="validation.text.maxLength" :label="t('sfxonitam', 'Max length')" />
+                        </template>
+                    </template>
+                </template>
 
                 <div :class="$style.field">
                     <NcTextArea

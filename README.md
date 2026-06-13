@@ -165,15 +165,15 @@ Editor:
                 a) sfxon_custom_field_group
 
                 b) sfxon_custom_field
-                    * id BIGINT,
-                    * sfxon_custom_field_group_id BIGINT FK,
-                    * technical_name (VARCHAR 32),
-                    * name (VARCHAR 300),
-                    * type (VARCHAR 16),
-                    * position (int 11),
-                    * options (LONGTEXT, JSON),
-                    * editable (INT(1) 1 = yes, 0 = no,
-                    * validation (JSON, LONGTEXT, null),
+                    * id BIGINT
+                    * sfxon_custom_field_group_id BIGINT FK
+                    * technical_name (VARCHAR 32)
+                    * name (VARCHAR 300)
+                    * type (VARCHAR 16)
+                    * position (int 11)
+                    * options (LONGTEXT, JSON)
+                    * editable (BOOL)
+                    * validation (JSON, LONGTEXT, null)
                     * comment
             - Add entity class CustomField.php
             - Add entity mapper CustomFieldMapper.php
