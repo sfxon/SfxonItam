@@ -39,6 +39,8 @@ class CustomFieldValidator {
             $errors['technicalName'] = $this->l->t('The technical name must be at least 1 character long.');
         }  elseif (mb_strlen(trim($data['name'])) > 32) {
             $errors['technicalName'] = $this->l->t('The technical name must not be more than 32 characters long.');
+        } elseif (!preg_match('/^[a-z_][a-z0-9_]*$/', trim($data['technicalName']))) {
+            $errors['technicalName'] = $this->l->t('The technical name must only contain lowercase letters, underscores, and numbers (not at the beginning).');
         } else {
             // d) name: must be unique.
             $existing = $this->customFieldMapper->findByTechnicalNameAndCustomFieldGroupId(trim($data['technicalName']), intval($data['customFieldGroupId']));
@@ -51,8 +53,17 @@ class CustomFieldValidator {
         // e) Check, if custom field group exists.
         $existing = $this->customFieldGroupMapper->findById(intval($data['customFieldGroupId']));
 
-        if ($existing !== null && $existing->getId() !== $excludeId) {
-            $errors['customFieldGroupId'] = $this->l->t('A custom field with this technical name already exists.');
+        if ($existing === null) {
+            $errors['customFieldGroupId'] = $this->l->t('CustomFieldGroupId not found.');
+        }
+
+        // f) Check type
+        $type = $data['type'];
+
+        if($type !== '') {
+            $errors['type'] = $this->l->t('A type must be selected.');
+        } else if($type !== 'text') {
+            $errors['type'] = $this->l->t('This type is not supported.');
         }
 
         return [

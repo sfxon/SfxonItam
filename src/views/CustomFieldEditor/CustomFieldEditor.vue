@@ -71,7 +71,14 @@ async function submitForm() {
     isSaving.value = true
 
     const payload = {
+        customFieldGroupId: props.customFieldGroupId,
+        technicalName: technicalName.value,
         name: name.value,
+        type: selectedType.value?.id,
+        position: position.value,
+        // options
+        editable: editable.value,
+        validation: validation,
         comment: comment.value,
     }
 

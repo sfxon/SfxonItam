@@ -147,8 +147,6 @@ Editor:
             - ✅ On Creation there should be three buttons: a) Save & New, b) Save & Back (to listview), c) Save.
         - ✅ Some of the boxes have different border radius. Fix that.
 
-    - Optimize data loading in device list view.
-
     * Device Entity custom Fields:
         Moved it a little further > maybe I get some feedback on the planning in the nextcloud forum:
         https://help.nextcloud.com/t/morphing-database-tables-vs-json-vs-eav-model/245588
@@ -162,9 +160,9 @@ Editor:
             to have an integrated and common system. Sounds crazy, but is actually pretty nice, I imagine.
 
             - Add migrations
-                a) sfxon_custom_field_group
+                a) ✅ sfxon_custom_field_group
 
-                b) sfxon_custom_field
+                b) ✅ sfxon_custom_field
                     * id BIGINT
                     * sfxon_custom_field_group_id BIGINT FK
                     * technical_name (VARCHAR 32)
@@ -175,20 +173,25 @@ Editor:
                     * editable (BOOL)
                     * validation (JSON, LONGTEXT, null)
                     * comment
-            - Add entity class CustomField.php
-            - Add entity mapper CustomFieldMapper.php
-            - Add Controller CustomFieldController.php
-            - Add Service CustomFieldService.php
-            - Add template templates/custom-field/list.php
-            - Add template templates/custom-field/editor.php
-            - Add vuejs listing
-            - Add vuejs editor
-            - ...
+            - ✅ Add entity class CustomField.php
+            - ✅ Add entity mapper CustomFieldMapper.php
+            - ✅ Add Controller CustomFieldController.php
+            - ✅ Add Service CustomFieldService.php
+            - ✅ Add template templates/custom-field/list.php
+            - ✅ Add template templates/custom-field/editor.php
+            - ✅ Add vuejs listing
+            - ✅ Add vuejs editor
+            - Add creation of real custom fields in database.
+            - Add save function for the custom field entity.
+              (This is implemented, so it first creates the column, and then saves the metadata. This is the more secure way, if something breaks.)
+            - On update let users only save changes to the name and the comment and the validation parts.
+            Technical Name and Type must be readonly.
+            For most entities, it should be okay, to alter some of the options too -> we will see...
             - Add custom fields to the device editor view.
             - Make custom fields saveable.
             - Add custom fields to the list view (dynamically).
 
-    
+    - Optimize data loading in device list view.
 
     - List views: The filter dropdowns should be loaded lazy, not all after the load and not with full data. Use same strategy as for dropdowns on the device detail page.
 
@@ -235,7 +238,7 @@ Editor:
     Design dann auch Xanario inspiriert - die haben im Admin so ein schönes farbiges Menü on top (siehe deren Screenshots).
     Vielleicht auch so bauen, das man mit Klicks durchschalten kann (oben anheften, unten anheften, gar nicht anheften. Büroklammer wäre sinnvoll dafür, die beim ersten mal aktiviert, beim zweiten mal gespiegelt, und beim dritten mal wieder deaktiviert ist. UX Genius. Hahaha. :D )
 
-* Light Mode, Dark Mode debuggen.
+* Debug Light Mode and Dark Mode.
 
 * Optimize UX - make it a little bit more gamy. Get inspiration from games: https://www.youtube.com/watch?v=NWOUna4fSEI
 

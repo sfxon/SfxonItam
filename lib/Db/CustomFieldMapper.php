@@ -22,7 +22,7 @@ class CustomFieldMapper extends QBMapper {
         $qb->from($this->getTableName(), $this->tableNameAlias);
         $qb->where(
             $qb->expr()->eq(
-                $this->tableNameAlias . '.custom_field_group_id',
+                'custom_field_group_id',
                 $qb->createNamedParameter($customFieldGroupId, IQueryBuilder::PARAM_INT)
             )
         );
@@ -74,7 +74,7 @@ class CustomFieldMapper extends QBMapper {
             )
             ->andWhere(
                 $qb->expr()->eq(
-                    $this->tableNameAlias . '.custom_field_group_id',
+                    'custom_field_group_id',
                     $qb->createNamedParameter($customFieldGroupId, \OCP\DB\QueryBuilder\IQueryBuilder::PARAM_INT)
                 )
             )
@@ -99,7 +99,7 @@ class CustomFieldMapper extends QBMapper {
             )
             ->andWhere(
                 $qb->expr()->eq(
-                    $this->tableNameAlias . '.custom_field_group_id',
+                    'custom_field_group_id',
                     $qb->createNamedParameter($customFieldGroupId, \OCP\DB\QueryBuilder\IQueryBuilder::PARAM_INT)
                 )
             )
@@ -134,7 +134,7 @@ class CustomFieldMapper extends QBMapper {
             ->from($this->getTableName(), $this->tableNameAlias)
             ->where(
                 $qb->expr()->eq(
-                    $this->tableNameAlias . '.custom_field_group_id',
+                    'custom_field_group_id',
                     $qb->createNamedParameter($customFieldGroupId, IQueryBuilder::PARAM_INT)
                 )
             )

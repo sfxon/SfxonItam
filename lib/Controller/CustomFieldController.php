@@ -22,7 +22,17 @@ use OCA\SfxonItam\Service\CustomFieldService;
  * @psalm-suppress UnusedClass
  */
 class CustomFieldController extends Controller {
-    private array $expectedFields = ['name', 'comment'];
+    private array $expectedFields = [
+        'customFieldGroupId',
+        'technicalName',
+        'name',
+        'type',
+        'position',
+        //'options',
+        'editable',
+        'validation',
+        'comment'
+    ];
 
     public function __construct(
         string $appName,
@@ -123,14 +133,11 @@ class CustomFieldController extends Controller {
     }
 
     #[OpenAPI(OpenAPI::SCOPE_IGNORE)]
-    #[FrontpageRoute(verb: 'POST', url: '/position/save')]
+    #[FrontpageRoute(verb: 'POST', url: '/custom-field/save')]
     public function save(): DataResponse
     {
-        die('save custom field');
-
-        /*
-        $data = $this->positionService->getDataFromRequest($this->request->getParams(), $this->expectedFields);
-        $result = $this->positionService->validateData($data);
+        $data = $this->customFieldService->getDataFromRequest($this->request->getParams(), $this->expectedFields);
+        $result = $this->customFieldService->validateData($data);
 
         if($result['valid'] === false) {
             return new DataResponse([
@@ -138,6 +145,13 @@ class CustomFieldController extends Controller {
                 'errors' => $result['errors']
             ], Http::STATUS_UNPROCESSABLE_ENTITY); // Returns error 422
         }
+
+
+
+        die('test');
+
+
+        /*
 
         $locationId = (int)$this->request->getParam('locationId');
         
