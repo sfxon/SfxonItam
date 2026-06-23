@@ -181,12 +181,15 @@ Editor:
             - ✅ Add template templates/custom-field/editor.php
             - ✅ Add vuejs listing
             - ✅ Add vuejs editor
-            - Add creation of real custom fields in database.
-            - Add save function for the custom field entity.
+            - ✅ Add creation of real custom fields in database.
+            - ✅ Add save function for the custom field entity.
               (This is implemented, so it first creates the column, and then saves the metadata. This is the more secure way, if something breaks.)
+            - Define, what fields should be shown in the custom field list view.
             - On update let users only save changes to the name and the comment and the validation parts.
             Technical Name and Type must be readonly.
             For most entities, it should be okay, to alter some of the options too -> we will see...
+            - Add delete function to delete a custom field.
+            - Add additional field types.
             - Add custom fields to the device editor view.
             - Make custom fields saveable.
             - Add custom fields to the list view (dynamically).

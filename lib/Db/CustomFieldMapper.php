@@ -4,6 +4,7 @@ namespace OCA\SfxonItam\Db;
 
 use OCP\AppFramework\Db\QBMapper;
 use OCP\DB\QueryBuilder\IQueryBuilder;
+use OCP\IConfig;
 use OCP\IDBConnection;
 
 /**
@@ -12,8 +13,40 @@ use OCP\IDBConnection;
 class CustomFieldMapper extends QBMapper {
     private string $tableNameAlias = 'cuf';
 
-    public function __construct(IDBConnection $db) {
+    public function __construct(
+            IDBConnection $db,
+            private IConfig $config,)
+    {
         parent::__construct($db, 'sfxon_custom_field', CustomField::class);
+    }
+
+    public function addColumnToEntityTable(string $entityName, string $technicalName, string $type): void {
+        // Convert types to Nextcloud types.
+        $columnType = match(strtoupper($type)) {
+            'VARCHAR' => 'string',
+            'TEXT' => 'text',
+            'INTEGER',
+            'BIGINT' => 'integer',
+            'BOOLEAN' => 'boolean',
+            'DECIMAL',
+            'FLOAT' => 'decimal',
+            'DATE' => 'date',
+            'DATETIME' => 'datetime',
+            default => 'string',
+        };
+
+        $schema = $this->db->createSchema();
+        $prefix = $this->config->getSystemValueString('dbtableprefix', 'oc_');
+        $table = $schema->getTable($prefix . $entityName);
+
+        if (!$table->hasColumn($technicalName)) {
+            $table->addColumn($technicalName, $columnType, [
+                'notnull'  => false,
+                'default'  => null,
+            ]);
+
+            $this->db->migrateToSchema($schema);
+        }
     }
 
     public function countAll(int $customFieldGroupId, ?array $filters = null): int {

@@ -24,6 +24,7 @@ const customFields   = ref<CustomField[]>([])
 const customFieldToDelete = ref<CustomField | null>(null)
 const columns = [
     { key: 'name', label: t('sfxonitam', 'Name'), sortable: true },
+    { key: 'technicalName', label: t('sfxonitam', 'Technical Name'), sortable: true },
     { key: 'comment', label: t('sfxonitam', 'Comment'), sortable: false },
     { type: 'actions', label: t('sfxonitam', 'Action'), sortable: false },
 ]

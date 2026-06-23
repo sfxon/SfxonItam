@@ -53,6 +53,10 @@ class Version010100Date20260613074800 extends SimpleMigrationStep {
                 'length' => 300,
             ]);
 
+            $table->addColumn('comment', Types::TEXT, [
+                'notnull' => false,
+            ]);
+
             $table->setPrimaryKey(['id']);
         }
 

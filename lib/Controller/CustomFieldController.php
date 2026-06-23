@@ -146,57 +146,25 @@ class CustomFieldController extends Controller {
             ], Http::STATUS_UNPROCESSABLE_ENTITY); // Returns error 422
         }
 
-
-
-        die('test');
-
-
-        /*
-
-        $locationId = (int)$this->request->getParam('locationId');
-        
-        if($locationId === 0) {
-            $locationId = null;
+        try {
+            $customField = $this->customFieldService->createCustomField($data);
+        } catch (\InvalidArgumentException $e) {
+            return new DataResponse([
+                'status'  => 'error',
+                'message' => $e->getMessage(),
+            ], Http::STATUS_BAD_REQUEST);
+        } catch (\Exception $e) {
+            return new DataResponse([
+                'status'  => 'error',
+                'message' => 'Unexpected error: ' . $e->getMessage(),
+            ], Http::STATUS_INTERNAL_SERVER_ERROR);
         }
-
-        $position = new Position();
-        $position->setName($this->request->getParam('name'));
-        $position->setLocationId($locationId);
-        $position->setComment($this->request->getParam('comment') ?? '');
-        $saved = $this->positionMapper->insert($position);
 
         return new DataResponse([
             'status' => 'ok',
-            'id' => $saved->getId(),
-        ]);
-        */
-    }
-
-    /*
-    #[NoCSRFRequired]
-    #[OpenAPI(OpenAPI::SCOPE_IGNORE)]
-    #[FrontpageRoute(verb: 'POST', url: '/custom-field/search')]
-    public function search(
-        string $orderBy = 'name',
-        string $direction = 'ASC',
-        int $page = 1,
-        int $limit = 20,
-    ): JSONResponse
-    {
-        $offset = ($page - 1) * $limit;
-        $filters = $this->request->getParam('filters');
-        $include = $this->request->getParam('include');
-        $result = $this->customFieldMapper->searchPaged($orderBy, $direction, $limit, $offset, $filters, $include);
-        $total   = $this->customFieldMapper->countAll($filters);
-
-        return new JSONResponse([
-            'result' => $result,
-            'total'   => $total,
-            'page'    => $page,
-            'limit'   => $limit,
+            'id'     => $customField->getId(),
         ]);
     }
-    */
 
     #[NoCSRFRequired]
     #[OpenAPI(OpenAPI::SCOPE_IGNORE)]
