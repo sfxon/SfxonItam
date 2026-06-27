@@ -1,5 +1,5 @@
-<?php
-declare(strict_types=1);
+<?php declare(strict_types=1);
+
 namespace OCA\SfxonItam\Db;
 
 use OCP\AppFramework\Db\Entity;
@@ -39,6 +39,8 @@ use OCP\AppFramework\Db\Entity;
  * @method void setDescription(string|null $description)
  */
 class Device extends Entity implements \JsonSerializable {
+    use TEntityWithCustomFields;
+
     protected ?string $assetNumber = null;
     protected ?string $description = null;
     protected ?int $deviceStatusId = null;
