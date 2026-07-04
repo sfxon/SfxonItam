@@ -15,7 +15,7 @@ import NcTextField from '@nextcloud/vue/components/NcTextField'
 import { translate as t } from '@nextcloud/l10n'
 import { generateUrl } from '@nextcloud/router'
 import { useApiErrors } from '@/composables/useApiErrors'
-import { fetchCustomField, createCustomField } from '@/services/CustomFieldService'
+import { fetchCustomField, createCustomField, updateCustomField } from '@/services/CustomFieldService'
 import SfxonEditorFormEntitySelect from '@/components/SfxonEditorFormEntitySelect'
 import SfxonMainNavigation from '@/components/SfxonMainNavigation'
 
@@ -56,6 +56,11 @@ async function loadCustomField(id: number): Promise<void> {
     try {
         const d = await fetchCustomField(id)
         name.value = d.name ?? ''
+        technicalName.value = d.technicalName
+        position.value = d.position
+        selectedType.value = d.type
+            ? types.find(t => t.id === d.type) ?? null
+            : null
         comment.value = d.comment ? d.comment : ''
     } catch (e: any) {
         generalError.value = t('sfxonitam', 'Could not load custom field.')
@@ -69,21 +74,32 @@ async function submitForm() {
     clearErrors()
     savedSuccessfully.value = false;
     isSaving.value = true
+    let payload = {}
 
-    const payload = {
-        customFieldGroupId: props.customFieldGroupId,
-        technicalName: technicalName.value,
-        name: name.value,
-        type: selectedType.value?.id,
-        position: position.value,
-        // options
-        editable: editable.value,
-        validation: validation,
-        comment: comment.value,
+    if(isEditMode.value) {
+         payload = {
+            name: name.value,
+            position: position.value,
+            comment: comment.value,
+        }
+    } else {
+        payload = {
+            customFieldGroupId: props.customFieldGroupId,
+            technicalName: technicalName.value,
+            name: name.value,
+            type: selectedType.value?.id,
+            position: position.value,
+            // options
+            editable: editable.value,
+            validation: validation,
+            comment: comment.value,
+        }
     }
 
     try {
-        const data = await createCustomField(payload)
+        const data = isEditMode.value
+            ? await updateCustomField(customFieldId.value!, payload)
+            : await createCustomField(payload)
 
         // On error the backend returns HTTP Status 200.
         if (data?.status === 'error') {
@@ -180,6 +196,8 @@ onMounted(async () => {
                         :placeholder="''"
                         :class="fieldErrors.technicalName ? $style.fieldError : ''"
                         @input="clearFieldError('technicalName')"
+                        :readonly="isEditMode"
+                        :disabled="isEditMode"
                     />
                     <span v-if="fieldErrors.technicalName" :class="$style.errorText">
                         {{ fieldErrors.technicalName }}
@@ -195,6 +213,8 @@ onMounted(async () => {
                     :options="types"
                     trackBy="id"
                     v-model="selectedType"
+                    :readonly="isEditMode"
+                    :disabled="isEditMode"
                 />
 
                 <div :class="$style.field">

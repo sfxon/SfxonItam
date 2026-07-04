@@ -54,4 +54,9 @@ class CustomFieldService {
     {
         return $this->customFieldValidator->validate($data, $excludeId);
     }
+
+    public function validateUpdateData(array $data, ?int $excludeId = null)
+    {
+        return $this->customFieldValidator->validateUpdate($data, $excludeId);
+    }
 }

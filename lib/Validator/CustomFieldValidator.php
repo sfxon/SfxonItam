@@ -16,21 +16,7 @@ class CustomFieldValidator {
 
     public function validate(array $data, ?int $excludeId = null): array
     {
-        $errors = [];
-
-        // a) name: at least 1 signs.
-        if (empty($data['name'])) {
-            $errors['name'] = $this->l->t('The field "name" is required.');
-        } elseif (mb_strlen(trim($data['name'])) < 1) {
-            $errors['name'] = $this->l->t('The name must be at least 1 character long.');
-        } else {
-            // b) name: must be unique.
-            $existing = $this->customFieldMapper->findByNameAndCustomFieldGroupId(trim($data['name']), intval($data['customFieldGroupId']));
-
-            if ($existing !== null && $existing->getId() !== $excludeId) {
-                $errors['name'] = $this->l->t('A custom field with this name already exists in this custom field group.');
-            }
-        }
+        $errors = $this->validateName($data, $excludeId, []);
 
         // c) Technical Name
         if (empty($data['technicalName'])) {
@@ -70,5 +56,34 @@ class CustomFieldValidator {
             'valid'  => empty($errors),
             'errors' => $errors,
         ];
+    }
+
+    public function validateUpdate(array $data, ?int $excludeId = null): array
+    {
+        $errors = $this->validateName($data, $excludeId, []);
+
+        return [
+            'valid'  => empty($errors),
+            'errors' => $errors,
+        ];
+    }
+
+    private function validateName(array $data, ?int $excluedId = null, $errors = []) : array
+    {
+        // a) name: at least 1 signs.
+        if (empty($data['name'])) {
+            $errors['name'] = $this->l->t('The field "name" is required.');
+        } elseif (mb_strlen(trim($data['name'])) < 1) {
+            $errors['name'] = $this->l->t('The name must be at least 1 character long.');
+        } else {
+            // b) name: must be unique in group.
+            $existing = $this->customFieldMapper->findByNameAndCustomFieldGroupId(trim($data['name']), intval($data['customFieldGroupId']));
+
+            if ($existing !== null && $existing->getId() !== $excludeId) {
+                $errors['name'] = $this->l->t('A custom field with this name already exists in this custom field group.');
+            }
+        }
+
+        return $errors;
     }
 }

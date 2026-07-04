@@ -13,7 +13,6 @@ use OCP\AppFramework\Http\TemplateResponse;
 use OCP\AppFramework\Http\JSONResponse;
 use OCP\IRequest;
 use OCA\SfxonItam\AppInfo\Application;
-use OCA\SfxonItam\Db\CustomField;
 use OCA\SfxonItam\Db\CustomFieldGroupMapper;
 use OCA\SfxonItam\Db\CustomFieldMapper;
 use OCA\SfxonItam\Service\CustomFieldService;
@@ -27,6 +26,15 @@ class CustomFieldController extends Controller {
         'technicalName',
         'name',
         'type',
+        'position',
+        //'options',
+        'editable',
+        'validation',
+        'comment'
+    ];
+
+    private array $expectedUpdateFields = [
+        'name',
         'position',
         //'options',
         'editable',
@@ -71,7 +79,16 @@ class CustomFieldController extends Controller {
     #[FrontpageRoute(verb: 'GET', url: '/custom-field/detail')]
     public function detail(): TemplateResponse
     {
-        $customFieldGroupId = (int)$this->request->getParam('customFieldGroupId');
+        $customFieldId = (int)$this->request->getParam('customFieldId');
+        $customFieldGroupId = 0;
+
+        if($customFieldId === 0) {
+            $customFieldGroupId = (int)$this->request->getParam('customFieldGroupId');
+        } else {
+            $customField = $this->customFieldMapper->findById(intval($customFieldId));
+            $customFieldGroupId = $customField->getCustomFieldGroupId();
+        }
+
         $existing = $this->customFieldGroupMapper->findById(intval($customFieldGroupId));
 
         if ($existing === null) {
@@ -180,5 +197,42 @@ class CustomFieldController extends Controller {
         }
 
         return new JSONResponse($customField->jsonSerialize());
+    }
+
+    #[OpenAPI(OpenAPI::SCOPE_IGNORE)]
+    #[FrontpageRoute(verb: 'PUT', url: '/custom-field/{id}')]
+    public function update(int $id): DataResponse
+    {
+        // Return 404 if entry was not found.
+        try {
+            $deviceStatus = $this->customFieldMapper->findById($id);
+        } catch (\OCP\AppFramework\Db\DoesNotExistException) {
+            return new DataResponse(
+                ['status' => 'error', 'message' => 'Device not found'],
+                Http::STATUS_NOT_FOUND
+            );
+        }
+
+        $data = $this->customFieldService->getDataFromRequest($this->request->getParams(), $this->expectedUpdateFields);
+
+        $result = $this->customFieldService->validateUpdateData($data, $id);
+
+        if ($result['valid'] === false) {
+            return new DataResponse([
+                'status' => 'error',
+                'errors' => $result['errors'],
+            ], Http::STATUS_UNPROCESSABLE_ENTITY);
+        }
+
+        // Update fields.
+        $deviceStatus->setName($this->request->getParam('name'));
+        $deviceStatus->setPosition((int)$this->request->getParam('position'));
+        $deviceStatus->setComment($this->request->getParam('comment') ?? '');
+        $updated = $this->customFieldMapper->update($deviceStatus);
+
+        return new DataResponse([
+            'status' => 'ok',
+            'id'     => $updated->getId(),
+        ]);
     }
 }

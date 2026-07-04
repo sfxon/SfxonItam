@@ -69,3 +69,8 @@ export async function findCustomFields(params: ListParams, signal: AbortSignal) 
 export function getCustomFieldDetailLink(customFieldId: string) {
     return generateUrl(`/apps/sfxonitam/custom-field/detail?customFieldId=${customFieldId}`)
 }
+
+export async function updateCustomField(id: string, payload: CustomFieldPayload) {
+    const { data } = await axios.put(generateUrl(`/apps/sfxonitam/custom-field/${id}`), payload)
+    return data
+}
