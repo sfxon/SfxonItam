@@ -55,13 +55,21 @@ async function loadCustomField(id: number): Promise<void> {
 
     try {
         const d = await fetchCustomField(id)
-        name.value = d.name ?? ''
-        technicalName.value = d.technicalName
+        comment.value = d.comment ? d.comment : ''
+        editable.value = d.editable ?? true
         position.value = d.position
+        name.value = d.name ?? ''
         selectedType.value = d.type
             ? types.find(t => t.id === d.type) ?? null
             : null
-        comment.value = d.comment ? d.comment : ''
+        technicalName.value = d.technicalName
+        
+        if (d.validation) {
+            const parsedValidation = typeof d.validation === 'string'
+                ? JSON.parse(d.validation)
+                : d.validation
+            Object.assign(validation, parsedValidation)
+        }
     } catch (e: any) {
         generalError.value = t('sfxonitam', 'Could not load custom field.')
         console.error('Could not load custom field:', e)
@@ -78,21 +86,24 @@ async function submitForm() {
 
     if(isEditMode.value) {
          payload = {
-            name: name.value,
-            position: position.value,
             comment: comment.value,
+            editable: editable.value,
+            name: name.value,
+            // options: options.value,
+            position: position.value,
+            validation: validation,
         }
     } else {
         payload = {
-            customFieldGroupId: props.customFieldGroupId,
-            technicalName: technicalName.value,
-            name: name.value,
-            type: selectedType.value?.id,
-            position: position.value,
-            // options
-            editable: editable.value,
-            validation: validation,
             comment: comment.value,
+            customFieldGroupId: props.customFieldGroupId,
+            editable: editable.value,
+            name: name.value,
+            // options: options.value,
+            position: position.value,
+            technicalName: technicalName.value,
+            type: selectedType.value?.id,
+            validation: validation,
         }
     }
 

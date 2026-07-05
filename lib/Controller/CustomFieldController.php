@@ -205,7 +205,7 @@ class CustomFieldController extends Controller {
     {
         // Return 404 if entry was not found.
         try {
-            $deviceStatus = $this->customFieldMapper->findById($id);
+            $customField = $this->customFieldMapper->findById($id);
         } catch (\OCP\AppFramework\Db\DoesNotExistException) {
             return new DataResponse(
                 ['status' => 'error', 'message' => 'Device not found'],
@@ -225,10 +225,14 @@ class CustomFieldController extends Controller {
         }
 
         // Update fields.
-        $deviceStatus->setName($this->request->getParam('name'));
-        $deviceStatus->setPosition((int)$this->request->getParam('position'));
-        $deviceStatus->setComment($this->request->getParam('comment') ?? '');
-        $updated = $this->customFieldMapper->update($deviceStatus);
+        $customField->setComment($this->request->getParam('comment') ?? '');
+        $customField->setEditable(
+            filter_var($this->request->getParam('editable'), FILTER_VALIDATE_BOOLEAN)
+        );
+        $customField->setPosition((int)$this->request->getParam('position'));
+        $customField->setName($this->request->getParam('name'));
+        $customField->setValidation(json_encode($this->request->getParam('validation')));
+        $updated = $this->customFieldMapper->update($customField);
 
         return new DataResponse([
             'status' => 'ok',

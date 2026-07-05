@@ -37,6 +37,7 @@ class CustomField extends Entity implements \JsonSerializable {
 
     public function __construct() {
         $this->addType('id', 'integer');
+        $this->addType('editable', 'integer');
     }
 
     /**
