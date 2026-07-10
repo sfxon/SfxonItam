@@ -9,4 +9,7 @@ Util::addStyle(OCA\SfxonItam\AppInfo\Application::APP_ID, OCA\SfxonItam\AppInfo\
 
 ?>
 
-<div id="sfxonitam"></div>
+<div
+    id="sfxonitam"
+    data-custom-field-groups="<?= htmlspecialchars(json_encode($_['customFieldGroups']), ENT_QUOTES, 'UTF-8') ?>"
+></div>

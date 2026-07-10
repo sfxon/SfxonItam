@@ -31,33 +31,19 @@ class CustomFieldGroupController extends Controller {
     #[FrontpageRoute(verb: 'GET', url: '/custom-field-group/')]
     public function index(): TemplateResponse
     {
+        $customFieldGroups = $this->customFieldGroupMapper->searchPaged(
+            'name',
+            'ASC',
+            100,
+            0,
+            [],
+            []
+        );
+
         return new TemplateResponse(
             Application::APP_ID,
             'custom-field-group/list',
+            ['customFieldGroups' => $customFieldGroups]
         );
-    }
-
-    #[NoCSRFRequired]
-    #[OpenAPI(OpenAPI::SCOPE_IGNORE)]
-    #[FrontpageRoute(verb: 'GET', url: '/custom-field-group/search')]
-    public function search(
-        string $orderBy = 'name',
-        string $direction = 'ASC',
-        int $page = 1,
-        int $limit = 20,
-    ): JSONResponse
-    {
-        $offset = ($page - 1) * $limit;
-        $filters = $this->request->getParam('filters');
-        $include = $this->request->getParam('include');
-        $result = $this->customFieldGroupMapper->searchPaged($orderBy, $direction, $limit, $offset, $filters, $include);
-        $total   = $this->customFieldGroupMapper->countAll($filters);
-
-        return new JSONResponse([
-            'result' => $result,
-            'total'   => $total,
-            'page'    => $page,
-            'limit'   => $limit,
-        ]);
     }
 }

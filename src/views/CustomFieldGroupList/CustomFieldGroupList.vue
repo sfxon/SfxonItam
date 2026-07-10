@@ -1,71 +1,24 @@
 <script setup lang="ts">
-import { reactive, ref, watch, onMounted } from 'vue'
 import NcAppContent from '@nextcloud/vue/components/NcAppContent'
 import NcAppNavigation from '@nextcloud/vue/components/NcAppNavigation'
 import NcAppNavigationList from '@nextcloud/vue/components/NcAppNavigationList'
 import NcContent from '@nextcloud/vue/components/NcContent'
-import NcLoadingIcon from '@nextcloud/vue/components/NcLoadingIcon'
-import { translate as t } from '@nextcloud/l10n'
+
+import NcListItem from '@nextcloud/vue/components/NcListItem'
 import { generateUrl } from '@nextcloud/router'
 import SfxonMainNavigation from '@/components/SfxonMainNavigation'
-import SfxonPagination from '@/components/SfxonPagination'
-import SfxonTable from '@/components/SfxonTable'
-import { useListState } from '@/composables/useListState'
-import { fetchCustomFieldGroups } from '@/services/CustomFieldGroupService'
 import type { CustomFieldGroup } from '@/services/CustomFieldGroupService'
-import NcNoteCard from '@nextcloud/vue/components/NcNoteCard'
+import { mdiChevronRight } from '@mdi/js'
+import NcIconSvgWrapper from '@nextcloud/vue/components/NcIconSvgWrapper'
 
-const customFieldGroups = ref<CustomFieldGroup[]>([])
-const error = ref<string | null>(null)
-const generalError = ref<string>('')
-const filterValues = reactive<Record<string, { value: any }[]>>({})
-const listState = useListState()
-const loading   = ref(false)
+const props = defineProps<{
+    customFieldGroups: CustomFieldGroup[]
+}>()
 
-const columns = [
-    { key: 'name', label: t('sfxonitam', 'Name'), sortable: true },
-    { key: 'entityName', label: t('sfxonitam', 'Entity Name'), sortable: true },
-    { key: 'comment', label: t('sfxonitam', 'Beschreibung/Kommentare'), sortable: false },
-    { type: 'actions', label: t('sfxonitam', 'Aktion'), sortable: false },
-];
-
-async function loadCustomFieldGroups() {
-    error.value = null
-
-    try {
-        const filters = Object.fromEntries(
-            Object.entries(filterValues).map(([key, entries]) => [
-                key,
-                entries.map(e => e.value)
-            ])
-        )
-
-        const data = await fetchCustomFieldGroups({
-            orderBy: listState.orderBy,
-            direction: listState.orderDirection,
-            page: listState.page,
-            limit: listState.limit,
-            filters
-        })
-
-        customFieldGroups.value = data.result.mainData
-        listState.total = data.total
-    } catch (e) {
-        error.value = t('sfxonitam', 'Error loading Custom Field Groups.')
-        console.log(e)
-    }
+function editUrl(customFieldGroup: CustomFieldGroup) {
+    return generateUrl(`/apps/sfxonitam/custom-field/?customFieldGroupId=${customFieldGroup.id}`)
 }
 
-
-function onEditCustomFieldGroup(customFieldGroup: CustomFieldGroup) {
-    window.location.href = generateUrl(`/apps/sfxonitam/custom-field/?customFieldGroupId=${customFieldGroup.id}`);
-}
-
-watch(() => listState, loadCustomFieldGroups, { deep: true })
-
-onMounted(async () => {
-    await loadCustomFieldGroups()
-})
 </script>
 
 <template>
@@ -79,46 +32,22 @@ onMounted(async () => {
         <!-- Inhaltsbereich -->
         <NcAppContent>
             <div :class="$style.sfxonItamHeader">
-                Custom Fields
-            </div>
-
-            <!-- Allgemeine Fehlermeldung -->
-            <div :class="$style.sfxonItamGeneralError">
-                <NcNoteCard
-                    v-if="generalError"
-                    type="error"
-                >
-                    {{ generalError }}
-                </NcNoteCard>
+                Custom Fields > Sets
             </div>
 
             <div :class="$style.sfxonItamContent">
-                <!-- Fehler -->
-                <div v-if="error" class="custom-field-groups-list__error">{{ error }}</div>
-
-                <!-- Ladeindikator -->
-                <div v-else-if="loading" class="custom-field-groups-list__loading">
-                    <NcLoadingIcon :size="32" />
-                </div>
-
-                <!-- Leerer Zustand -->
-                <div v-else-if="customFieldGroups.length === 0" class="custom-field-groups-list__empty">
-                    {{ t('sfxonitam', 'No custom field groups found.') }}
-                </div>
-
-                <SfxonTable
-                    :columns="columns"
-                    :dataArray="customFieldGroups"
-                    :dataArrayKey="'id'"
-                    :editCallback="onEditCustomFieldGroup"
-                    :listState="listState"
-                    :orderByCallback="listState.sortBy"
-                />
-
-                <SfxonPagination
-                    v-model:page="listState.page"
-                    :listState="listState"
-                />
+                <ul :class="$style.sfxonItamList">
+                    <NcListItem
+                        v-for="customFieldGroup in props.customFieldGroups.mainData"
+                        :key="customFieldGroup.id"
+                        :name="customFieldGroup.name"
+                        :href="editUrl(customFieldGroup)"
+                        target="_self">
+                        <template #details>
+                            <NcIconSvgWrapper :path="mdiChevronRight" :size="20" />
+                        </template>
+                    </NcListItem>
+                </ul>
             </div>
         </NcAppContent>
     </NcContent>
@@ -137,13 +66,17 @@ onMounted(async () => {
         min-height: 32px;
     }
 
-    .sfxonItamContent {
-        padding-left: 12px;
-        padding-right: 12px;
+    .sfxonItamList {
+        border: 1px solid var(--color-border);
+        border-radius: var(--border-radius-large);
+        list-style: none;
+        margin: 12px auto;
+        max-width: 900px;
+        overflow: hidden;
+        padding: 0;
     }
 
-    .sfxonItamGeneralError {
-        padding-left: 12px;
-        padding-right: 12px;
+    .sfxonItamList > :global(li) + :global(li) {
+        border-top: 1px solid var(--color-border);
     }
 </style>
