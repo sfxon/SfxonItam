@@ -187,8 +187,8 @@ Editor:
             - ✅ On update let users only save changes to the name, the position and the comment. Technical Name and Type must be readonly.
             - ✅ On update let users also save the editable value and the validate values.
             - ✅ In the customField Groups List View, make it more visible, that this is the group select, and let user select a group by clicking on it's name. Maybe orientate on customField Menus in Shopware.
-            - In the cutomField List View, make it more visible, that this fields are part of a group, and what that group is.
-            - Add delete function to delete a custom field.
+            - ✅ In the cutomField List View, make it more visible, that this fields are part of a group, and what that group is.
+            - ✅ Add delete function to delete a custom field.
             - Add additional field types.
             - Add custom fields to the device editor view.
             - Make custom fields saveable.

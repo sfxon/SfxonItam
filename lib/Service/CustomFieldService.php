@@ -42,6 +42,27 @@ class CustomFieldService {
         return $this->customFieldMapper->insert($customField);
     }
 
+    public function deleteCustomField(int $id): void {
+        $customField = $this->customFieldMapper->findById($id);
+
+        $group = $this->customFieldGroupMapper->findById(
+            (int)$customField->getCustomFieldGroupId()
+        );
+
+        if ($group === null) {
+            throw new \InvalidArgumentException('CustomFieldGroup not found.');
+        }
+
+        $columnName = 'custom_' . $customField->getTechnicalName();
+
+        $this->customFieldMapper->dropColumnFromEntityTable(
+            $group->getEntityName(),
+            $columnName
+        );
+
+        $this->customFieldMapper->delete($customField);
+    }
+
     public function getDataFromRequest($requestArray, $expectedFields,)
     {
         return array_intersect_key(

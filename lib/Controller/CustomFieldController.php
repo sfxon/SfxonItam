@@ -54,24 +54,28 @@ class CustomFieldController extends Controller {
 
     #[OpenAPI(OpenAPI::SCOPE_IGNORE)]
     #[FrontpageRoute(verb: 'DELETE', url: '/custom-field/{id}')]
-    public function delete(int $id): JsonResponse
+    public function delete(int $id): JSONResponse
     {
-        die('delete custom field');
-
-        // Put this in a try-catch block, since findById will throw an error,
-        // if it does not find an element with the given id.
-        
-        /*
         try {
-            $position = $this->positionMapper->findById($id);
-            $this->positionMapper->delete($position);
-        } catch(\Error $error) {
+            $this->customFieldService->deleteCustomField($id);
+        } catch (DoesNotExistException) {
+            return new JSONResponse(
+                ['status' => 'error', 'message' => 'Custom field not found'],
+                Http::STATUS_NOT_FOUND
+            );
+        } catch (\InvalidArgumentException $e) {
+            return new JSONResponse(
+                ['status' => 'error', 'message' => $e->getMessage()],
+                Http::STATUS_BAD_REQUEST
+            );
+        } catch (\Exception $e) {
+            return new JSONResponse(
+                ['status' => 'error', 'message' => 'Unexpected error: ' . $e->getMessage()],
+                Http::STATUS_INTERNAL_SERVER_ERROR
+            );
         }
 
-        return new JSONResponse([
-            'status' => 'ok',
-        ]);
-        */
+        return new JSONResponse(['status' => 'ok']);
     }
 
     #[NoCSRFRequired]

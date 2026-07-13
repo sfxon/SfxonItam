@@ -67,6 +67,17 @@ class CustomFieldMapper extends QBMapper {
         return (int) $qb->executeQuery()->fetchOne();
     }
 
+    public function dropColumnFromEntityTable(string $entityName, string $columnName): void {
+        $schema = $this->db->createSchema();
+        $prefix = $this->config->getSystemValueString('dbtableprefix', 'oc_');
+        $table = $schema->getTable($prefix . $entityName);
+
+        if ($table->hasColumn($columnName)) {
+            $table->dropColumn($columnName);
+            $this->db->migrateToSchema($schema);
+        }
+    }
+
     public function findById(int $id): CustomField {
         $qb = $this->db->getQueryBuilder();
         $qb->select('*')
