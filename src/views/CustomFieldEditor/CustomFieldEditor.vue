@@ -5,6 +5,8 @@ import NcAppContent from '@nextcloud/vue/components/NcAppContent'
 import NcAppNavigation from '@nextcloud/vue/components/NcAppNavigation'
 import NcAppNavigationList from '@nextcloud/vue/components/NcAppNavigationList'
 import NcAppNavigationNew from '@nextcloud/vue/components/NcAppNavigationNew'
+import NcBreadcrumbs from '@nextcloud/vue/components/NcBreadcrumbs'
+import NcBreadcrumb from '@nextcloud/vue/components/NcBreadcrumb'
 import NcCheckboxRadioSwitch from '@nextcloud/vue/components/NcCheckboxRadioSwitch'
 import NcContent from '@nextcloud/vue/components/NcContent'
 import NcButton from '@nextcloud/vue/components/NcButton'
@@ -36,6 +38,10 @@ const props = defineProps({
         type: Number,
         required: true,
     },
+    customFieldGroup: {
+        type: Object,
+        default: () => ({})
+    }
 })
 const savedSuccessfully = ref(false)
 const selectedType = ref<{ id: string; label: string } | null>(null)
@@ -164,132 +170,157 @@ onMounted(async () => {
             <SfxonMainNavigation :currentPage="'customFields'" />
         </NcAppNavigation>
 
-        <NcAppContent :class="$style.content">
-            <div :class="$style.form">
-                <h2>
-                    {{ isEditMode
-                        ? t('sfxonitam', 'Custom Field Detail Information')
-                        : t('sfxonitam', 'Create Custom Field') }}
-                </h2>
+        <NcAppContent>
+            <div :class="$style.sfxonItamHeader">
+                <NcBreadcrumbs root-icon="">
+                    <NcBreadcrumb
+                        :disable-drop="true"
+                        :force-icon-text="true"
+                        :href="generateUrl('/apps/sfxonitam/custom-field-group/')"
+                        name="Custom Field Sets"
+                        title="Custom Field Sets" />
+                    <NcBreadcrumb
+                        :disable-drop="true"
+                        :force-icon-text="true"
+                        :href="generateUrl('/apps/sfxonitam/custom-field/?customFieldGroupId=' + customFieldGroup.id)"
+                        :name="'Custom Fields for ' + props.customFieldGroup.name"
+                        :title="'Custom Fields for ' + props.customFieldGroup.name" />
+                    <NcBreadcrumb
+                        :disable-drop="true"
+                        :force-icon-text="true"
+                        href="#"
+                        :name="isEditMode ? 'Edit' : 'Create'"
+                        :title="isEditMode ? 'Edit' : 'Create'" />
+                </NcBreadcrumbs>
+            </div>
 
-                <NcNoteCard
-                    v-if="generalError"
-                    type="error"
-                >
-                    {{ generalError }}
-                </NcNoteCard>
-                <NcNoteCard
-                    v-if="savedSuccessfully"
-                    type="success"
-                >
-                    {{ t('sfxonitam', 'Changes have been saved') }}
-                </NcNoteCard>
+            <div :class="$style.content">
+                <div :class="$style.form">
+                    <h2>
+                        {{ isEditMode
+                            ? t('sfxonitam', 'Custom Field Detail Information')
+                            : t('sfxonitam', 'Create Custom Field') }}
+                    </h2>
 
-                <div :class="$style.field">
-                    <NcTextField
-                        id="name"
-                        v-model="name"
-                        :label="t('sfxonitam', 'Name')"
-                        :placeholder="''"
-                        :class="fieldErrors.name ? $style.fieldError : ''"
-                        @input="clearFieldError('name')"
-                    />
-                    <span v-if="fieldErrors.name" :class="$style.errorText">
-                        {{ fieldErrors.name }}
-                    </span>
-                </div>
+                    <NcNoteCard
+                        v-if="generalError"
+                        type="error"
+                    >
+                        {{ generalError }}
+                    </NcNoteCard>
+                    <NcNoteCard
+                        v-if="savedSuccessfully"
+                        type="success"
+                    >
+                        {{ t('sfxonitam', 'Changes have been saved') }}
+                    </NcNoteCard>
 
-                <div :class="$style.field">
-                    <NcTextField
-                        id="technicalName"
-                        v-model="technicalName"
-                        :label="t('sfxonitam', 'Technical Name')"
-                        :placeholder="''"
-                        :class="fieldErrors.technicalName ? $style.fieldError : ''"
-                        @input="clearFieldError('technicalName')"
+                    <div :class="$style.field">
+                        <NcTextField
+                            id="name"
+                            v-model="name"
+                            :label="t('sfxonitam', 'Name')"
+                            :placeholder="''"
+                            :class="fieldErrors.name ? $style.fieldError : ''"
+                            @input="clearFieldError('name')"
+                        />
+                        <span v-if="fieldErrors.name" :class="$style.errorText">
+                            {{ fieldErrors.name }}
+                        </span>
+                    </div>
+
+                    <div :class="$style.field">
+                        <NcTextField
+                            id="technicalName"
+                            v-model="technicalName"
+                            :label="t('sfxonitam', 'Technical Name')"
+                            :placeholder="''"
+                            :class="fieldErrors.technicalName ? $style.fieldError : ''"
+                            @input="clearFieldError('technicalName')"
+                            :readonly="isEditMode"
+                            :disabled="isEditMode"
+                        />
+                        <span v-if="fieldErrors.technicalName" :class="$style.errorText">
+                            {{ fieldErrors.technicalName }}
+                        </span>
+                    </div>
+
+                    <SfxonEditorFormEntitySelect
+                        field="type"
+                        :fieldError="fieldErrors.type"
+                        id="type-select"
+                        @input="clearFieldError('type')"
+                        :label="t('sfxonitam', 'Type') + ':'"
+                        :options="types"
+                        trackBy="id"
+                        v-model="selectedType"
                         :readonly="isEditMode"
                         :disabled="isEditMode"
                     />
-                    <span v-if="fieldErrors.technicalName" :class="$style.errorText">
-                        {{ fieldErrors.technicalName }}
-                    </span>
-                </div>
 
-                <SfxonEditorFormEntitySelect
-                    field="type"
-                    :fieldError="fieldErrors.type"
-                    id="type-select"
-                    @input="clearFieldError('type')"
-                    :label="t('sfxonitam', 'Type') + ':'"
-                    :options="types"
-                    trackBy="id"
-                    v-model="selectedType"
-                    :readonly="isEditMode"
-                    :disabled="isEditMode"
-                />
+                    <div :class="$style.field">
+                        <NcTextField
+                            id="position"
+                            v-model="position"
+                            :label="t('sfxonitam', 'Position')"
+                            :placeholder="''"
+                            :class="fieldErrors.position ? $style.fieldError : ''"
+                            @input="clearFieldError('position')"
+                        />
+                        <span v-if="fieldErrors.position" :class="$style.errorText">
+                            {{ fieldErrors.position }}
+                        </span>
+                    </div>
 
-                <div :class="$style.field">
-                    <NcTextField
-                        id="position"
-                        v-model="position"
-                        :label="t('sfxonitam', 'Position')"
-                        :placeholder="''"
-                        :class="fieldErrors.position ? $style.fieldError : ''"
-                        @input="clearFieldError('position')"
-                    />
-                    <span v-if="fieldErrors.position" :class="$style.errorText">
-                        {{ fieldErrors.position }}
-                    </span>
-                </div>
-
-                <div :class="$style.field">
-                    <NcCheckboxRadioSwitch
-                        id="editable"
-                        v-model="editable"
-                        :placeholder="''"
-                        :class="fieldErrors.editable ? $style.fieldError : ''"
-                        @input="clearFieldError('editable')"
-                        type="switch"
-                    >
-                        {{ t('sfxonitam', 'Editable') }}
-                    </NcCheckboxRadioSwitch>
-                    <span v-if="fieldErrors.editable" :class="$style.errorText">
-                        {{ fieldErrors.editable }}
-                    </span>
-                </div>
-
-                <!-- Add validation options here -->
-                <template v-if="selectedType !== null">
-                    <template v-if="selectedType.id === 'text' && validation.text">
-                        <NcCheckboxRadioSwitch v-model="validation.text.enabled">
-                            {{ t('sfxonitam', 'Validate') }}
+                    <div :class="$style.field">
+                        <NcCheckboxRadioSwitch
+                            id="editable"
+                            v-model="editable"
+                            :placeholder="''"
+                            :class="fieldErrors.editable ? $style.fieldError : ''"
+                            @input="clearFieldError('editable')"
+                            type="switch"
+                        >
+                            {{ t('sfxonitam', 'Editable') }}
                         </NcCheckboxRadioSwitch>
+                        <span v-if="fieldErrors.editable" :class="$style.errorText">
+                            {{ fieldErrors.editable }}
+                        </span>
+                    </div>
 
-                        <template v-if="validation.text.enabled">
-                            <NcTextField v-model="validation.text.minLength" :label="t('sfxonitam', 'Min length')" />
-                            <NcTextField v-model="validation.text.maxLength" :label="t('sfxonitam', 'Max length')" />
+                    <!-- Add validation options here -->
+                    <template v-if="selectedType !== null">
+                        <template v-if="selectedType.id === 'text' && validation.text">
+                            <NcCheckboxRadioSwitch v-model="validation.text.enabled">
+                                {{ t('sfxonitam', 'Validate') }}
+                            </NcCheckboxRadioSwitch>
+
+                            <template v-if="validation.text.enabled">
+                                <NcTextField v-model="validation.text.minLength" :label="t('sfxonitam', 'Min length')" />
+                                <NcTextField v-model="validation.text.maxLength" :label="t('sfxonitam', 'Max length')" />
+                            </template>
                         </template>
                     </template>
-                </template>
 
-                <div :class="$style.field">
-                    <NcTextArea
-                        id="comment"
-                        v-model="comment"
-                        :label="t('sfxonitam', 'Comment')"
-                        :class="fieldErrors.comment ? $style.fieldError : ''"
-                        @input="clearFieldError('comment')"
-                    />
-                    <span v-if="fieldErrors.comment" :class="$style.errorText">
-                        {{ fieldErrors.comment }}
-                    </span>
-                </div>
+                    <div :class="$style.field">
+                        <NcTextArea
+                            id="comment"
+                            v-model="comment"
+                            :label="t('sfxonitam', 'Comment')"
+                            :class="fieldErrors.comment ? $style.fieldError : ''"
+                            @input="clearFieldError('comment')"
+                        />
+                        <span v-if="fieldErrors.comment" :class="$style.errorText">
+                            {{ fieldErrors.comment }}
+                        </span>
+                    </div>
 
 
-                <div :class="$style.actions">
-                    <NcButton variant="primary" @click="submitForm">
-                        {{ t('sfxonitam', 'Save') }}
-                    </NcButton>
+                    <div :class="$style.actions">
+                        <NcButton variant="primary" @click="submitForm">
+                            {{ t('sfxonitam', 'Save') }}
+                        </NcButton>
+                    </div>
                 </div>
             </div>
         </NcAppContent>
@@ -297,6 +328,22 @@ onMounted(async () => {
 </template>
 
 <style module>
+.sfxonItamHeader {
+    align-items: start;
+    display: flex;
+    flex: 0 0;
+    font-weight: bold;
+    gap: var(--default-grid-baseline);
+    margin-block: var(--app-navigation-padding, 4px);
+    margin-inline: calc(var(--default-clickable-area) + 2*var(--app-navigation-padding, 4px)) var(--app-navigation-padding, 4px);
+    max-width: 100%;
+    min-height: 32px;
+}
+
+.sfxonItamHeader :global(.breadcrumb) {
+    align-items: start!important;
+}
+
 .content {
     display: flex;
     justify-content: center;

@@ -89,16 +89,16 @@ class CustomFieldController extends Controller {
             $customFieldGroupId = $customField->getCustomFieldGroupId();
         }
 
-        $existing = $this->customFieldGroupMapper->findById(intval($customFieldGroupId));
+        $customFieldGroup = $this->customFieldGroupMapper->findById(intval($customFieldGroupId));
 
-        if ($existing === null) {
+        if ($customFieldGroup === null) {
             throw new \Exception('Custom field group not found.');
         }
 
         return new TemplateResponse(
             Application::APP_ID,
             'custom-field/editor',
-            ['customFieldGroupId' => $customFieldGroupId]
+            ['customFieldGroupId' => $customFieldGroupId, 'customFieldGroup' => $customFieldGroup]
         );
     }
 
@@ -108,16 +108,16 @@ class CustomFieldController extends Controller {
     public function index(): TemplateResponse
     {
         $customFieldGroupId = (int)$this->request->getParam('customFieldGroupId');
-        $existing = $this->customFieldGroupMapper->findById(intval($customFieldGroupId));
+        $customFieldGroup = $this->customFieldGroupMapper->findById(intval($customFieldGroupId));
 
-        if ($existing === null) {
+        if ($customFieldGroup === null) {
             throw new \Exception('Custom field group not found.');
         }
 
         return new TemplateResponse(
             Application::APP_ID,
             'custom-field/list',
-            ['customFieldGroupId' => $customFieldGroupId]
+            ['customFieldGroupId' => $customFieldGroupId, 'customFieldGroup' => $customFieldGroup],
         );
     }
 

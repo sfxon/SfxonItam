@@ -4,6 +4,8 @@ import NcAppContent from '@nextcloud/vue/components/NcAppContent'
 import NcAppNavigation from '@nextcloud/vue/components/NcAppNavigation'
 import NcAppNavigationList from '@nextcloud/vue/components/NcAppNavigationList'
 import NcAppNavigationNew from '@nextcloud/vue/components/NcAppNavigationNew'
+import NcBreadcrumbs from '@nextcloud/vue/components/NcBreadcrumbs'
+import NcBreadcrumb from '@nextcloud/vue/components/NcBreadcrumb'
 import NcContent from '@nextcloud/vue/components/NcContent'
 import { mdiPlus } from '@mdi/js'
 import NcIconSvgWrapper from '@nextcloud/vue/components/NcIconSvgWrapper'
@@ -38,8 +40,14 @@ const props = defineProps({
         type: Number,
         required: true,
     },
+    customFieldGroup: {
+        type: Object,
+        default: () => ({})
+    }
 })
 const relatedEntityData = reactive({ 'location': {}, });
+
+console.log('test: ', props)
 
 function addItem() {
     window.location.href = generateUrl('/apps/sfxonitam/custom-field/detail?customFieldGroupId=' + props.customFieldGroupId)
@@ -136,7 +144,20 @@ onMounted(async () => {
         <!-- Inhaltsbereich -->
         <NcAppContent>
             <div :class="$style.sfxonItamHeader">
-                Custom-Fields
+                <NcBreadcrumbs root-icon="">
+                    <NcBreadcrumb
+                        :disable-drop="true"
+                        :force-icon-text="true"
+                        :href="generateUrl('/apps/sfxonitam/custom-field-group/')"
+                        name="Custom Field Sets"
+                        title="Custom Field Sets" />
+                    <NcBreadcrumb
+                        :disable-drop="true"
+                        :force-icon-text="true"
+                        href="#"
+                        :name="'Custom Fields for ' + props.customFieldGroup.name"
+                        :title="'Custom Fields for ' + props.customFieldGroup.name" />
+                </NcBreadcrumbs>
             </div>
 
             <!-- Allgemeine Fehlermeldung -->
@@ -209,7 +230,7 @@ onMounted(async () => {
 
 <style module>
     .sfxonItamHeader {
-        align-items: center;
+        align-items: start;
         display: flex;
         flex: 0 0;
         font-weight: bold;
@@ -218,6 +239,10 @@ onMounted(async () => {
         margin-inline: calc(var(--default-clickable-area) + 2*var(--app-navigation-padding, 4px)) var(--app-navigation-padding, 4px);
         max-width: 100%;
         min-height: 32px;
+    }
+
+    .sfxonItamHeader :global(.breadcrumb) {
+        align-items: start!important;
     }
 
     .sfxonItamContent {

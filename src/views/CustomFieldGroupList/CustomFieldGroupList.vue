@@ -2,14 +2,16 @@
 import NcAppContent from '@nextcloud/vue/components/NcAppContent'
 import NcAppNavigation from '@nextcloud/vue/components/NcAppNavigation'
 import NcAppNavigationList from '@nextcloud/vue/components/NcAppNavigationList'
+import NcBreadcrumbs from '@nextcloud/vue/components/NcBreadcrumbs'
+import NcBreadcrumb from '@nextcloud/vue/components/NcBreadcrumb'
 import NcContent from '@nextcloud/vue/components/NcContent'
-
 import NcListItem from '@nextcloud/vue/components/NcListItem'
 import { generateUrl } from '@nextcloud/router'
 import SfxonMainNavigation from '@/components/SfxonMainNavigation'
 import type { CustomFieldGroup } from '@/services/CustomFieldGroupService'
 import { mdiChevronRight } from '@mdi/js'
 import NcIconSvgWrapper from '@nextcloud/vue/components/NcIconSvgWrapper'
+
 
 const props = defineProps<{
     customFieldGroups: CustomFieldGroup[]
@@ -32,7 +34,14 @@ function editUrl(customFieldGroup: CustomFieldGroup) {
         <!-- Inhaltsbereich -->
         <NcAppContent>
             <div :class="$style.sfxonItamHeader">
-                Custom Fields > Sets
+                <NcBreadcrumbs root-icon="">
+                    <NcBreadcrumb
+                        :disable-drop="true"
+                        :force-icon-text="true"
+                        href="#"
+                        name="Custom Field Sets"
+                        title="Custom Field Sets" />
+                </NcBreadcrumbs>
             </div>
 
             <div :class="$style.sfxonItamContent">
@@ -55,7 +64,7 @@ function editUrl(customFieldGroup: CustomFieldGroup) {
 
 <style module>
     .sfxonItamHeader {
-        align-items: center;
+        align-items: start;
         display: flex;
         flex: 0 0;
         font-weight: bold;
@@ -64,6 +73,10 @@ function editUrl(customFieldGroup: CustomFieldGroup) {
         margin-inline: calc(var(--default-clickable-area) + 2*var(--app-navigation-padding, 4px)) var(--app-navigation-padding, 4px);
         max-width: 100%;
         min-height: 32px;
+    }
+
+    .sfxonItamHeader :global(.breadcrumb) {
+        align-items: start!important;
     }
 
     .sfxonItamList {
