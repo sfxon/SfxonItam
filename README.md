@@ -190,6 +190,18 @@ Editor:
             - ✅ In the cutomField List View, make it more visible, that this fields are part of a group, and what that group is.
             - ✅ Add delete function to delete a custom field.
             - Add additional field types.
+                - ✅ text (VARCHAR)
+                - DECIMAL
+                    - ✅ Implement generally.
+                    - When editing an existing field, the length for the both fields should not be changeable.
+                    - Add a "required" option.
+                - **INTEGER** with LENGTH definition.
+                - **BOOL** (on/off), with a switch display. Integrated in the database as INT(1).
+                - **FILE** - often required, for example to upload invoices. In the end, this is a foreign key on media, but with a different user interface.
+                - **LONGTEXT** (not searchable for now)
+                - **DATE** (optional index, not searchable/filterable/sortable without index).
+                - **DATETIME** (optional index, not searchable/filterable/sortable without index).
+                - **FOREGIN_KEY** BIGINT (20), here the user also has to select the related entity (always indexed?, index needed?).
             - Add custom fields to the device editor view.
             - Make custom fields saveable.
 

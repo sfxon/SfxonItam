@@ -32,6 +32,7 @@ const { fieldErrors, generalError, handleApiError, clearErrors, clearFieldError 
 const isEditMode = computed(() => !!customFieldId.value)
 const isSaving = ref(false)
 const name = ref('')
+const options = reactive<Record<string, any>>({})
 const position = ref('')
 const props = defineProps({
     customFieldGroupId: {
@@ -46,10 +47,10 @@ const props = defineProps({
 const savedSuccessfully = ref(false)
 const selectedType = ref<{ id: string; label: string } | null>(null)
 const technicalName = ref('')
-const types = [{
-    id: 'text',
-    label: 'Text'
-}]
+const types = [
+    { id: 'text', label: 'Text' },
+    { id: 'decimal', label: 'Decimal' }
+]
 const validation = reactive<Record<string, any>>({})
 
 function addItem() {
@@ -95,7 +96,7 @@ async function submitForm() {
             comment: comment.value,
             editable: editable.value,
             name: name.value,
-            // options: options.value,
+            options: options,
             position: position.value,
             validation: validation,
         }
@@ -105,7 +106,7 @@ async function submitForm() {
             customFieldGroupId: props.customFieldGroupId,
             editable: editable.value,
             name: name.value,
-            // options: options.value,
+            options: options,
             position: position.value,
             technicalName: technicalName.value,
             type: selectedType.value?.id,
@@ -143,6 +144,13 @@ watch(() => selectedType.value?.id, (newType) => {
             enabled: false,
             minLength: '',
             maxLength: '',
+        }
+    }
+
+    if (newType === 'decimal' && !options.decimal) {
+        options.decimal = {
+            integerDigitsLength: '',
+            fractionDigitsLength: '',
         }
     }
 })
@@ -245,19 +253,6 @@ onMounted(async () => {
                         </span>
                     </div>
 
-                    <SfxonEditorFormEntitySelect
-                        field="type"
-                        :fieldError="fieldErrors.type"
-                        id="type-select"
-                        @input="clearFieldError('type')"
-                        :label="t('sfxonitam', 'Type') + ':'"
-                        :options="types"
-                        trackBy="id"
-                        v-model="selectedType"
-                        :readonly="isEditMode"
-                        :disabled="isEditMode"
-                    />
-
                     <div :class="$style.field">
                         <NcTextField
                             id="position"
@@ -271,6 +266,47 @@ onMounted(async () => {
                             {{ fieldErrors.position }}
                         </span>
                     </div>
+
+                    <SfxonEditorFormEntitySelect
+                        field="type"
+                        :fieldError="fieldErrors.type"
+                        id="type-select"
+                        @input="clearFieldError('type')"
+                        :label="t('sfxonitam', 'Type') + ':'"
+                        :options="types"
+                        trackBy="id"
+                        v-model="selectedType"
+                        :readonly="isEditMode"
+                        :disabled="isEditMode"
+                    />
+
+                    <template v-if="selectedType !== null">
+                        <template v-if="selectedType.id === 'decimal'">
+                            <div :class="$style.field">
+                                <NcTextField
+                                    v-model="options.decimal.integerDigitsLength"
+                                    :label="t('sfxonitam', 'Integer Digits')"
+                                    :class="fieldErrors.optionsIntegerDigitsLength ? $style.fieldError : ''"
+                                    @input="clearFieldError('optionsIntegerDigitsLength')"
+                                />
+                                <span v-if="fieldErrors.optionsIntegerDigitsLength" :class="$style.errorText">
+                                    {{ fieldErrors.optionsIntegerDigitsLength }}
+                                </span>
+                            </div>
+
+                            <div :class="$style.field">
+                                <NcTextField
+                                    v-model="options.decimal.fractionDigitsLength"
+                                    :label="t('sfxonitam', 'Fraction Digits')"
+                                    :class="fieldErrors.optionsFractionDigitsLength ? $style.fieldError : ''"
+                                    @input="clearFieldError('optionsFractionDigitsLength')"
+                                />
+                                <span v-if="fieldErrors.optionsFractionDigitsLength" :class="$style.errorText">
+                                    {{ fieldErrors.optionsFractionDigitsLength }}
+                                </span>
+                            </div>
+                        </template>
+                    </template>
 
                     <div :class="$style.field">
                         <NcCheckboxRadioSwitch

@@ -7,6 +7,9 @@ use OCA\SfxonItam\Db\CustomFieldMapper;
 use OCP\IL10N;
 
 class CustomFieldValidator {
+    private const DECIMAL_MAX_PRECISION = 65;
+    private const DECIMAL_MAX_SCALE = 30;
+
     public function __construct(
         private IL10N $l,
         private CustomFieldGroupMapper $customFieldGroupMapper,
@@ -48,14 +51,90 @@ class CustomFieldValidator {
 
         if(trim($type) === '') {
             $errors['type'] = $this->l->t('A type must be selected.');
-        } else if($type !== 'text') {
+        } else if($type !== 'text' && $type !== 'decimal') {
             $errors['type'] = $this->l->t('This type is not supported.');
+        }
+
+        // g) Check decimal options
+        if ($type === 'decimal') {
+            $errors = $this->validateDecimalOptions($data, $errors);
         }
 
         return [
             'valid'  => empty($errors),
             'errors' => $errors,
         ];
+    }
+
+    private function isValidDigitLength(mixed $value, int $min, int $max): bool
+    {
+        if ($value === '' || $value === null) {
+            return false;
+        }
+
+        if (!preg_match('/^\d+$/', (string) $value)) {
+            return false;
+        }
+
+        $intValue = (int) $value;
+
+        return $intValue >= $min && $intValue <= $max;
+    }
+
+    private function validateDecimalOptions(array $data, array $errors): array
+    {
+        $options = $data['options']['decimal'] ?? null;
+
+        if (!is_array($options)) {
+            $errors['optionsIntegerDigitsLength'] = $this->l->t('A number between 0 and %s must be defined.', [self::DECIMAL_MAX_PRECISION]);
+            $errors['optionsFractionDigitsLength'] = $this->l->t('A number between 0 and %s must be defined.', [self::DECIMAL_MAX_SCALE]);
+
+            return $errors;
+        }
+
+        $integerRaw  = $options['integerDigitsLength'] ?? '';
+        $fractionRaw = $options['fractionDigitsLength'] ?? '';
+
+        $integerValid  = $this->isValidDigitLength($integerRaw, 0, self::DECIMAL_MAX_PRECISION);
+        $fractionValid = $this->isValidDigitLength($fractionRaw, 0, self::DECIMAL_MAX_SCALE);
+
+        if (!$integerValid) {
+            $errors['optionsIntegerDigitsLength'] = $this->l->t(
+                'Integer digits must be a whole number between 0 and %s.',
+                [self::DECIMAL_MAX_PRECISION]
+            );
+        }
+
+        if (!$fractionValid) {
+            $errors['optionsFractionDigitsLength'] = $this->l->t(
+                'Fraction digits must be a whole number between 0 and %s.',
+                [self::DECIMAL_MAX_SCALE]
+            );
+        }
+
+        if ($integerValid && $fractionValid) {
+            $integer  = (int) $integerRaw;
+            $fraction = (int) $fractionRaw;
+
+            // The total number of digits (precision) must not exceed 65.
+            if (($integer + $fraction) > self::DECIMAL_MAX_PRECISION) {
+                $errors['optionsIntegerDigitsLength'] = $this->l->t(
+                    'The sum of integer and fraction digits must not exceed %s.',
+                    [self::DECIMAL_MAX_PRECISION]
+                );
+                $errors['optionsFractionDigitsLength'] = $this->l->t(
+                    'The sum of integer and fraction digits must not exceed %s.',
+                    [self::DECIMAL_MAX_PRECISION]
+                );
+            }
+
+            // At least 1 digit required in total.
+            if (($integer + $fraction) < 1) {
+                $errors['optionsIntegerDigitsLength'] = $this->l->t('At least 1 digit must be defined in total.');
+            }
+        }
+
+        return $errors;
     }
 
     public function validateUpdate(array $data, ?int $excludeId = null): array

@@ -20,7 +20,12 @@ class CustomFieldMapper extends QBMapper {
         parent::__construct($db, 'sfxon_custom_field', CustomField::class);
     }
 
-    public function addColumnToEntityTable(string $entityName, string $technicalName, string $type): void {
+    public function addColumnToEntityTable(
+        string $entityName,
+        string $technicalName,
+        string $type,
+        ?array $options = null): void
+    {
         // Convert types to Nextcloud types.
         $columnType = match(strtoupper($type)) {
             'VARCHAR' => 'string',
@@ -40,11 +45,18 @@ class CustomFieldMapper extends QBMapper {
         $table = $schema->getTable($prefix . $entityName);
 
         if (!$table->hasColumn($technicalName)) {
-            $table->addColumn($technicalName, $columnType, [
-                'notnull'  => false,
-                'default'  => null,
-            ]);
+            $columnOptions = [
+                'notnull' => false,
+                'default' => null,
+            ];
 
+            if ($columnType === 'decimal') {
+                $columnOptions['precision'] = (int)($options['decimal']['integerDigitsLength'] ?? 0)
+                    + (int)($options['decimal']['fractionDigitsLength'] ?? 0);
+                $columnOptions['scale'] = (int)($options['decimal']['fractionDigitsLength'] ?? 0);
+            }
+
+            $table->addColumn($technicalName, $columnType, $columnOptions);
             $this->db->migrateToSchema($schema);
         }
     }

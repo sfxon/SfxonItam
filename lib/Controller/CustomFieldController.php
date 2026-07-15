@@ -27,7 +27,7 @@ class CustomFieldController extends Controller {
         'name',
         'type',
         'position',
-        //'options',
+        'options',
         'editable',
         'validation',
         'comment'
@@ -36,7 +36,7 @@ class CustomFieldController extends Controller {
     private array $expectedUpdateFields = [
         'name',
         'position',
-        //'options',
+        'options',
         'editable',
         'validation',
         'comment'

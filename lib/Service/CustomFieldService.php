@@ -22,21 +22,25 @@ class CustomFieldService {
             throw new \InvalidArgumentException('CustomFieldGroup not found.');
         }
 
+        $type = $data['type'];
+        $options = $data['options'] ?? null;
+
         $customField = new CustomField();
         $customField->setCustomFieldGroupId((int)$data['customFieldGroupId']);
         $customField->setTechnicalName($data['technicalName']);
         $customField->setName($data['name']);
-        $customField->setType($data['type']);
+        $customField->setType($type);
         $customField->setPosition((int)$data['position']);
         $customField->setEditable((bool)($data['editable'] ?? true));
+        $customField->setOptions($options !== null ? json_encode($options) : null);
         $customField->setValidation(isset($data['validation']) ? json_encode($data['validation']) : null);
         $customField->setComment($data['comment'] ?? null);
 
-        // Spalte in der Zieltabelle anlegen
         $this->customFieldMapper->addColumnToEntityTable(
             $group->getEntityName(),
             'custom_' . $data['technicalName'],
-            $data['type']
+            $type,
+            $options
         );
 
         return $this->customFieldMapper->insert($customField);
