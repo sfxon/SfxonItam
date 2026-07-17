@@ -30,10 +30,9 @@ class CustomFieldMapper extends QBMapper {
         $columnType = match(strtoupper($type)) {
             'VARCHAR' => 'string',
             'TEXT' => 'text',
-            'INTEGER',
-            'BIGINT' => 'integer',
+            'INTEGER' => 'integer',
             'BOOLEAN' => 'boolean',
-            'DECIMAL',
+            'DECIMAL' => 'decimal',
             'FLOAT' => 'decimal',
             'DATE' => 'date',
             'DATETIME' => 'datetime',

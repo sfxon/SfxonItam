@@ -191,12 +191,12 @@ Editor:
             - ✅ Add delete function to delete a custom field.
             - Add additional field types.
                 - ✅ text (VARCHAR)
-                - DECIMAL
+                - ✅ DECIMAL
                     - ✅ Implement generally.
                     - ✅ When editing an existing field, the length for the both fields should not be changeable.
                     - ✅ When editing an existing field, the dropdown for choosing a type should not be changeable.
                     - ✅ Add a "required" option.
-                - **INTEGER** with LENGTH definition.
+                - ✅ INTEGER
                 - **BOOL** (on/off), with a switch display. Integrated in the database as INT(1).
                 - **FILE** - often required, for example to upload invoices. In the end, this is a foreign key on media, but with a different user interface.
                 - **LONGTEXT** (not searchable for now)

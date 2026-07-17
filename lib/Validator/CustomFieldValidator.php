@@ -51,7 +51,7 @@ class CustomFieldValidator {
 
         if(trim($type) === '') {
             $errors['type'] = $this->l->t('A type must be selected.');
-        } else if($type !== 'text' && $type !== 'decimal') {
+        } else if($type !== 'text' && $type !== 'integer' && $type !== 'decimal') {
             $errors['type'] = $this->l->t('This type is not supported.');
         }
 

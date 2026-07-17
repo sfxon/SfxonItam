@@ -49,6 +49,7 @@ const selectedType = ref<{ id: string; label: string } | null>(null)
 const technicalName = ref('')
 const types = [
     { id: 'text', label: 'Text' },
+    { id: 'integer', label: 'Integer' },
     { id: 'decimal', label: 'Decimal' }
 ]
 const validation = reactive<Record<string, any>>({})
@@ -146,6 +147,7 @@ async function submitForm() {
 }
 
 watch(() => selectedType.value?.id, (newType) => {
+    // text
     if (newType === 'text' && !validation.text) {
         validation.text = {
             enabled: false,
@@ -154,6 +156,14 @@ watch(() => selectedType.value?.id, (newType) => {
         }
     }
 
+    // integer
+    if (newType === 'integer' && !validation.integer) {
+        validation.decimal = {
+            enabled: false,
+        }
+    }
+
+    // decimal
     if (newType === 'decimal' && !options.decimal) {
         options.decimal = {
             integerDigitsLength: '',
@@ -353,6 +363,12 @@ onMounted(async () => {
                                 <NcTextField v-model="validation.text.minLength" :label="t('sfxonitam', 'Min length')" />
                                 <NcTextField v-model="validation.text.maxLength" :label="t('sfxonitam', 'Max length')" />
                             </template>
+                        </template>
+
+                        <template v-if="selectedType.id === 'integer' && validation.integer">
+                            <NcCheckboxRadioSwitch v-model="validation.integer.enabled">
+                                {{ t('sfxonitam', 'Validate') }}
+                            </NcCheckboxRadioSwitch>
                         </template>
 
                         <template v-if="selectedType.id === 'decimal' && validation.decimal">
