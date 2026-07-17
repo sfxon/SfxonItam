@@ -70,6 +70,13 @@ async function loadCustomField(id: number): Promise<void> {
             ? types.find(t => t.id === d.type) ?? null
             : null
         technicalName.value = d.technicalName
+
+        if (d.options) {
+            const parsedOptions = typeof d.options === 'string'
+                ? JSON.parse(d.options)
+                : d.options
+            Object.assign(options, parsedOptions)
+        }
         
         if (d.validation) {
             const parsedValidation = typeof d.validation === 'string'
@@ -151,6 +158,12 @@ watch(() => selectedType.value?.id, (newType) => {
         options.decimal = {
             integerDigitsLength: '',
             fractionDigitsLength: '',
+        }
+    }
+
+    if (newType === 'decimal' && !validation.decimal) {
+        validation.decimal = {
+            enabled: false,
         }
     }
 })
@@ -268,6 +281,7 @@ onMounted(async () => {
                     </div>
 
                     <SfxonEditorFormEntitySelect
+                        :disabled="isEditMode"
                         field="type"
                         :fieldError="fieldErrors.type"
                         id="type-select"
@@ -277,17 +291,19 @@ onMounted(async () => {
                         trackBy="id"
                         v-model="selectedType"
                         :readonly="isEditMode"
-                        :disabled="isEditMode"
                     />
 
                     <template v-if="selectedType !== null">
                         <template v-if="selectedType.id === 'decimal'">
                             <div :class="$style.field">
                                 <NcTextField
-                                    v-model="options.decimal.integerDigitsLength"
-                                    :label="t('sfxonitam', 'Integer Digits')"
+                                    :disabled="isEditMode"
                                     :class="fieldErrors.optionsIntegerDigitsLength ? $style.fieldError : ''"
                                     @input="clearFieldError('optionsIntegerDigitsLength')"
+                                    :label="t('sfxonitam', 'Integer Digits')"
+                                    :readonly="isEditMode"
+                                    v-model="options.decimal.integerDigitsLength"
+                                    
                                 />
                                 <span v-if="fieldErrors.optionsIntegerDigitsLength" :class="$style.errorText">
                                     {{ fieldErrors.optionsIntegerDigitsLength }}
@@ -296,10 +312,12 @@ onMounted(async () => {
 
                             <div :class="$style.field">
                                 <NcTextField
-                                    v-model="options.decimal.fractionDigitsLength"
-                                    :label="t('sfxonitam', 'Fraction Digits')"
+                                    :disabled="isEditMode"
                                     :class="fieldErrors.optionsFractionDigitsLength ? $style.fieldError : ''"
                                     @input="clearFieldError('optionsFractionDigitsLength')"
+                                    :label="t('sfxonitam', 'Fraction Digits')"
+                                    :readonly="isEditMode"
+                                    v-model="options.decimal.fractionDigitsLength"
                                 />
                                 <span v-if="fieldErrors.optionsFractionDigitsLength" :class="$style.errorText">
                                     {{ fieldErrors.optionsFractionDigitsLength }}
@@ -335,6 +353,12 @@ onMounted(async () => {
                                 <NcTextField v-model="validation.text.minLength" :label="t('sfxonitam', 'Min length')" />
                                 <NcTextField v-model="validation.text.maxLength" :label="t('sfxonitam', 'Max length')" />
                             </template>
+                        </template>
+
+                        <template v-if="selectedType.id === 'decimal' && validation.decimal">
+                            <NcCheckboxRadioSwitch v-model="validation.decimal.enabled">
+                                {{ t('sfxonitam', 'Validate') }}
+                            </NcCheckboxRadioSwitch>
                         </template>
                     </template>
 

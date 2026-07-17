@@ -10,8 +10,9 @@ import { translate as t } from '@nextcloud/l10n'
 const isSearching = ref(false)
 const preloaded = ref<boolean>(false)
 const hoverTimeout = ref<ReturnType<typeof setTimeout> | null>(null)
-const props = defineProps<{
+const props = withDefaults(defineProps<{
     addRecordFn?: () => void,
+    disabled?: boolean,
     field: string,
     fieldError: string,
     id: string,
@@ -19,9 +20,13 @@ const props = defineProps<{
     modelValue: Record<string, unknown> | null,
     options: [],
     placeholder?: string,
+    readonly?: boolean,
     searchFn?: (query: string, signal: AbortSignal) => Promise<void>,
     trackBy: string
-}>()
+}>(), {
+    disabled: false,
+    readonly: false,
+})
 
 const emit = defineEmits<{
   (e: 'update:modelValue', value: Record<string, unknown> | null): void
@@ -29,11 +34,19 @@ const emit = defineEmits<{
 }>()
 
 function onInput(value: Record<string, unknown> | null) {
+    if (props.disabled || props.readonly) {
+        return
+    }
+
     emit('update:modelValue', value)
     emit('input', props.field)
 }
 
 function onMouseEnter() {
+    if (props.disabled || props.readonly) {
+        return
+    }
+
     hoverTimeout.value = setTimeout(triggerPreload, 150)
 }
 
@@ -51,6 +64,10 @@ const searchTimeout = ref<ReturnType<typeof setTimeout> | null>(null)
 const abortController = ref<AbortController | null>(null) // Aborts a previous call.
 
 async function onSearch(query: string) {
+    if (props.disabled || props.readonly) {
+        return
+    }
+
     if (searchTimeout.value) {
         clearTimeout(searchTimeout.value)
     }
@@ -75,7 +92,7 @@ async function onSearch(query: string) {
 // Prefills the select with up to 20 values.
 // Improves smootheness of the components.
 function triggerPreload() {
-    if (preloaded.value || !props.searchFn) {
+    if (preloaded.value || !props.searchFn || props.disabled || props.readonly) {
         return
     }
 
@@ -109,17 +126,20 @@ function onClickAddIcon() {
                 <NcSelect
                     :class="fieldError ? SfxonEditorStyles.fieldError : ''"
                     @focusin="triggerPreload"
+                    :clearable="!disabled && !readonly"
+                    :disabled="disabled"
                     :id="id"
-                    @keydown.alt.n.prevent="addRecordFn?.()"
+                    @keydown.alt.n.prevent="!disabled && !readonly ? addRecordFn?.() : null"
                     :loading="isSearching"
                     :min-input-length="2"
                     :model-value="modelValue"
                     @mouseenter="onMouseEnter"
                     @mouseleave="onMouseLeave"
+                    :open="readonly ? false : undefined"
                     :options="options"
                     :title="t('sfxonitam', 'Add new entry (Alt+N)')"
                     :track-by="trackBy"
-                    v-on="searchFn ? { search: onSearch } : {}"
+                    v-on="searchFn && !disabled && !readonly ? { search: onSearch } : {}"
                     @update:modelValue="onInput" />
             </div>
         </div>
