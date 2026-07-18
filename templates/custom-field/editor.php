@@ -13,4 +13,5 @@ Util::addStyle(OCA\SfxonItam\AppInfo\Application::APP_ID, OCA\SfxonItam\AppInfo\
     id="sfxonitamcustomfieldeditor"
     data-custom-field-group-id="<?= htmlspecialchars((string)$_['customFieldGroupId'], ENT_QUOTES, 'UTF-8') ?>"
     data-custom-field-group="<?= htmlspecialchars(json_encode($_['customFieldGroup']), ENT_QUOTES, 'UTF-8') ?>"
+    data-foreign-key-targets="<?= htmlspecialchars(json_encode($_['foreignKeyTargets']), ENT_QUOTES, 'UTF-8') ?>"
 ></div>

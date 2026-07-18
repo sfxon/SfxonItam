@@ -4,6 +4,7 @@ namespace OCA\SfxonItam\Validator;
 
 use OCA\SfxonItam\Db\CustomFieldGroupMapper;
 use OCA\SfxonItam\Db\CustomFieldMapper;
+use OCA\SfxonItam\ForeignKey\ForeignKeyRegistry;
 use OCP\IL10N;
 
 class CustomFieldValidator {
@@ -62,7 +63,8 @@ class CustomFieldValidator {
             $type !== 'file' &&
             $type !== 'longtext' &&
             $type !== 'date' &&
-            $type !== 'datetime'
+            $type !== 'datetime' &&
+            $type !== 'foreign_key'
         ) {
             $errors['type'] = $this->l->t('This type is not supported.');
         }
@@ -81,6 +83,11 @@ class CustomFieldValidator {
         // i) Validate long text.
         if ($type === 'longtext') {
             $errors = $this->validateLongtext($data, $errors);
+        }
+
+        // j) Validate foreign key options.
+        if ($type === 'foreign_key') {
+            $errors = $this->validateForeignKeyOptions($data, $errors);
         }
 
         return [
@@ -155,6 +162,64 @@ class CustomFieldValidator {
             if (($integer + $fraction) < 1) {
                 $errors['optionsIntegerDigitsLength'] = $this->l->t('At least 1 digit must be defined in total.');
             }
+        }
+
+        return $errors;
+    }
+
+    private function validateForeignKeyOptions(array $data, array $errors): array
+    {
+        $options = $data['options']['foreignKey'] ?? null;
+        $targetEntity = $options['targetEntity'] ?? '';
+
+        if (trim($targetEntity) === '') {
+            $errors['optionsTargetEntity'] = $this->l->t('A target entity must be selected.');
+            return $errors;
+        }
+
+        if (!ForeignKeyRegistry::isValidTarget($targetEntity)) {
+            $errors['optionsTargetEntity'] = $this->l->t('This target entity is not supported.');
+            return $errors;
+        }
+
+        $composition = $options['labelComposition'] ?? null;
+
+        if (!is_array($composition) || count($composition) === 0) {
+            $errors['optionsLabelComposition'] = $this->l->t('A label composition must be defined.');
+            return $errors;
+        }
+
+        $validFieldIds = ForeignKeyRegistry::getValidLabelFieldIds($targetEntity);
+        $hasFieldEntry = false;
+
+        foreach ($composition as $item) {
+            if (!is_array($item) || !isset($item['type'])) {
+                $errors['optionsLabelComposition'] = $this->l->t('The label composition is malformed.');
+                return $errors;
+            }
+
+            if ($item['type'] === 'field') {
+                $fieldId = $item['id'] ?? null;
+
+                if (!is_string($fieldId) || !in_array($fieldId, $validFieldIds, true)) {
+                    $errors['optionsLabelComposition'] = $this->l->t('One or more selected fields are invalid.');
+                    return $errors;
+                }
+
+                $hasFieldEntry = true;
+            } elseif ($item['type'] === 'text') {
+                if (!is_string($item['value'] ?? null)) {
+                    $errors['optionsLabelComposition'] = $this->l->t('Fixed text entries must be text.');
+                    return $errors;
+                }
+            } else {
+                $errors['optionsLabelComposition'] = $this->l->t('The label composition contains an unknown entry type.');
+                return $errors;
+            }
+        }
+
+        if (!$hasFieldEntry) {
+            $errors['optionsLabelComposition'] = $this->l->t('The label composition must contain at least one field.');
         }
 
         return $errors;

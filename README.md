@@ -202,7 +202,10 @@ Editor:
                 - ✅ LONGTEXT
                 - ✅ DATE
                 - ✅ DATETIME
-                - **FOREGIN_KEY** BIGINT (20), here the user also has to select the related entity (always indexed?, index needed?).
+                - FOREGIN_KEY
+                    - ✅ Add general logic for the foreign key functionality.
+                    - Show options, when the foreign key custom field is loaded, let them be editable.
+                    - Debug, test.
             - Add custom fields to the device editor view.
             - Make custom fields saveable.
 

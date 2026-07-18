@@ -38,6 +38,7 @@ class CustomFieldMapper extends QBMapper {
             'DATE' => 'date',
             'DATETIME' => 'datetime',
             'FILE' => 'bigint',
+            'FOREIGN_KEY' => 'bigint',
             default => 'string',
         };
 

@@ -15,6 +15,7 @@ use OCP\IRequest;
 use OCA\SfxonItam\AppInfo\Application;
 use OCA\SfxonItam\Db\CustomFieldGroupMapper;
 use OCA\SfxonItam\Db\CustomFieldMapper;
+use OCA\SfxonItam\ForeignKey\ForeignKeyRegistry;
 use OCA\SfxonItam\Service\CustomFieldService;
 
 /**
@@ -99,10 +100,24 @@ class CustomFieldController extends Controller {
             throw new \Exception('Custom field group not found.');
         }
 
+        $foreignKeyTargets = [];
+
+        foreach (ForeignKeyRegistry::getTargets() as $key => $target) {
+            $foreignKeyTargets[] = [
+                'id' => $key,
+                'label' => $target['label'],
+                'labelFields' => $target['labelFields'],
+            ];
+        }
+
         return new TemplateResponse(
             Application::APP_ID,
             'custom-field/editor',
-            ['customFieldGroupId' => $customFieldGroupId, 'customFieldGroup' => $customFieldGroup]
+            [
+                'customFieldGroupId' => $customFieldGroupId,
+                'customFieldGroup' => $customFieldGroup,
+                'foreignKeyTargets' => $foreignKeyTargets,
+            ]
         );
     }
 

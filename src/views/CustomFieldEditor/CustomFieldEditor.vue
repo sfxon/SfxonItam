@@ -42,6 +42,10 @@ const props = defineProps({
     customFieldGroup: {
         type: Object,
         default: () => ({})
+    },
+    foreignKeyTargets: {
+        type: Array,
+        default: () => ([])
     }
 })
 const savedSuccessfully = ref(false)
@@ -55,9 +59,58 @@ const types = [
     { id: 'file', label: 'File' },
     { id: 'longtext', label: 'Long text' },
     { id: 'date', label: 'Date' },
-    { id: 'datetime', label: 'Date & Time' }
+    { id: 'datetime', label: 'Date & Time' },
+    { id: 'foreign_key', label: 'Foreign Key' }
 ]
 const validation = reactive<Record<string, any>>({})
+
+// Foreign key specific state
+const selectedForeignKeyTarget = ref<{ id: string; label: string } | null>(null)
+const composingType = ref<'field' | 'text' | null>(null)
+const composingFieldId = ref('')
+const composingTextValue = ref('')
+
+const availableLabelFields = computed(() => {
+    const target = props.foreignKeyTargets.find((t: any) => t.id === options.foreignKey?.targetEntity)
+    return target?.labelFields ?? []
+})
+
+function startComposing(type: 'field' | 'text') {
+    composingType.value = type
+    composingFieldId.value = ''
+    composingTextValue.value = ''
+}
+
+function confirmComposing() {
+    if (composingType.value === 'field' && composingFieldId.value) {
+        options.foreignKey.labelComposition.push({
+            type: 'field',
+            id: composingFieldId.value,
+        })
+   }
+
+    if (composingType.value === 'text') {
+        options.foreignKey.labelComposition.push({
+            type: 'text',
+            value: composingTextValue.value,
+        })
+    }
+
+    composingType.value = null
+    clearFieldError('optionsLabelComposition')
+}
+
+function cancelComposing() {
+    composingType.value = null
+}
+
+function removeCompositionItem(index: number) {
+    options.foreignKey.labelComposition.splice(index, 1)
+}
+
+function labelForFieldId(fieldId: string) {
+    return availableLabelFields.value.find((f: any) => f.id === fieldId)?.label ?? fieldId
+}
 
 function addItem() {
     window.location.href = generateUrl('/apps/sfxonitam/custom-field/detail?customFieldGroupId=' + props.customFieldGroupId)
@@ -89,6 +142,12 @@ async function loadCustomField(id: number): Promise<void> {
                 ? JSON.parse(d.validation)
                 : d.validation
             Object.assign(validation, parsedValidation)
+        }
+
+        if (selectedType.value?.id === 'foreign_key' && options.foreignKey?.targetEntity) {
+            selectedForeignKeyTarget.value = props.foreignKeyTargets.find(
+                (t: any) => t.id === options.foreignKey.targetEntity
+            ) ?? null
         }
     } catch (e: any) {
         generalError.value = t('sfxonitam', 'Could not load custom field.')
@@ -230,6 +289,37 @@ watch(() => selectedType.value?.id, (newType) => {
             required: false,
         }
      }
+
+     // foreign_key
+     if (newType === 'foreign_key' && !options.foreignKey) {
+         options.foreignKey = {
+             targetEntity: '',
+             labelComposition: [],
+         }
+     }
+
+     if (newType === 'foreign_key' && !validation.foreignKey) {
+         validation.foreignKey = {
+             enabled: false,
+             required: false,
+         }
+     }
+})
+
+// Reset label composition whenever the target entity changes,
+// since previously selected fields may not exist on the new entity.
+watch(() => options.foreignKey?.targetEntity, (newTarget, oldTarget) => {
+    if (options.foreignKey && newTarget !== oldTarget) {
+        options.foreignKey.labelComposition = []
+    }
+})
+
+// Keep options.foreignKey.targetEntity in sync with the entity-select widget,
+// which operates on the {id, label} object rather than the raw string id.
+watch(selectedForeignKeyTarget, (newVal) => {
+    if (options.foreignKey) {
+        options.foreignKey.targetEntity = newVal?.id ?? ''
+    }
 })
 
 onMounted(async () => {
@@ -404,6 +494,91 @@ onMounted(async () => {
                                 </span>
                             </div>
                         </template>
+
+                        <template v-if="selectedType.id === 'foreign_key'">
+                            <div :class="$style.field">
+                                <SfxonEditorFormEntitySelect
+                                    :disabled="isEditMode"
+                                    field="targetEntity"
+                                    :fieldError="fieldErrors.optionsTargetEntity"
+                                    id="foreign-key-target-select"
+                                    @input="clearFieldError('optionsTargetEntity')"
+                                    :label="t('sfxonitam', 'Target Entity') + ':'"
+                                    :options="foreignKeyTargets"
+                                    trackBy="id"
+                                    v-model="selectedForeignKeyTarget"
+                                    :readonly="isEditMode"
+                                />
+                            </div>
+
+                            <div :class="$style.field" v-if="options.foreignKey.targetEntity">
+                                <label :class="$style.label">{{ t('sfxonitam', 'Label composition') }}:</label>
+
+                                <div :class="$style.compositionRow">
+                                    <span
+                                        v-for="(item, index) in options.foreignKey.labelComposition"
+                                        :key="index"
+                                        :class="item.type === 'field' ? $style.labelFieldChip : $style.labelTextChip"
+                                    >
+                                        {{ item.type === 'field' ? labelForFieldId(item.id) : (item.value || '""') }}
+                                        <NcButton
+                                            v-if="!isEditMode"
+                                            variant="tertiary"
+                                            @click="removeCompositionItem(index)"
+                                        >
+                                            &times;
+                                        </NcButton>
+                                    </span>
+                                </div>
+
+                                <span v-if="fieldErrors.optionsLabelComposition" :class="$style.errorText">
+                                    {{ fieldErrors.optionsLabelComposition }}
+                                </span>
+
+                                <div v-if="!isEditMode">
+                                    <template v-if="composingType === null">
+                                        <NcButton variant="secondary" @click="startComposing('field')">
+                                            + {{ t('sfxonitam', 'Field') }}
+                                        </NcButton>
+                                        <NcButton variant="secondary" @click="startComposing('text')">
+                                            + {{ t('sfxonitam', 'Fixed text') }}
+                                        </NcButton>
+                                    </template>
+
+                                    <template v-else-if="composingType === 'field'">
+                                        <select v-model="composingFieldId">
+                                            <option value="" disabled>{{ t('sfxonitam', 'Select field') }}</option>
+                                            <option
+                                                v-for="field in availableLabelFields"
+                                                :key="field.id"
+                                                :value="field.id"
+                                            >
+                                                {{ field.label }}
+                                            </option>
+                                        </select>
+                                        <NcButton variant="primary" :disabled="!composingFieldId" @click="confirmComposing">
+                                            {{ t('sfxonitam', 'Add') }}
+                                        </NcButton>
+                                        <NcButton variant="tertiary" @click="cancelComposing">
+                                            {{ t('sfxonitam', 'Cancel') }}
+                                        </NcButton>
+                                    </template>
+
+                                    <template v-else-if="composingType === 'text'">
+                                        <NcTextField
+                                            v-model="composingTextValue"
+                                            :label="t('sfxonitam', 'Fixed text (e.g. a space, parenthesis, dash)')"
+                                        />
+                                        <NcButton variant="primary" @click="confirmComposing">
+                                            {{ t('sfxonitam', 'Add') }}
+                                        </NcButton>
+                                        <NcButton variant="tertiary" @click="cancelComposing">
+                                            {{ t('sfxonitam', 'Cancel') }}
+                                        </NcButton>
+                                    </template>
+                                </div>
+                            </div>
+                        </template>
                     </template>
 
                     <div :class="$style.field">
@@ -529,6 +704,17 @@ onMounted(async () => {
                                 </NcCheckboxRadioSwitch>
                             </template>
                         </template>
+
+                        <template v-if="selectedType.id === 'foreign_key' && validation.foreignKey">
+                            <NcCheckboxRadioSwitch v-model="validation.foreignKey.enabled">
+                                {{ t('sfxonitam', 'Validate') }}
+                            </NcCheckboxRadioSwitch>
+                            <template v-if="validation.foreignKey.enabled">
+                                <NcCheckboxRadioSwitch v-model="validation.foreignKey.required">
+                                    {{ t('sfxonitam', 'Required') }}
+                                </NcCheckboxRadioSwitch>
+                            </template>
+                        </template>
                     </template>
 
                     <div :class="$style.field">
@@ -614,5 +800,33 @@ onMounted(async () => {
 .errorText {
     color: var(--color-element-error);
     margin-top: 2px;
+}
+
+.labelFieldChip {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    background: var(--color-background-hover);
+    border-radius: var(--border-radius-pill, 16px);
+    padding: 2px 8px;
+    margin-right: 4px;
+}
+
+.labelTextChip {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    background: var(--color-background-darker);
+    border-radius: var(--border-radius-pill, 16px);
+    padding: 2px 8px;
+    margin-right: 4px;
+    font-family: monospace;
+}
+
+.compositionRow {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    align-items: center;
 }
 </style>
