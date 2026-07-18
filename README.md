@@ -201,7 +201,7 @@ Editor:
                 - ✅ FILE
                 - ✅ LONGTEXT
                 - ✅ DATE
-                - **DATETIME** (optional index, not searchable/filterable/sortable without index).
+                - ✅ DATETIME
                 - **FOREGIN_KEY** BIGINT (20), here the user also has to select the related entity (always indexed?, index needed?).
             - Add custom fields to the device editor view.
             - Make custom fields saveable.

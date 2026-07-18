@@ -61,7 +61,8 @@ class CustomFieldValidator {
             $type !== 'boolean' &&
             $type !== 'file' &&
             $type !== 'longtext' &&
-            $type !== 'date'
+            $type !== 'date' &&
+            $type !== 'datetime'
         ) {
             $errors['type'] = $this->l->t('This type is not supported.');
         }

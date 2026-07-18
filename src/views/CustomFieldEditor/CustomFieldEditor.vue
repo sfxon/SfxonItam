@@ -54,7 +54,8 @@ const types = [
     { id: 'boolean', label: 'Boolean' },
     { id: 'file', label: 'File' },
     { id: 'longtext', label: 'Long text' },
-    { id: 'date', label: 'Date' }
+    { id: 'date', label: 'Date' },
+    { id: 'datetime', label: 'Date & Time' }
 ]
 const validation = reactive<Record<string, any>>({})
 
@@ -217,6 +218,14 @@ watch(() => selectedType.value?.id, (newType) => {
      // date
      if (newType === 'date' && !validation.date) {
         validation.date = {
+            enabled: false,
+            required: false,
+        }
+     }
+
+     // datetime
+     if (newType === 'datetime' && !validation.datetime) {
+        validation.datetime = {
             enabled: false,
             required: false,
         }
@@ -505,6 +514,17 @@ onMounted(async () => {
                             </NcCheckboxRadioSwitch>
                             <template v-if="validation.date.enabled">
                                 <NcCheckboxRadioSwitch v-model="validation.date.required">
+                                    {{ t('sfxonitam', 'Required') }}
+                                </NcCheckboxRadioSwitch>
+                            </template>
+                        </template>
+
+                        <template v-if="selectedType.id === 'datetime' && validation.datetime">
+                            <NcCheckboxRadioSwitch v-model="validation.datetime.enabled">
+                                {{ t('sfxonitam', 'Validate') }}
+                            </NcCheckboxRadioSwitch>
+                            <template v-if="validation.datetime.enabled">
+                                <NcCheckboxRadioSwitch v-model="validation.datetime.required">
                                     {{ t('sfxonitam', 'Required') }}
                                 </NcCheckboxRadioSwitch>
                             </template>
