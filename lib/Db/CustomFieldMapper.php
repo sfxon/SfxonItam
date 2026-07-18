@@ -11,6 +11,7 @@ use OCP\IDBConnection;
  * @template-extends QBMapper<CustomField>
  */
 class CustomFieldMapper extends QBMapper {
+    private const VARCHAR_DEFAULT_LENGTH = 512;
     private string $tableNameAlias = 'cuf';
 
     public function __construct(
@@ -28,8 +29,8 @@ class CustomFieldMapper extends QBMapper {
     {
         // Convert types to Nextcloud types.
         $columnType = match(strtoupper($type)) {
-            'VARCHAR' => 'string',
-            'TEXT' => 'text',
+            'TEXT' => 'string',
+            'LONGTEXT' => 'text',
             'INTEGER' => 'integer',
             'BOOLEAN' => 'boolean',
             'DECIMAL' => 'decimal',
@@ -49,6 +50,10 @@ class CustomFieldMapper extends QBMapper {
                 'notnull' => false,
                 'default' => null,
             ];
+
+            if ($columnType === 'string') {
+                $columnOptions['length'] = (int)($options['text']['maxLength'] ?? self::VARCHAR_DEFAULT_LENGTH);
+            }
 
             if ($columnType === 'decimal') {
                 $columnOptions['precision'] = (int)($options['decimal']['integerDigitsLength'] ?? 0)

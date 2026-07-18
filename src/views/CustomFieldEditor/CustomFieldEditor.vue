@@ -52,7 +52,8 @@ const types = [
     { id: 'integer', label: 'Integer' },
     { id: 'decimal', label: 'Decimal' },
     { id: 'boolean', label: 'Boolean' },
-    { id: 'file', label: 'File' }
+    { id: 'file', label: 'File' },
+    { id: 'longtext', label: 'Long text' }
 ]
 const validation = reactive<Record<string, any>>({})
 
@@ -150,18 +151,25 @@ async function submitForm() {
 
 watch(() => selectedType.value?.id, (newType) => {
     // text
+    if (newType === 'text' && !options.text) {
+        options.text = {
+            maxLength: '',
+        }
+    }
+    
     if (newType === 'text' && !validation.text) {
         validation.text = {
             enabled: false,
             minLength: '',
-            maxLength: '',
+            required: false,
         }
     }
 
     // integer
     if (newType === 'integer' && !validation.integer) {
-        validation.decimal = {
+        validation.integer = {
             enabled: false,
+            required: false
         }
     }
 
@@ -176,6 +184,7 @@ watch(() => selectedType.value?.id, (newType) => {
     if (newType === 'decimal' && !validation.decimal) {
         validation.decimal = {
             enabled: false,
+            required: false
         }
     }
 
@@ -183,8 +192,26 @@ watch(() => selectedType.value?.id, (newType) => {
     if (newType === 'boolean' && !validation.boolean) {
         validation.boolean = {
             enabled: false,
+            required: false
         }
     }
+
+    // file
+    if (newType === 'file' && !validation.file) {
+        validation.file = {
+            enabled: false,
+            required: false
+        }
+    }
+
+    // longtext
+     if (newType === 'longtext' && !validation.longtext) {
+         validation.longtext = {
+            enabled: false,
+            minLength: '',
+            required: false,
+         }
+     }
 })
 
 onMounted(async () => {
@@ -313,6 +340,22 @@ onMounted(async () => {
                     />
 
                     <template v-if="selectedType !== null">
+                        <template v-if="selectedType.id === 'text'">
+                            <div :class="$style.field">
+                                <NcTextField
+                                    :disabled="isEditMode"
+                                    :class="fieldErrors.optionsMaxLength ? $style.fieldError : ''"
+                                    @input="clearFieldError('optionsMaxLength')"
+                                    :label="t('sfxonitam', 'Max length')"
+                                    :readonly="isEditMode"
+                                    v-model="options.text.maxLength"
+                                />
+                                <span v-if="fieldErrors.optionsMaxLength" :class="$style.errorText">
+                                    {{ fieldErrors.optionsMaxLength }}
+                                </span>
+                            </div>
+                        </template>
+
                         <template v-if="selectedType.id === 'decimal'">
                             <div :class="$style.field">
                                 <NcTextField
@@ -367,10 +410,19 @@ onMounted(async () => {
                             <NcCheckboxRadioSwitch v-model="validation.text.enabled">
                                 {{ t('sfxonitam', 'Validate') }}
                             </NcCheckboxRadioSwitch>
-
                             <template v-if="validation.text.enabled">
-                                <NcTextField v-model="validation.text.minLength" :label="t('sfxonitam', 'Min length')" />
-                                <NcTextField v-model="validation.text.maxLength" :label="t('sfxonitam', 'Max length')" />
+                                <NcCheckboxRadioSwitch v-model="validation.text.required">
+                                    {{ t('sfxonitam', 'Required') }}
+                                </NcCheckboxRadioSwitch>
+                                <NcTextField
+                                    v-model="validation.text.minLength"
+                                    :label="t('sfxonitam', 'Min length')"
+                                    :class="fieldErrors.validationMinLength ? $style.fieldError : ''"
+                                    @input="clearFieldError('validationMinLength')"
+                                />
+                                <span v-if="fieldErrors.validationMinLength" :class="$style.errorText">
+                                    {{ fieldErrors.validationMinLength }}
+                                </span>
                             </template>
                         </template>
 
@@ -378,18 +430,64 @@ onMounted(async () => {
                             <NcCheckboxRadioSwitch v-model="validation.integer.enabled">
                                 {{ t('sfxonitam', 'Validate') }}
                             </NcCheckboxRadioSwitch>
+                            <template v-if="validation.integer.enabled">
+                                <NcCheckboxRadioSwitch v-model="validation.integer.required">
+                                    {{ t('sfxonitam', 'Required') }}
+                                </NcCheckboxRadioSwitch>
+                            </template>
                         </template>
 
                         <template v-if="selectedType.id === 'decimal' && validation.decimal">
                             <NcCheckboxRadioSwitch v-model="validation.decimal.enabled">
                                 {{ t('sfxonitam', 'Validate') }}
                             </NcCheckboxRadioSwitch>
+                            <template v-if="validation.decimal.enabled">
+                                <NcCheckboxRadioSwitch v-model="validation.decimal.required">
+                                    {{ t('sfxonitam', 'Required') }}
+                                </NcCheckboxRadioSwitch>
+                            </template>
                         </template>
 
                         <template v-if="selectedType.id === 'boolean' && validation.boolean">
                             <NcCheckboxRadioSwitch v-model="validation.boolean.enabled">
                                 {{ t('sfxonitam', 'Validate') }}
                             </NcCheckboxRadioSwitch>
+                            <template v-if="validation.boolean.enabled">
+                                <NcCheckboxRadioSwitch v-model="validation.boolean.required">
+                                    {{ t('sfxonitam', 'Required') }}
+                                </NcCheckboxRadioSwitch>
+                            </template>
+                        </template>
+
+                        <template v-if="selectedType.id === 'file' && validation.file">
+                            <NcCheckboxRadioSwitch v-model="validation.file.enabled">
+                                {{ t('sfxonitam', 'Validate') }}
+                            </NcCheckboxRadioSwitch>
+                            <template v-if="validation.file.enabled">
+                                <NcCheckboxRadioSwitch v-model="validation.file.required">
+                                    {{ t('sfxonitam', 'Required') }}
+                                </NcCheckboxRadioSwitch>
+                            </template>
+                        </template>
+
+                        <template v-if="selectedType.id === 'longtext' && validation.longtext">
+                            <NcCheckboxRadioSwitch v-model="validation.longtext.enabled">
+                                {{ t('sfxonitam', 'Validate') }}
+                            </NcCheckboxRadioSwitch>
+                            <template v-if="validation.longtext.enabled">
+                                <NcCheckboxRadioSwitch v-model="validation.longtext.required">
+                                    {{ t('sfxonitam', 'Required') }}
+                                </NcCheckboxRadioSwitch>
+                                <NcTextField
+                                    v-model="validation.longtext.minLength"
+                                    :label="t('sfxonitam', 'Min length')"
+                                    :class="fieldErrors.validationMinLength ? $style.fieldError : ''"
+                                    @input="clearFieldError('validationMinLength')"
+                                />
+                                <span v-if="fieldErrors.validationMinLength" :class="$style.errorText">
+                                    {{ fieldErrors.validationMinLength }}
+                                </span>
+                            </template>
                         </template>
                     </template>
 

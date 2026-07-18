@@ -199,7 +199,7 @@ Editor:
                 - ✅ INTEGER
                 - ✅ BOOL
                 - ✅ FILE
-                - **LONGTEXT** (not searchable for now)
+                - ✅ LONGTEXT
                 - **DATE** (optional index, not searchable/filterable/sortable without index).
                 - **DATETIME** (optional index, not searchable/filterable/sortable without index).
                 - **FOREGIN_KEY** BIGINT (20), here the user also has to select the related entity (always indexed?, index needed?).
