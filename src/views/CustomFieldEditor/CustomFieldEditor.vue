@@ -53,7 +53,8 @@ const types = [
     { id: 'decimal', label: 'Decimal' },
     { id: 'boolean', label: 'Boolean' },
     { id: 'file', label: 'File' },
-    { id: 'longtext', label: 'Long text' }
+    { id: 'longtext', label: 'Long text' },
+    { id: 'date', label: 'Date' }
 ]
 const validation = reactive<Record<string, any>>({})
 
@@ -205,12 +206,20 @@ watch(() => selectedType.value?.id, (newType) => {
     }
 
     // longtext
-     if (newType === 'longtext' && !validation.longtext) {
-         validation.longtext = {
+    if (newType === 'longtext' && !validation.longtext) {
+        validation.longtext = {
             enabled: false,
             minLength: '',
             required: false,
-         }
+        }
+     }
+
+     // date
+     if (newType === 'date' && !validation.date) {
+        validation.date = {
+            enabled: false,
+            required: false,
+        }
      }
 })
 
@@ -487,6 +496,17 @@ onMounted(async () => {
                                 <span v-if="fieldErrors.validationMinLength" :class="$style.errorText">
                                     {{ fieldErrors.validationMinLength }}
                                 </span>
+                            </template>
+                        </template>
+
+                        <template v-if="selectedType.id === 'date' && validation.date">
+                            <NcCheckboxRadioSwitch v-model="validation.date.enabled">
+                                {{ t('sfxonitam', 'Validate') }}
+                            </NcCheckboxRadioSwitch>
+                            <template v-if="validation.date.enabled">
+                                <NcCheckboxRadioSwitch v-model="validation.date.required">
+                                    {{ t('sfxonitam', 'Required') }}
+                                </NcCheckboxRadioSwitch>
                             </template>
                         </template>
                     </template>
