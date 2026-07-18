@@ -36,6 +36,7 @@ class CustomFieldMapper extends QBMapper {
             'FLOAT' => 'decimal',
             'DATE' => 'date',
             'DATETIME' => 'datetime',
+            'FILE' => 'bigint',
             default => 'string',
         };
 
@@ -57,6 +58,10 @@ class CustomFieldMapper extends QBMapper {
 
             if ($columnType === 'boolean') {
                 $columnOptions['default'] = false;
+            }
+
+            if ($columnType === 'bigint') {
+                $columnOptions['unsigned'] = true;
             }
 
             $table->addColumn($technicalName, $columnType, $columnOptions);

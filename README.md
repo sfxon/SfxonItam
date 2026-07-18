@@ -198,7 +198,7 @@ Editor:
                     - ✅ Add a "required" option.
                 - ✅ INTEGER
                 - ✅ BOOL
-                - **FILE** - often required, for example to upload invoices. In the end, this is a foreign key on media, but with a different user interface.
+                - ✅ FILE
                 - **LONGTEXT** (not searchable for now)
                 - **DATE** (optional index, not searchable/filterable/sortable without index).
                 - **DATETIME** (optional index, not searchable/filterable/sortable without index).

@@ -51,7 +51,8 @@ const types = [
     { id: 'text', label: 'Text' },
     { id: 'integer', label: 'Integer' },
     { id: 'decimal', label: 'Decimal' },
-    { id: 'boolean', label: 'Boolean' }
+    { id: 'boolean', label: 'Boolean' },
+    { id: 'file', label: 'File' }
 ]
 const validation = reactive<Record<string, any>>({})
 
