@@ -55,6 +55,10 @@ class CustomFieldMapper extends QBMapper {
                 $columnOptions['scale'] = (int)($options['decimal']['fractionDigitsLength'] ?? 0);
             }
 
+            if ($columnType === 'boolean') {
+                $columnOptions['default'] = false;
+            }
+
             $table->addColumn($technicalName, $columnType, $columnOptions);
             $this->db->migrateToSchema($schema);
         }

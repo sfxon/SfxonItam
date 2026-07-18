@@ -197,7 +197,7 @@ Editor:
                     - ✅ When editing an existing field, the dropdown for choosing a type should not be changeable.
                     - ✅ Add a "required" option.
                 - ✅ INTEGER
-                - **BOOL** (on/off), with a switch display. Integrated in the database as INT(1).
+                - ✅ BOOL
                 - **FILE** - often required, for example to upload invoices. In the end, this is a foreign key on media, but with a different user interface.
                 - **LONGTEXT** (not searchable for now)
                 - **DATE** (optional index, not searchable/filterable/sortable without index).

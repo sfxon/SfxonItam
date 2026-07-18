@@ -50,7 +50,8 @@ const technicalName = ref('')
 const types = [
     { id: 'text', label: 'Text' },
     { id: 'integer', label: 'Integer' },
-    { id: 'decimal', label: 'Decimal' }
+    { id: 'decimal', label: 'Decimal' },
+    { id: 'boolean', label: 'Boolean' }
 ]
 const validation = reactive<Record<string, any>>({})
 
@@ -173,6 +174,13 @@ watch(() => selectedType.value?.id, (newType) => {
 
     if (newType === 'decimal' && !validation.decimal) {
         validation.decimal = {
+            enabled: false,
+        }
+    }
+
+    // boolean
+    if (newType === 'boolean' && !validation.boolean) {
+        validation.boolean = {
             enabled: false,
         }
     }
@@ -373,6 +381,12 @@ onMounted(async () => {
 
                         <template v-if="selectedType.id === 'decimal' && validation.decimal">
                             <NcCheckboxRadioSwitch v-model="validation.decimal.enabled">
+                                {{ t('sfxonitam', 'Validate') }}
+                            </NcCheckboxRadioSwitch>
+                        </template>
+
+                        <template v-if="selectedType.id === 'boolean' && validation.boolean">
+                            <NcCheckboxRadioSwitch v-model="validation.boolean.enabled">
                                 {{ t('sfxonitam', 'Validate') }}
                             </NcCheckboxRadioSwitch>
                         </template>
