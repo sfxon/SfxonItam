@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { reactive, ref, computed, onMounted, watch } from 'vue'
-import { mdiPlus } from '@mdi/js'
+import { mdiPlus, mdiDelete, mdiArrowUp, mdiArrowDown, mdiDrag } from '@mdi/js'
 import NcAppContent from '@nextcloud/vue/components/NcAppContent'
 import NcAppNavigation from '@nextcloud/vue/components/NcAppNavigation'
 import NcAppNavigationList from '@nextcloud/vue/components/NcAppNavigationList'
@@ -69,11 +69,27 @@ const selectedForeignKeyTarget = ref<{ id: string; label: string } | null>(null)
 const composingType = ref<'field' | 'text' | null>(null)
 const composingFieldId = ref('')
 const composingTextValue = ref('')
+const draggedIndex = ref<number | null>(null)
+const dragOverIndex = ref<number | null>(null)
 
 const availableLabelFields = computed(() => {
     const target = props.foreignKeyTargets.find((t: any) => t.id === options.foreignKey?.targetEntity)
     return target?.labelFields ?? []
 })
+
+const labelPreview = computed(() => {
+    if (!options.foreignKey?.labelComposition?.length) {
+        return t('sfxonitam', 'No elements added yet')
+    }
+    return options.foreignKey.labelComposition.map((item: any) => {
+        if (item.type === 'field') {
+            return `{${labelForFieldId(item.id)}}`
+        }
+        return item.value || '␣'
+    }).join('')
+})
+
+type TextSegment = { type: 'text' | 'space'; value: string }
 
 function startComposing(type: 'field' | 'text') {
     composingType.value = type
@@ -87,7 +103,7 @@ function confirmComposing() {
             type: 'field',
             id: composingFieldId.value,
         })
-   }
+    }
 
     if (composingType.value === 'text') {
         options.foreignKey.labelComposition.push({
@@ -108,6 +124,54 @@ function removeCompositionItem(index: number) {
     options.foreignKey.labelComposition.splice(index, 1)
 }
 
+function moveItemUp(index: number) {
+    if (index <= 0) return
+    const items = options.foreignKey.labelComposition
+    const temp = items[index]
+    items[index] = items[index - 1]
+    items[index - 1] = temp
+}
+
+function moveItemDown(index: number) {
+    const items = options.foreignKey.labelComposition
+    if (index >= items.length - 1) return
+    const temp = items[index]
+    items[index] = items[index + 1]
+    items[index + 1] = temp
+}
+
+// Drag and drop handlers
+function onDragStart(index: number) {
+    draggedIndex.value = index
+}
+
+function onDragOver(index: number, event: DragEvent) {
+    event.preventDefault()
+    dragOverIndex.value = index
+}
+
+function onDragLeave() {
+    dragOverIndex.value = null
+}
+
+function onDrop(targetIndex: number) {
+    if (draggedIndex.value === null || draggedIndex.value === targetIndex) {
+        draggedIndex.value = null
+        dragOverIndex.value = null
+        return
+    }
+    const items = options.foreignKey.labelComposition
+    const item = items.splice(draggedIndex.value, 1)[0]
+    items.splice(targetIndex, 0, item)
+    draggedIndex.value = null
+    dragOverIndex.value = null
+}
+
+function onDragEnd() {
+    draggedIndex.value = null
+    dragOverIndex.value = null
+}
+
 function labelForFieldId(fieldId: string) {
     return availableLabelFields.value.find((f: any) => f.id === fieldId)?.label ?? fieldId
 }
@@ -125,9 +189,6 @@ async function loadCustomField(id: number): Promise<void> {
         editable.value = d.editable ?? true
         position.value = d.position
         name.value = d.name ?? ''
-        selectedType.value = d.type
-            ? types.find(t => t.id === d.type) ?? null
-            : null
         technicalName.value = d.technicalName
 
         if (d.options) {
@@ -143,6 +204,12 @@ async function loadCustomField(id: number): Promise<void> {
                 : d.validation
             Object.assign(validation, parsedValidation)
         }
+
+        // Selected type has to be set after options and validation to have a correct load order.
+        // Otherwise it will flush the options for foreign key labels for example.
+        selectedType.value = d.type
+            ? types.find(t => t.id === d.type) ?? null
+            : null
 
         if (selectedType.value?.id === 'foreign_key' && options.foreignKey?.targetEntity) {
             selectedForeignKeyTarget.value = props.foreignKeyTargets.find(
@@ -309,7 +376,7 @@ watch(() => selectedType.value?.id, (newType) => {
 // Reset label composition whenever the target entity changes,
 // since previously selected fields may not exist on the new entity.
 watch(() => options.foreignKey?.targetEntity, (newTarget, oldTarget) => {
-    if (options.foreignKey && newTarget !== oldTarget) {
+    if (options.foreignKey && oldTarget !== undefined && newTarget !== oldTarget) {
         options.foreignKey.labelComposition = []
     }
 })
@@ -512,70 +579,154 @@ onMounted(async () => {
                             </div>
 
                             <div :class="$style.field" v-if="options.foreignKey.targetEntity">
-                                <label :class="$style.label">{{ t('sfxonitam', 'Label composition') }}:</label>
+                                <!-- Label Composition Section -->
+                                <div :class="$style.compositionSection">
+                                    <div :class="$style.compositionHeader">
+                                        <label :class="$style.label">{{ t('sfxonitam', 'Label composition') }}</label>
+                                    </div>
 
-                                <div :class="$style.compositionRow">
-                                    <span
-                                        v-for="(item, index) in options.foreignKey.labelComposition"
-                                        :key="index"
-                                        :class="item.type === 'field' ? $style.labelFieldChip : $style.labelTextChip"
-                                    >
-                                        {{ item.type === 'field' ? labelForFieldId(item.id) : (item.value || '""') }}
-                                        <NcButton
-                                            v-if="!isEditMode"
-                                            variant="tertiary"
-                                            @click="removeCompositionItem(index)"
+                                    <!-- Live Preview -->
+                                    <div v-if="options.foreignKey.labelComposition?.length" :class="$style.previewBox">
+                                        <span :class="$style.previewLabel">{{ t('sfxonitam', 'Preview') }}:</span>
+                                        <span :class="$style.previewValue">{{ labelPreview }}</span>
+                                    </div>
+
+                                    <!-- Composition List -->
+                                    <div :class="$style.compositionList">
+                                        <div
+                                            v-for="(item, index) in options.foreignKey.labelComposition"
+                                            :key="index"
+                                            :class="[
+                                                $style.compositionItem,
+                                                item.type === 'field' ? $style.fieldItem : $style.textItem,
+                                                dragOverIndex === index ? $style.dragOver : '',
+                                                draggedIndex === index ? $style.dragging : ''
+                                            ]"
+                                            draggable="true"
+                                            @dragstart="onDragStart(index)"
+                                            @dragover="onDragOver(index, $event)"
+                                            @dragleave="onDragLeave"
+                                            @drop="onDrop(index)"
+                                            @dragend="onDragEnd"
                                         >
-                                            &times;
-                                        </NcButton>
-                                    </span>
-                                </div>
+                                            <!-- Drag Handle -->
+                                            <div :class="$style.dragHandle" title="Drag to reorder">
+                                                <NcIconSvgWrapper :path="mdiDrag" :size="24" />
+                                            </div>
 
-                                <span v-if="fieldErrors.optionsLabelComposition" :class="$style.errorText">
-                                    {{ fieldErrors.optionsLabelComposition }}
-                                </span>
+                                            <span :class="$style.itemContent">
+                                                <template v-if="item.type === 'field'">
+                                                    <span :class="$style.fieldTag">{{ labelForFieldId(item.id) }}</span>
+                                                </template>
+                                                <template v-else>
+                                                    <span :class="$style.textValue">"{{ item.value }}"</span>
+                                                </template>
+                                            </span>
 
-                                <div v-if="!isEditMode">
-                                    <template v-if="composingType === null">
-                                        <NcButton variant="secondary" @click="startComposing('field')">
-                                            + {{ t('sfxonitam', 'Field') }}
-                                        </NcButton>
-                                        <NcButton variant="secondary" @click="startComposing('text')">
-                                            + {{ t('sfxonitam', 'Fixed text') }}
-                                        </NcButton>
-                                    </template>
+                                            <!-- Sort Controls -->
+                                            <div :class="$style.sortControls">
+                                                <NcButton
+                                                    variant="tertiary"
+                                                    :disabled="index === 0"
+                                                    :aria-label="t('sfxonitam', 'Move up')"
+                                                    @click="moveItemUp(index)"
+                                                    :class="$style.sortBtn"
+                                                >
+                                                    <template #icon>
+                                                        <NcIconSvgWrapper :path="mdiArrowUp" :size="14" />
+                                                    </template>
+                                                </NcButton>
+                                                <NcButton
+                                                    variant="tertiary"
+                                                    :disabled="index === options.foreignKey.labelComposition.length - 1"
+                                                    :aria-label="t('sfxonitam', 'Move down')"
+                                                    @click="moveItemDown(index)"
+                                                    :class="$style.sortBtn"
+                                                >
+                                                    <template #icon>
+                                                        <NcIconSvgWrapper :path="mdiArrowDown" :size="14" />
+                                                    </template>
+                                                </NcButton>
+                                            </div>
 
-                                    <template v-else-if="composingType === 'field'">
-                                        <select v-model="composingFieldId">
-                                            <option value="" disabled>{{ t('sfxonitam', 'Select field') }}</option>
-                                            <option
-                                                v-for="field in availableLabelFields"
-                                                :key="field.id"
-                                                :value="field.id"
+                                            <!-- Delete Button -->
+                                            <NcButton
+                                                variant="tertiary"
+                                                :aria-label="t('sfxonitam', 'Remove element')"
+                                                @click="removeCompositionItem(index)"
+                                                :class="$style.removeBtn"
                                             >
-                                                {{ field.label }}
-                                            </option>
-                                        </select>
-                                        <NcButton variant="primary" :disabled="!composingFieldId" @click="confirmComposing">
-                                            {{ t('sfxonitam', 'Add') }}
-                                        </NcButton>
-                                        <NcButton variant="tertiary" @click="cancelComposing">
-                                            {{ t('sfxonitam', 'Cancel') }}
-                                        </NcButton>
-                                    </template>
+                                                <template #icon>
+                                                    <NcIconSvgWrapper :path="mdiDelete" :size="14" />
+                                                </template>
+                                            </NcButton>
+                                        </div>
 
-                                    <template v-else-if="composingType === 'text'">
-                                        <NcTextField
-                                            v-model="composingTextValue"
-                                            :label="t('sfxonitam', 'Fixed text (e.g. a space, parenthesis, dash)')"
-                                        />
-                                        <NcButton variant="primary" @click="confirmComposing">
-                                            {{ t('sfxonitam', 'Add') }}
-                                        </NcButton>
-                                        <NcButton variant="tertiary" @click="cancelComposing">
-                                            {{ t('sfxonitam', 'Cancel') }}
-                                        </NcButton>
-                                    </template>
+                                        <!-- Empty State -->
+                                        <div v-if="!options.foreignKey.labelComposition?.length" :class="$style.emptyState">
+                                            {{ t('sfxonitam', 'No elements added yet. Add fields or text to compose the label.') }}
+                                        </div>
+                                    </div>
+
+                                    <span v-if="fieldErrors.optionsLabelComposition" :class="$style.errorText">
+                                        {{ fieldErrors.optionsLabelComposition }}
+                                    </span>
+
+                                    <!-- Add Controls -->
+                                    <div :class="$style.addControls">
+                                        <template v-if="composingType === null">
+                                            <NcButton variant="secondary" @click="startComposing('field')">
+                                                <template #icon>
+                                                    <NcIconSvgWrapper :path="mdiPlus" :size="16" />
+                                                </template>
+                                                {{ t('sfxonitam', 'Add Field') }}
+                                            </NcButton>
+                                            <NcButton variant="secondary" @click="startComposing('text')">
+                                                <template #icon>
+                                                    <NcIconSvgWrapper :path="mdiPlus" :size="16" />
+                                                </template>
+                                                {{ t('sfxonitam', 'Add Text') }}
+                                            </NcButton>
+                                        </template>
+
+                                        <template v-else-if="composingType === 'field'">
+                                            <div :class="$style.composingBox">
+                                                <select v-model="composingFieldId" :class="$style.composingSelect">
+                                                    <option value="" disabled>{{ t('sfxonitam', 'Select a field...') }}</option>
+                                                    <option
+                                                        v-for="field in availableLabelFields"
+                                                        :key="field.id"
+                                                        :value="field.id"
+                                                    >
+                                                        {{ field.label }}
+                                                    </option>
+                                                </select>
+                                                <NcButton variant="primary" :disabled="!composingFieldId" @click="confirmComposing">
+                                                    {{ t('sfxonitam', 'Add') }}
+                                                </NcButton>
+                                                <NcButton variant="tertiary" @click="cancelComposing">
+                                                    {{ t('sfxonitam', 'Cancel') }}
+                                                </NcButton>
+                                            </div>
+                                        </template>
+
+                                        <template v-else-if="composingType === 'text'">
+                                            <div :class="$style.composingBox">
+                                                <NcTextField
+                                                    v-model="composingTextValue"
+                                                    :label="t('sfxonitam', 'Text (e.g. space, parenthesis, dash)')"
+                                                    :placeholder="t('sfxonitam', 'Type text here...')"
+                                                    :class="$style.composingInput"
+                                                />
+                                                <NcButton variant="primary" @click="confirmComposing">
+                                                    {{ t('sfxonitam', 'Add') }}
+                                                </NcButton>
+                                                <NcButton variant="tertiary" @click="cancelComposing">
+                                                    {{ t('sfxonitam', 'Cancel') }}
+                                                </NcButton>
+                                            </div>
+                                        </template>
+                                    </div>
                                 </div>
                             </div>
                         </template>
@@ -766,11 +917,11 @@ onMounted(async () => {
 }
 
 .form {
-    width: 100%;
-    max-width: 480px;
     display: flex;
     flex-direction: column;
     gap: 16px;
+    max-width: 480px;
+    width: 100%;
 }
 
 .field {
@@ -780,9 +931,9 @@ onMounted(async () => {
 }
 
 .label {
+    color: var(--color-text-maxcontrast);
     font-weight: bold;
     font-size: 0.875rem;
-    color: var(--color-text-maxcontrast);
 }
 
 .actions {
@@ -802,31 +953,194 @@ onMounted(async () => {
     margin-top: 2px;
 }
 
-.labelFieldChip {
-    display: inline-flex;
+.compositionSection {
+    background: var(--color-main-background);
+    border: 1px solid var(--color-border);
+    border-radius: var(--border-radius-large, 8px);
+    padding: 12px;
+}
+
+.compositionHeader {
     align-items: center;
-    gap: 4px;
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 8px;
+}
+
+.previewBox {
+    align-items: center;
+    background: var(--color-background-dark, #f5f5f5);
+    border: 1px dashed var(--color-border-maxcontrast);
+    border-radius: var(--border-radius, 6px);
+    display: flex;
+    font-family: 'SF Mono', Monaco, 'Cascadia Code', monospace;
+    font-size: 0.9rem;
+    gap: 8px;
+    padding: 8px 12px;
+    margin-bottom: 12px;
+}
+
+.previewLabel {
+    color: var(--color-text-maxcontrast);
+    font-size: 0.75rem;
+    font-weight: 600;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+}
+
+.previewValue {
+    color: var(--color-main-text);
+    word-break: break-all;
+}
+
+.compositionList {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin-bottom: 12px;
+}
+
+.compositionItem {
+    align-items: center;
+    border-radius: var(--border-radius, 6px);
+    border: 1px solid transparent;
+    display: flex;
+    gap: 8px;
+    padding: 6px 10px;
+    transition: background 0.15s ease;
+}
+
+.compositionItem:hover {
     background: var(--color-background-hover);
-    border-radius: var(--border-radius-pill, 16px);
-    padding: 2px 8px;
-    margin-right: 4px;
 }
 
-.labelTextChip {
-    display: inline-flex;
+.fieldItem {
+    background: var(--color-primary-element-light, #e6f0fa);
+    border-color: var(--color-primary-element, #006aa3);
+}
+
+.textItem {
+    background: var(--color-background-dark, #f0f0f0);
+    border-color: var(--color-border);
+}
+
+.itemIcon {
+    flex-shrink: 0;
+    font-size: 1rem;
+    line-height: 1;
+    text-align: center;
+    width: 20px;
+}
+
+.itemContent {
     align-items: center;
-    gap: 4px;
-    background: var(--color-background-darker);
-    border-radius: var(--border-radius-pill, 16px);
-    padding: 2px 8px;
-    margin-right: 4px;
-    font-family: monospace;
+    display: flex;
+    flex: 1;
+    min-width: 0;
 }
 
-.compositionRow {
+.fieldTag {
+    background: var(--color-primary-element, #006aa3);
+    border-radius: var(--border-radius-pill, 16px);
+    color: var(--color-primary-element-text, #fff);
+    font-size: 0.85rem;
+    font-weight: 500;
+    padding: 2px 10px;
+}
+
+.textValue {
+    background: var(--color-main-background);
+    border-radius: 4px;
+    border: 1px solid var(--color-border);
+    color: var(--color-text-maxcontrast);
+    font-family: 'SF Mono', Monaco, 'Cascadia Code', monospace;
+    font-size: 0.9rem;
+    padding: 2px 8px;
+}
+
+.sortControls {
+    display: flex;
+    flex-direction: row;
+    gap: 1px;
+    opacity: 0;
+    transition: opacity 0.15s ease;
+}
+
+.compositionItem:hover .sortControls {
+    opacity: 1;
+}
+
+.sortBtn {
+    height: 22px !important;
+    min-height: 22px !important;
+    padding: 2px !important;
+}
+
+.sortBtn:disabled {
+    opacity: 0.2;
+}
+
+.removeBtn {
+    flex-shrink: 0;
+    opacity: 0;
+    transition: opacity 0.15s ease;
+}
+
+.compositionItem:hover .removeBtn {
+    opacity: 1;
+}
+
+.emptyState {
+    border: 2px dashed var(--color-border);
+    border-radius: var(--border-radius, 6px);
+    color: var(--color-text-maxcontrast);
+    font-style: italic;
+    font-size: 0.9rem;
+    padding: 16px;
+    text-align: center;
+}
+
+.addControls {
+    border-top: 1px solid var(--color-border);
     display: flex;
     flex-wrap: wrap;
-    gap: 4px;
+    gap: 8px;
+    padding-top: 8px;
+}
+
+.composingBox {
+    align-items: flex-end;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    width: 100%;
+}
+
+.composingSelect {
+    background: var(--color-main-background);
+    border: 1px solid var(--color-border);
+    border-radius: var(--border-radius, 6px);
+    color: var(--color-main-text);
+    flex: 1;
+    font-size: 0.9rem;
+    min-width: 200px;
+    padding: 8px 12px;
+}
+
+.composingInput {
+    flex: 1;
+    min-width: 200px;
+}
+
+.dragHandle {
     align-items: center;
+    cursor: grab;
+    color: var(--color-text-maxcontrast);
+    display: flex;
+    justify-content: center;
+    min-width: 32px;
+    opacity: 0.4;
+    padding: 2px 6px;
+    transition: opacity 0.15s ease;
 }
 </style>

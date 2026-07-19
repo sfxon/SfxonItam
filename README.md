@@ -202,10 +202,12 @@ Editor:
                 - ✅ LONGTEXT
                 - ✅ DATE
                 - ✅ DATETIME
-                - FOREGIN_KEY
+                - ✅ FOREGIN_KEY
                     - ✅ Add general logic for the foreign key functionality.
-                    - Show options, when the foreign key custom field is loaded, let them be editable.
-                    - Debug, test.
+                    - ✅ Show options, when the foreign key custom field is loaded, let them be editable.
+                    - ✅ Make label elements sortable.
+                    - ✅ Make a better label composition input section.
+                    - ✅ Debug, test.
             - Add custom fields to the device editor view.
             - Make custom fields saveable.
 
@@ -418,7 +420,8 @@ Es werden 2 Export-Formate unterstützt: druckbare HTML-Seiten und CSV-Dateien.
             auf der anderen Seite hätte ich sie auch gern so komfortabel wie irgendwie möglich.
 
 * Filter-Presets
-    When I think of filter presets, I think of DATEV. They have that nice filter setup on the top left of all of their listings in *"DATEV Arbeitsplatz"*.
+    When I think of filter presets, I think of DATEV. They have that nice filter setup in the top left of all their list views in the "DATEV Arbeitsplatz" (DATEV workstation).
+    For example, you could then build a filter: "loaned out" or "loan device", so that a list only shows loan devices.
 
 
 ## Systemvoraussetzungen
