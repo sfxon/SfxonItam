@@ -28,6 +28,25 @@ class CustomFieldGroupMapper extends QBMapper {
         return (int) $qb->executeQuery()->fetchOne();
     }
 
+    public function findByEntityName(string $entityName): ?CustomFieldGroup {
+        $qb = $this->db->getQueryBuilder();
+        $qb->select('*')
+            ->from($this->getTableName())
+            ->where(
+                $qb->expr()->eq(
+                    $qb->func()->lower('entity_name'),
+                    $qb->createNamedParameter(strtolower(trim($entityName)))
+                )
+            )
+            ->setMaxResults(1);
+
+        try {
+            return $this->findEntity($qb);
+        } catch (DoesNotExistException) {
+            return null;
+        }
+    }
+
     public function findById(int $id): CustomFieldGroup {
         $qb = $this->db->getQueryBuilder();
         $qb->select('*')

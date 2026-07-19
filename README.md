@@ -209,7 +209,10 @@ Editor:
                     - ✅ Make a better label composition input section.
                     - ✅ Debug, test.
             - Add custom fields to the device editor view.
-            - Make custom fields saveable.
+                - ✅ Show custom fields in device editor.
+                - Show different custom field types.
+                - Make custom field values saveable in editor.
+                - Load saved values for custom fields.
 
     - Optimize data loading in device list view.
 

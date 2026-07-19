@@ -17,6 +17,8 @@ use OCA\SfxonItam\Db\Device;
 use OCA\SfxonItam\Db\DeviceMapper;
 use OCA\SfxonItam\Service\DeviceService;
 
+use OCA\SfxonItam\Db\CustomFieldGroupMapper;
+use OCA\SfxonItam\Db\CustomFieldMapper;
 use OCA\SfxonItam\Db\DeviceStatus;
 use OCA\SfxonItam\Db\DeviceType;
 use OCA\SfxonItam\Db\ItamUser;
@@ -53,7 +55,9 @@ class DeviceController extends Controller
         string $appName,
         IRequest $request,
         private DeviceMapper $deviceMapper,
-        private readonly DeviceService $deviceService,)
+        private readonly DeviceService $deviceService,
+        private CustomFieldGroupMapper $customFieldGroupMapper,
+        private CustomFieldMapper $customFieldMapper,)
     {
         parent::__construct($appName, $request);
     }
@@ -91,10 +95,26 @@ class DeviceController extends Controller
             'quantityUnit' => QuantityUnit::getFieldDefinition(),
         ];
 
+        $customFields = [];
+        $customFieldGroup = $this->customFieldGroupMapper->findByEntityName('sfxon_device');
+
+        if ($customFieldGroup !== null) {
+            $result = $this->customFieldMapper->searchPaged(
+                $customFieldGroup->getId(),
+                'position',
+                'ASC',
+                1000
+            );
+            $customFields = $result['mainData'];
+        }
+
         return new TemplateResponse(
             Application::APP_ID,
             'device/editor',
-            ['entityDefinitions' => $entityDefinitions]
+            [
+                'entityDefinitions' => $entityDefinitions,
+                'customFields' => $customFields,
+            ]
         );
     }
 

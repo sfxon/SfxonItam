@@ -29,14 +29,17 @@ function onInput(value: string | Event) {
 
 </script>
 <template>
-    <div :class="[SfxonEditorStyles.sfxonFormColumnRow, SfxonEditorStyles.sfxonFormColumnRowDescription]">
-        <div :class="[SfxonEditorStyles.sfxonFormColumnInput, SfxonEditorStyles.sfxonFormColumnInputDescription, SfxonEditorStyles.sfxonFormColumnInputDescriptionInnerLabel]">
+    <div :class="SfxonEditorStyles.sfxonFormColumnRow">
+        <div :class="[SfxonEditorStyles.sfxonFormColumnLabel, $style.formFieldLabel]">
+            <label :for="id" :class="SfxonEditorStyles.label">{{ label }}</label>
+        </div>
+        <div :class="SfxonEditorStyles.sfxonFormColumnInput">
             <div :class="SfxonEditorStyles.field">
                 <NcTextArea
                     :id="id"
                     :model-value="modelValue"
-                    :label="label"
-                    :class="[fieldError ? SfxonEditorStyles.fieldError : '', SfxonEditorStyles.sfxonDescriptionInput, SfxonEditorStyles.sfxonDescriptionInputFullHeight]"
+                    :label-outside="true"
+                    :class="[fieldError ? SfxonEditorStyles.fieldError : '', SfxonEditorStyles.sfxonDescriptionInput, $style.myDescriptionInput]"
                     @update:modelValue="onInput"
                 >
                 </NcTextArea>
@@ -54,4 +57,18 @@ function onInput(value: string | Event) {
 </template>
 
 <style module>
+.formFieldLabel {
+    justify-content: start!important;
+}
+
+.formFieldLabel label {
+    padding-top: 11px;
+}
+
+.myDescriptionInput {
+    height: auto!important;
+    padding-top: 2px!important;
+    padding-bottom: 2px!important;
+    
+}
 </style>

@@ -194,7 +194,7 @@ class CustomFieldMapper extends QBMapper {
         ?array $filters = null,
         ?array $include = null
     ): array {
-        $allowedColumns = [ 'name', ];
+        $allowedColumns = [ 'name', 'position' ];
         $col = in_array($orderBy, $allowedColumns, true) ? $orderBy : 'name';
         $col = strtolower(preg_replace('/[A-Z]/', '_$0', $col)); // Convert camel case to snake case.
         $dir = strtoupper($direction) === 'DESC' ? 'DESC' : 'ASC';

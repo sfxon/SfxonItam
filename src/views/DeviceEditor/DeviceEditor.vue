@@ -22,6 +22,7 @@ import { generateUrl, generateRemoteUrl } from '@nextcloud/router'
 import NcNoteCard from '@nextcloud/vue/components/NcNoteCard'
 import NcIconSvgWrapper from '@nextcloud/vue/components/NcIconSvgWrapper'
 import SfxonBarcode from '@/components/SfxonBarcode'
+import SfxonCustomFields from '@/components/SfxonCustomFields'
 import SfxonEditorFormDatePicker from '@/components/SfxonEditorFormDatePicker'
 import SfxonEditorFormEntitySelect from '@/components/SfxonEditorFormEntitySelect'
 import SfxonEditorFormImageSelector from '@/components/SfxonEditorFormImageSelector'
@@ -57,6 +58,10 @@ const props = defineProps({
     entityDefinitions: {
         type: Object,
         required: true,
+    },
+    customFields: {
+        type: Array,
+        default: () => [],
     },
 })
 const purchaseDate = ref<Date | null>(null)
@@ -749,7 +754,7 @@ onMounted(async () => {
 
                 <div :class="[SfxonEditorStyles.sfxonFormRow, $style.sfxonFormRow1]">
                     <div :class="[SfxonEditorStyles.sfxonFormSection, $style.sfxonFormSection1]">
-                        <div :class="SfxonEditorStyles.sfxonFormColumn">
+                        <div :class="[SfxonEditorStyles.sfxonFormColumn, $style.sfxonFormSection1Column]">
                             <SfxonEditorFormInput
                                 field="name"
                                 id="name"
@@ -840,7 +845,7 @@ onMounted(async () => {
                                 :fieldError="fieldErrors.assetNumber"
                             />
                         </div>
-                        <div :class="[SfxonEditorStyles.sfxonFormColumn, $style.sfxonFormColumnGeneralRight]">
+                        <div :class="[SfxonEditorStyles.sfxonFormColumn, $style.sfxonFormColumnGeneralRight, $style.sfxonFormSection1Column]">
                             <SfxonEditorFormEntitySelect
                                 :addRecordFn="() => openAddEntityDialog({ entity: 'deviceStatus' })"
                                 field="deviceStatusId"
@@ -866,9 +871,13 @@ onMounted(async () => {
                                 trackBy="id"
                                 v-model="selectedDeviceType"
                             />
+
+                            <SfxonCustomFields :customFields="customFields" />
                         </div>
                     </div>
-                    <div :class="SfxonEditorStyles.sfxonFormSection">
+
+                    <!-- Device Image -->
+                    <div :class="[SfxonEditorStyles.sfxonFormSection, $style.sfxonFormSection2]">
                         <div :class="SfxonEditorStyles.sfxonFormColumn">
                             <SfxonEditorFormImageSelector
                                 field="image"
@@ -885,7 +894,7 @@ onMounted(async () => {
                     </div>
 
                     <!-- Description -->
-                    <div :class="SfxonEditorStyles.sfxonFormSection">
+                    <div :class="[SfxonEditorStyles.sfxonFormSection, $style.sfxonFormSection3]">
                         <div :class="$style.sfxonFormColumnDescription">
                             <SfxonEditorFormTextarea
                                 field="description"
@@ -899,7 +908,7 @@ onMounted(async () => {
                     </div>
 
                     <!-- Purchase Information -->
-                    <div :class="SfxonEditorStyles.sfxonFormSection">
+                    <div :class="[SfxonEditorStyles.sfxonFormSection, $style.sfxonFormSection4]">
                         <div :class="SfxonEditorStyles.sfxonFormColumn">
                             <SfxonEditorFormEntitySelect
                                 :addRecordFn="() => openAddEntityDialog({ entity: 'merchant' })"
@@ -936,7 +945,7 @@ onMounted(async () => {
                     </div>
 
                     <!-- QrCode and Barcode -->
-                    <div :class="SfxonEditorStyles.sfxonFormSection">
+                    <div :class="[SfxonEditorStyles.sfxonFormSection, $style.sfxonFormSection5]">
                         <div :class="SfxonEditorStyles.sfxonFormColumn">
                             <!-- QR Code -->
                             <SfxonQrCodeView
@@ -1000,32 +1009,77 @@ onMounted(async () => {
 </template>
 
 <style module>
-/* Page/View related layout */
-@media (min-width: 768px) {
+.sfxonFormRow1 {
+    display: grid !important;
+    grid-template-columns: 1fr;
+    gap: 1rem;
+}
+
+.sfxonFormRow1 > * {
+    min-width: 0;
+}
+
+.sfxonFormSection1 :global(.sfxonFormColumn) {
+    width: 100%;
+}
+
+@media (min-width: 1200px) and (max-width: 1699px) {
     .sfxonFormRow1 {
-        grid-template-columns: repeat(2, 1fr);
+        grid-template-columns: 1fr 1fr;
     }
 
     .sfxonFormSection1 {
-        grid-column: span 2;
+        grid-column: 1 / -1;
+    }
+    
+    .sfxonFormSection1 :global(.sfxonFormColumn) {
+        flex: 1 1 0;
+    }
+
+    .sfxonFormSection2 {
+        grid-column: 1 / 2;
+    }
+
+    .sfxonFormSection3 {
+        grid-column: 2 / 3;
+    }
+
+    .sfxonFormSection4 {
+        grid-column: 1 / 2;
+    }
+
+    .sfxonFormSection5 {
+        grid-column: 2 / 3;
     }
 }
 
 @media (min-width: 1700px) {
     .sfxonFormRow1 {
-        grid-template-columns: repeat(3, 1fr);
+        grid-template-columns: 1fr 1fr 1fr;
+        grid-template-areas:
+            "sec1 sec1 sec2"
+            "sec3 sec4 sec5";
     }
 
     .sfxonFormSection1 {
-        display: flex;
-        gap: calc(15px + (var(--app-navigation-padding)*4));
-        grid-column: span 2;
+        grid-area: sec1;
+        gap: 3rem;
     }
-}
 
-@media (min-width: 1700px) {
-    .sfxonFormColumnGeneralRight {
-        padding-left: 2rem;
+    .sfxonFormSection2 {
+        grid-area: sec2;
+    }
+
+    .sfxonFormSection3 {
+        grid-area: sec3;
+    }
+
+    .sfxonFormSection4 {
+        grid-area: sec4;
+    }
+
+    .sfxonFormSection5 {
+        grid-area: sec5;
     }
 }
 
