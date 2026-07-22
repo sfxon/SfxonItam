@@ -160,6 +160,30 @@ function onClickAddIcon() {
     border-bottom-left-radius: 3px !important;
     border-bottom-right-radius: 3px !important;
 }
+
+
+.vs__dropdown-toggle {
+    min-width: 0;
+    display: flex;
+}
+
+.vs__selected-options {
+    min-width: 0;
+    flex-wrap: nowrap;
+    overflow: hidden;
+}
+
+.vs__selected {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    max-width: 100%;
+    min-width: 0;
+}
+
+.vs__search {
+    min-width: 0 !important;
+}
 </style>
 
 <style module>

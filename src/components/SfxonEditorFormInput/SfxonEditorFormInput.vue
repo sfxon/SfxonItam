@@ -1,7 +1,12 @@
 <script setup lang="ts">
 
+import { useAttrs } from 'vue'
 import NcTextField from '@nextcloud/vue/components/NcTextField'
 import SfxonEditorStyles from '@/components/SfxonEditor/SfxonEditor.module.css'
+
+defineOptions({
+  inheritAttrs: false, // verhindert automatisches Anhängen an das erste Root-Element
+})
 
 const props = defineProps<{
     field: string,
@@ -18,6 +23,8 @@ const emit = defineEmits<{
   (e: 'input', field: string): void
 }>()
 
+const attrs = useAttrs()
+
 function onInput(value: string | number) {
     emit('update:modelValue', String(value))
     emit('input', props.field)
@@ -31,7 +38,9 @@ function onInput(value: string | number) {
         </div>
         <div :class="SfxonEditorStyles.sfxonFormColumnInput">
             <div :class="SfxonEditorStyles.field">
+                <!-- v-bind="attrs" must be at first position, to avoid overriding of other properties -->
                 <NcTextField
+                    v-bind="attrs"
                     :id="id"
                     :model-value="modelValue"
                     :label-outside="true"
