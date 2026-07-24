@@ -1,7 +1,7 @@
 <script setup lang="ts">
 
 import { useAttrs } from 'vue'
-import NcTextField from '@nextcloud/vue/components/NcTextField'
+import NcCheckboxRadioSwitch from '@nextcloud/vue/components/NcCheckboxRadioSwitch'
 import SfxonEditorStyles from '@/components/SfxonEditor/SfxonEditor.module.css'
 
 defineOptions({
@@ -13,20 +13,18 @@ const props = defineProps<{
     fieldError: string,
     id: string,
     label: string,
-    modelValue: string,
-    placeholder: string,
-    type: "number" | "text" | "password" | "email" | "tel" | "url" | "search" | undefined,
+    modelValue: boolean,
 }>()
 
 const emit = defineEmits<{
-  (e: 'update:modelValue', value: string): void
+  (e: 'update:modelValue', value: boolean): void
   (e: 'input', field: string): void
 }>()
 
 const attrs = useAttrs()
 
-function onInput(value: string | number) {
-    emit('update:modelValue', String(value))
+function onInput(value: boolean) {
+    emit('update:modelValue', value)
     emit('input', props.field)
 }
 
@@ -34,21 +32,21 @@ function onInput(value: string | number) {
 <template>
     <div :class="SfxonEditorStyles.sfxonFormColumnRow">
         <div :class="SfxonEditorStyles.sfxonFormColumnLabel">
-            <label :for="id" :class="SfxonEditorStyles.label">{{ label }}</label>
+            &nbsp;
         </div>
         <div :class="SfxonEditorStyles.sfxonFormColumnInput">
-            <div :class="SfxonEditorStyles.field">
+            <div :class="[SfxonEditorStyles.field, $style.switchFieldContainer]">
                 <!-- v-bind="attrs" must be at first position, to avoid overriding of other properties -->
-                <NcTextField
+                <NcCheckboxRadioSwitch
                     v-bind="attrs"
                     :id="id"
                     :model-value="modelValue"
-                    :label-outside="true"
-                    :placeholder="placeholder"
-                    :class="[$style.inputField, fieldError ? SfxonEditorStyles.fieldError : '']"
+                    type="switch"
+                    :class="[$style.switchField, fieldError ? SfxonEditorStyles.fieldError : '']"
                     @update:modelValue="onInput"
-                    :type="type"
-                />
+                >
+                    {{ label }}
+                </NcCheckboxRadioSwitch>
             </div>
         </div>
     </div>
@@ -63,8 +61,12 @@ function onInput(value: string | number) {
 </template>
 
 <style module>
-.inputField :global(.input-field__main-wrapper) {
+.switchField {
     margin: 0 0 var(--default-grid-baseline);
-    padding: 0!important;
+}
+
+.switchFieldContainer :global(.checkbox-radio-switch__content) {
+    background-color: transparent!important;
+    padding-left: 0!important;
 }
 </style>

@@ -1,6 +1,7 @@
 <script setup lang="ts">
 
 import { reactive, watch } from 'vue'
+import SfxonEditorFormCheckbox from '@/components/SfxonEditorFormCheckbox';
 import SfxonEditorFormInput from '@/components/SfxonEditorFormInput'
 import SfxonEditorFormTextareaLabeled from '@/components/SfxonEditorFormTextareaLabeled'
 import SfxonEditorFormEntitySelect from '@/components/SfxonEditorFormEntitySelect'
@@ -220,6 +221,14 @@ watch(values, (v) => emit('update:values', { ...v }), { deep: true })
                 :search-fn="(query, signal) => searchForeignKeyOptions(customField, query, signal)"
                 @update:model-value="(val) => onForeignKeyInput(customField, val)"
                 v-else-if="customField.type === 'foreign_key'"
+            />
+
+            <SfxonEditorFormCheckbox
+                :field="customField.technicalName"
+                :id="`custom-field-${customField.technicalName}`"
+                :label="customField.name"
+                v-model="values[customField.technicalName]"
+                v-else-if="customField.type === 'boolean'"
             />
 
             <SfxonEditorFormInput
