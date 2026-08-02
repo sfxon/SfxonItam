@@ -1,23 +1,32 @@
 <script setup lang="ts">
 
-import { mdiClose } from '@mdi/js'
+import { mdiFileDocumentOutline } from '@mdi/js'
 import NcButton from '@nextcloud/vue/components/NcButton'
+import NcIconSvgWrapper from '@nextcloud/vue/components/NcIconSvgWrapper'
 import SfxonEditorStyles from '@/components/SfxonEditor/SfxonEditor.module.css'
 import { translate as t } from '@nextcloud/l10n'
 
-const props = defineProps<{
+const props = withDefaults(defineProps<{
     field: string,
     fieldError: string,
     id: string,
     label: string,
     imagePreviewUrl: string | null | undefined,
     selectedImageLabel: string | null | undefined,
-}>()
+    isImage?: boolean,
+    downloadUrl?: string | null,
+    accept?: string, // Comma-separated MIME types/extensions for the <input type="file"> accept attribute.
+}>(), {
+    isImage: true,
+    downloadUrl: null,
+    accept: 'image/*,application/pdf',
+})
 
 const emit = defineEmits<{
     (e: 'localFileChange', event: Event): void
     (e: 'nextcloudFilePicker'): void
     (e: 'input', field: string): void
+    (e: 'previewError'): void
 }>()
 
 function onLocalFileChange(event: Event) {
@@ -36,22 +45,36 @@ function onNextcloudFilePicker() {
             <div :class="SfxonEditorStyles.field">
                 <div :class="$style.imageContainer">
                     <img
-                        v-if="imagePreviewUrl"
+                        v-if="imagePreviewUrl && isImage"
                         :src="imagePreviewUrl"
-                        :alt="t('sfxonitam', 'Device image preview')"
+                        :alt="t('sfxonitam', 'file preview')"
                         :class="$style.imagePreview"
+                        @error="emit('previewError')"
                     />
+                    <a
+                        v-else-if="downloadUrl"
+                        :href="downloadUrl"
+                        :download="selectedImageLabel || undefined"
+                        target="_blank"
+                        rel="noopener"
+                        :class="$style.downloadLink"
+                    >
+                        <NcIconSvgWrapper :path="mdiFileDocumentOutline" :size="40" />
+                        <span :class="$style.downloadLinkLabel">
+                            {{ selectedImageLabel || t('sfxonitam', 'Download file') }}
+                        </span>
+                    </a>
                     <div v-else :class="$style.imagePlaceholder">
-                        {{ t('sfxonitam', 'No image selected') }}
+                        {{ t('sfxonitam', 'No file selected') }}
                     </div>
                 </div>
-                <div v-if="selectedImageLabel" :class="$style.selectedFileLabel">
+                <div v-if="selectedImageLabel && isImage" :class="$style.selectedFileLabel">
                     {{ selectedImageLabel }}
                 </div>
                 <div :class="$style.fileChooserRow">
                     <input
                         :id="id"
-                        accept="image/*"
+                        :accept="accept"
                         @change="onLocalFileChange"
                         :class="$style.fileUploadInput"
                         type="file"
@@ -165,5 +188,33 @@ function onNextcloudFilePicker() {
     margin-left: auto;
     margin-right: auto;
     position: absolute;
+}
+
+.downloadLink {
+    align-items: center;
+    background-color: var(--color-background-hover);
+    border: 1px solid var(--color-border);
+    color: var(--color-main-text);
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    height: 100%;
+    inset: 0;
+    justify-content: center;
+    padding: 12px;
+    position: absolute;
+    text-align: center;
+    text-decoration: none;
+    width: 100%;
+}
+
+.downloadLink:hover {
+    background-color: var(--color-background-dark);
+}
+
+.downloadLinkLabel {
+    font-size: 0.85rem;
+    overflow-wrap: anywhere;
+    word-break: break-word;
 }
 </style>

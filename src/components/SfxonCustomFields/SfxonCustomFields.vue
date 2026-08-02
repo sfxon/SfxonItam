@@ -1,10 +1,12 @@
 <script setup lang="ts">
 
-import { reactive, watch } from 'vue'
+import { reactive, ref, watch } from 'vue'
 import SfxonEditorFormCheckbox from '@/components/SfxonEditorFormCheckbox';
 import SfxonEditorFormInput from '@/components/SfxonEditorFormInput'
 import SfxonEditorFormTextareaLabeled from '@/components/SfxonEditorFormTextareaLabeled'
 import SfxonEditorFormEntitySelect from '@/components/SfxonEditorFormEntitySelect'
+import SfxonEditorFormImageSelector from '@/components/SfxonEditorFormImageSelector'
+import { useSfxonFileUploadField } from '@/composables/useSfxonFileUploadField'
 
 interface CustomFieldDefinition {
     id: number
@@ -34,14 +36,36 @@ interface ForeignKeyOptions {
     labelComposition: LabelCompositionPart[]
 }
 
+interface FileFieldOptions {
+    /** Allowed MIME type patterns, e.g., ['image/*', 'application/pdf']. If not specified: images + PDF. */
+    accept?: string[]
+    /** Destination folder in the Nextcloud file system for newly uploaded files. */
+    folder?: string
+}
+
 interface EntityOption {
     id: string | number
     label: string
 }
 
-const props = defineProps<{
+const props = withDefaults(defineProps<{
     customFields: CustomFieldDefinition[]
-}>()
+    /**
+     * Currently stored values, keyed by technicalName (e.g., when editing
+     * an existing record). For "file" fields, the stored fileId (BIGINT)
+     * is expected here. The parent component may set or update this
+     * property after an asynchronous load operation; the component
+     * reactively watches this prop and automatically adopts new values.
+     *
+     * Note: If the prop is subsequently changed (e.g., due to a
+     * second load operation), any values ​​already edited by the user
+     * will be overwritten. This is not an issue for the standard
+     * "load once, then edit" scenario.
+     */
+    initialValues?: Record<string, unknown>
+}>(), {
+    initialValues: () => ({}),
+})
 
 const emit = defineEmits<{
     'update:values': [values: Record<string, unknown>]
@@ -76,6 +100,7 @@ const values = reactive<Record<string, unknown>>({})
 const foreignKeyOptions = reactive<Record<string, EntityOption[]>>({})
 const foreignKeySelected = reactive<Record<string, EntityOption | null>>({})
 const foreignKeyLoading = reactive<Record<string, boolean>>({})
+const fileFields = reactive<Record<string, ReturnType<typeof useSfxonFileUploadField>>>({})
 
 function parseForeignKeyOptions(field: CustomFieldDefinition): ForeignKeyOptions | null {
     if (!field.options) {
@@ -85,6 +110,20 @@ function parseForeignKeyOptions(field: CustomFieldDefinition): ForeignKeyOptions
     try {
         const parsed = JSON.parse(field.options)
         return parsed.foreignKey ?? null
+    } catch (e) {
+        console.error(`Invalid options JSON for custom field  "${field.technicalName}":`, e)
+        return null
+    }
+}
+
+function parseFileOptions(field: CustomFieldDefinition): FileFieldOptions | null {
+    if (!field.options) {
+        return null
+    }
+
+    try {
+        const parsed = JSON.parse(field.options)
+        return parsed.file ?? null
     } catch (e) {
         console.error(`Ungültiges options-JSON für Custom Field "${field.technicalName}":`, e)
         return null
@@ -105,10 +144,57 @@ props.customFields.forEach((field) => {
         return
     }
 
+    if (field.type === 'file') {
+        const fileOptions = parseFileOptions(field)
+        fileFields[field.technicalName] = reactive(useSfxonFileUploadField({
+            folder: fileOptions?.folder ?? 'ITAM-CustomFiles',
+            accept: fileOptions?.accept,
+        }))
+        values[field.technicalName] = null
+        return
+    }
+
     if (!(field.technicalName in values)) {
         values[field.technicalName] = ''
     }
 })
+
+Object.keys(fileFields).forEach((technicalName) => {
+    watch(
+        () => fileFields[technicalName].fileId,
+        (newId) => { values[technicalName] = newId },
+    )
+})
+
+watch(
+    () => props.initialValues,
+    async (newValues) => {
+        if (!newValues) {
+            return
+        }
+
+        for (const field of props.customFields) {
+            if (!(field.technicalName in newValues)) {
+                continue
+            }
+
+            const incoming = newValues[field.technicalName]
+
+            if (field.type === 'file') {
+                await fileFields[field.technicalName].setFromExisting((incoming as number) ?? null)
+                continue
+            }
+
+            if (field.type === 'foreign_key') {
+                values[field.technicalName] = incoming ?? null
+                continue
+            }
+
+            values[field.technicalName] = incoming ?? ''
+        }
+    },
+    { immediate: true }
+)
 
 async function getFindFn(targetEntity: string): Promise<FindFn | null> {
     if (loadedFindFns[targetEntity]) {
@@ -174,6 +260,25 @@ function onForeignKeyInput(field: CustomFieldDefinition, value: EntityOption | n
     values[field.technicalName] = value?.id ?? null
 }
 
+function onFileLocalChange(field: CustomFieldDefinition, event: Event) {
+    const files = Array.from((event.target as HTMLInputElement).files ?? [])
+    fileFields[field.technicalName].onLocalFileSelected(files)
+}
+
+async function onFileNextcloudPicker(field: CustomFieldDefinition): Promise<void> {
+    await fileFields[field.technicalName].openNextcloudFilePicker(field.name)
+}
+
+async function uploadPendingFiles(): Promise<void> {
+    for (const field of Object.values(fileFields)) {
+        await field.uploadIfNeeded()
+    }
+}
+
+defineExpose({
+    uploadPendingFiles,
+})
+
 watch(values, (v) => emit('update:values', { ...v }), { deep: true })
 </script>
 
@@ -229,6 +334,22 @@ watch(values, (v) => emit('update:values', { ...v }), { deep: true })
                 :label="customField.name"
                 v-model="values[customField.technicalName]"
                 v-else-if="customField.type === 'boolean'"
+            />
+
+            <SfxonEditorFormImageSelector
+                :field="customField.technicalName"
+                :field-error="fileFields[customField.technicalName].validationError"
+                :id="`custom-field-${customField.technicalName}`"
+                :label="customField.name + ':'"
+                :image-preview-url="fileFields[customField.technicalName].previewUrl"
+                :is-image="fileFields[customField.technicalName].isImage"
+                :download-url="fileFields[customField.technicalName].downloadUrl"
+                :accept="fileFields[customField.technicalName].acceptAttr"
+                :selected-image-label="fileFields[customField.technicalName].selectedLabel"
+                @local-file-change="(event) => onFileLocalChange(customField, event)"
+                @nextcloud-file-picker="() => onFileNextcloudPicker(customField)"
+                @preview-error="fileFields[customField.technicalName].onPreviewError"
+                v-else-if="customField.type === 'file'"
             />
 
             <SfxonEditorFormInput

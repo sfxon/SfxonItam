@@ -9,7 +9,7 @@ import * as ManufacturerService from '@/services/ManufacturerService'
 import * as MerchantService from '@/services/MerchantService'
 import * as PositionService from '@/services/PositionService'
 import * as QuantityUnitService from '@/services/QuantityUnitService'
-import { computed, isRef, onMounted, reactive, ref } from 'vue'
+import { computed, onMounted, reactive, ref } from 'vue'
 import NcAppContent from '@nextcloud/vue/components/NcAppContent'
 import NcAppNavigation from '@nextcloud/vue/components/NcAppNavigation'
 import NcAppNavigationList from '@nextcloud/vue/components/NcAppNavigationList'
@@ -18,7 +18,7 @@ import NcButton from '@nextcloud/vue/components/NcButton'
 import NcContent from '@nextcloud/vue/components/NcContent'
 import { mdiPlus } from '@mdi/js'
 import { translate as t } from '@nextcloud/l10n'
-import { generateUrl, generateRemoteUrl } from '@nextcloud/router'
+import { generateUrl } from '@nextcloud/router'
 import NcNoteCard from '@nextcloud/vue/components/NcNoteCard'
 import NcIconSvgWrapper from '@nextcloud/vue/components/NcIconSvgWrapper'
 import SfxonBarcode from '@/components/SfxonBarcode'
@@ -33,8 +33,8 @@ import SfxonEntityDialog from '@/components/SfxonEntityDialog'
 import SfxonItamHeader from '@/components/SfxonItamHeader'
 import SfxonMainNavigation from '@/components/SfxonMainNavigation'
 import SfxonQrCodeView from '@/components/SfxonQrCodeView'
-import { getCurrentUser } from '@nextcloud/auth'
 import { useApiErrors } from '@/composables/useApiErrors'
+import { useSfxonFileUploadField } from '@/composables/useSfxonFileUploadField'
 
 const services = {
     DeviceService,
@@ -50,8 +50,6 @@ const services = {
 const addEntityEntryDialogEntityName = ref('')
 const assetNumber = ref('')
 const description = ref('')
-const imageFileId = ref<number | null>(null)
-const imagePreviewUrl = ref<string | null>(null)
 const invoiceNumber = ref('')
 const name = ref('')
 const props = defineProps({
@@ -73,8 +71,6 @@ const saveIsReflash = ref(false) // Marks the distinction between initial vs. re
 let saveHideTimer: ReturnType<typeof setTimeout> | null = null
 const selectedDeviceStatus = ref<{ id: string; label: string } | null>(null)
 const selectedDeviceType = ref<{ id: string; label: string } | null>(null)
-const selectedImageFile = ref<File | null>(null)
-const selectedRemoteFile = ref<{ id: number; name: string; path: string } | null>(null)
 const selectedItamUser = ref<{ id: string; label: string } | null>(null)
 const selectedMerchant = ref<{ id: string; label: string } | null>(null)
 const selectedPosition = ref<{ id: string; label: string } | null>(null)
@@ -99,6 +95,26 @@ const deviceTypes = ref<{ id: string; label: string}[]>([])
 const merchants = ref<{ id: string; label: string }[]>([])
 const positions = ref<{ id: string; label: string}[]>([])
 const quantityUnits = ref<{ id: string; label: string}[]>([])
+const deviceImage = reactive(useSfxonFileUploadField({ folder: 'ITAM-Images', accept: ['image/*'] }))
+
+function onDeviceImageLocalFileChange(event: Event) {
+    const files = Array.from((event.target as HTMLInputElement).files ?? [])
+    deviceImage.onLocalFileSelected(files)
+}
+
+async function onDeviceImageFilePicker(): Promise<void> {
+    await deviceImage.openNextcloudFilePicker(t('sfxonitam', 'Select device image'))
+}
+
+const customFieldsRef = ref<InstanceType<typeof SfxonCustomFields> | null>(null)
+
+const customFieldValues = ref<Record<string, unknown>>({})
+
+function onCustomFieldValuesUpdate(newValues: Record<string, unknown>) {
+    customFieldValues.value = newValues
+}
+
+const customFieldInitialValues = ref<Record<string, unknown>>({})
 
 /**
  * @deprecated
@@ -152,16 +168,6 @@ const toLocalDateString = (date: Date): string => {
     const d = String(date.getDate()).padStart(2, '0')
     return `${y}-${m}-${d}`
 }
-
-const selectedImageLabel = computed(() => {
-    if (selectedImageFile.value) {
-        return selectedImageFile.value.name
-    }
-    if (selectedRemoteFile.value) {
-        return selectedRemoteFile.value.name
-    }
-    return ''
-})
 
 function addItem() {
     window.location.href = generateUrl('/apps/sfxonitam/device/detail')
@@ -279,7 +285,6 @@ async function loadDevice(id: number): Promise<void> {
 
         assetNumber.value = d.assetNumber ?? ''
         description.value = d.description ?? ''
-        imageFileId.value = d.imageFileId ?? null
         invoiceNumber.value = d.invoiceNumber ?? ''
         name.value = d.name ?? ''
         purchaseDate.value = d.purchaseDate ? new Date(d.purchaseDate + 'T00:00:00') : null
@@ -293,10 +298,9 @@ async function loadDevice(id: number): Promise<void> {
         serialNumber.value = d.serialNumber ?? ''
         serialNumber2.value = d.serialNumber2 ?? ''
 
-        // Load image preview.
-        if (imageFileId.value) {
-            imagePreviewUrl.value = generateUrl(`/core/preview?fileId=${imageFileId.value}&x=300&y=300&a=1`)
-        }
+	// Load image preview.
+        await deviceImage.setFromExisting(d.imageFileId ?? null)
+	customFieldInitialValues.value = d.customFields ?? {}
     } catch (e: any) {
         generalError.value = t('sfxonitam', 'Could not load device.')
         console.error('Error while loading device:', e)
@@ -464,96 +468,13 @@ function onBackButton() {
     window.location.href = generateUrl('/apps/sfxonitam')
 }
 
-function onLocalFileChange(event: Event) {
-    const files = Array.from((event.target as HTMLInputElement).files ?? [])
-    onLocalImageSelected(files)
-}
-
-function onLocalImageSelected(files: File[]) {
-    const file = files?.[0] ?? null
-    if (!file) {
-        return
-    }
-
-    if (imagePreviewUrl.value) {
-        URL.revokeObjectURL(imagePreviewUrl.value)
-    }
-
-    selectedImageFile.value = file
-    selectedRemoteFile.value = null
-    imageFileId.value = null
-    imagePreviewUrl.value = URL.createObjectURL(file)
-}
-
-async function openNextcloudFilePicker(): Promise<void> {
-    return new Promise((resolve) => {
-        // @ts-ignore : OC is globally available in every NC-Instance.
-        OC.dialogs.filepicker(
-            t('sfxonitam', 'Select device image'),
-            async (path: string) => {
-                try {
-                    const user = getCurrentUser()
-                    const davUrl = generateRemoteUrl(`dav/files/${user?.uid}${path}`)
-
-                    const res = await fetch(davUrl, {
-                        method: 'PROPFIND',
-                        credentials: 'include',
-                        headers: {
-                            'Depth': '0',
-                            'Content-Type': 'application/xml',
-                            'requesttoken': (window as any).oc_requesttoken,
-                        },
-                        body: `<?xml version="1.0"?>
-                            <d:propfind xmlns:d="DAV:" xmlns:oc="http://owncloud.org/ns">
-                                <d:prop><oc:fileid/></d:prop>
-                            </d:propfind>`,
-                    })
-
-                    const xml = new DOMParser().parseFromString(await res.text(), 'application/xml')
-                    const fileIdEl = xml.getElementsByTagNameNS('http://owncloud.org/ns', 'fileid')[0]
-                    const fileId = Number(fileIdEl?.textContent ?? 0) || null
-
-                    if (!fileId) {
-                        console.error('PROPFIND returned no fileId, status:', res.status)
-                        generalError.value = t('sfxonitam', 'Could not resolve file ID.')
-                        resolve()
-                        return
-                    }
-
-                    if (imagePreviewUrl.value) {
-                        URL.revokeObjectURL(imagePreviewUrl.value)
-                        imagePreviewUrl.value = null
-                    }
-
-                    selectedRemoteFile.value = {
-                        id: fileId,
-                        name: path.split('/').pop() ?? path,
-                        path,
-                    }
-                    imageFileId.value = fileId
-                    imagePreviewUrl.value = generateUrl(`/core/preview?fileId=${fileId}&x=300&y=300&a=1`)
-                    selectedImageFile.value = null
-                } catch (e) {
-                    console.error('Error resolving fileId:', e)
-                    generalError.value = t('sfxonitam', 'Could not select a file.')
-                } finally {
-                    resolve()
-                }
-            },
-            false, // multiselect
-            ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/svg+xml'],
-            true, // modal
-            1, // OC.dialogs.FILEPICKER_TYPE_CHOOSE
-        )
-    })
-}
-
 async function submitForm() {
     clearErrors()
     isSaving.value = true
 
     try {
-        await uploadImageIfNeeded()
+        await deviceImage.uploadIfNeeded()
+        await customFieldsRef.value?.uploadPendingFiles()
     } catch (e) {
         console.error('Image upload failed:', e)
         generalError.value = t('sfxonitam', 'Image upload failed.')
@@ -566,7 +487,7 @@ async function submitForm() {
         deviceStatusId: selectedDeviceStatus.value?.id ?? null,
         deviceTypeId: selectedDeviceType.value?.id ?? null,
         description: description.value,
-        imageFileId: imageFileId.value,
+        imageFileId: deviceImage.fileId,
         invoiceNumber: invoiceNumber.value,
         itamUserId: selectedItamUser.value?.id ?? null,
         merchantId: selectedMerchant.value?.id ?? null,
@@ -576,7 +497,8 @@ async function submitForm() {
         quantityUnitId: selectedQuantityUnit.value?.id ?? null,
         purchaseDate: purchaseDate.value ? toLocalDateString(purchaseDate.value) : null,
         serialNumber: serialNumber.value,
-        serialNumber2: serialNumber2.value
+        serialNumber2: serialNumber2.value,
+        customFields: customFieldValues.value,
     }
 
     try {
@@ -627,63 +549,6 @@ function triggerSaveSuccess() {
     saveHideTimer = setTimeout(() => {
         saveVisible.value = false
     }, HIDE_DELAY)
-}
-
-async function uploadImageIfNeeded(): Promise<void> {
-    if (!selectedImageFile.value) return
-
-    const user = getCurrentUser()
-    const filename = selectedImageFile.value.name
-    const davUrl = generateRemoteUrl(`dav/files/${user?.uid}/ITAM-Images/${filename}`)
-
-    // Ordner sicherstellen (MKCOL – ignoriert 405 wenn schon vorhanden)
-    await fetch(generateRemoteUrl(`dav/files/${user?.uid}/ITAM-Images`), {
-        method: 'MKCOL',
-        credentials: 'include',
-        headers: { 'requesttoken': (window as any).oc_requesttoken },
-    })
-
-    // Datei hochladen
-    const putRes = await fetch(davUrl, {
-        method: 'PUT',
-        credentials: 'include',
-        headers: {
-            'requesttoken': (window as any).oc_requesttoken,
-            'Content-Type': selectedImageFile.value.type,
-        },
-        body: selectedImageFile.value,
-    })
-
-    if (!putRes.ok) {
-        throw new Error(`Upload failed: ${putRes.status}`)
-    }
-
-    // fileId per PROPFIND holen
-    const propRes = await fetch(davUrl, {
-        method: 'PROPFIND',
-        credentials: 'include',
-        headers: {
-            'Depth': '0',
-            'Content-Type': 'application/xml',
-            'requesttoken': (window as any).oc_requesttoken,
-        },
-        body: `<?xml version="1.0"?>
-            <d:propfind xmlns:d="DAV:" xmlns:oc="http://owncloud.org/ns">
-                <d:prop><oc:fileid/></d:prop>
-            </d:propfind>`,
-    })
-
-    const text = await propRes.text()
-    const xml = new DOMParser().parseFromString(text, 'application/xml')
-    const fileIdEl = xml.getElementsByTagNameNS('http://owncloud.org/ns', 'fileid')[0]
-    const fileId = Number(fileIdEl?.textContent ?? 0) || null
-
-    if (!fileId) {
-        throw new Error('Could not resolve fileId after upload')
-    }
-
-    imageFileId.value = fileId
-    selectedImageFile.value = null
 }
 
 onMounted(async () => {
@@ -872,7 +737,12 @@ onMounted(async () => {
                                 v-model="selectedDeviceType"
                             />
 
-                            <SfxonCustomFields :customFields="customFields" />
+                            <SfxonCustomFields
+                                ref="customFieldsRef"
+                                :customFields="customFields"
+                                :initial-values="customFieldInitialValues"
+                                @update:values="onCustomFieldValuesUpdate"
+                            />
                         </div>
                     </div>
 
@@ -881,14 +751,18 @@ onMounted(async () => {
                         <div :class="SfxonEditorStyles.sfxonFormColumn">
                             <SfxonEditorFormImageSelector
                                 field="image"
-                                :field-error="fieldErrors.image"
+                                :field-error="fieldErrors.image || deviceImage.validationError"
                                 id="device-image"
-                                :image-preview-url="imagePreviewUrl"
+                                :image-preview-url="deviceImage.previewUrl"
+                                :is-image="deviceImage.isImage"
+                                :download-url="deviceImage.downloadUrl"
+                                :accept="deviceImage.acceptAttr"
                                 @input="clearFieldError('image')"
                                 :label="t('sfxonitam', 'Device Image')"
-                                @local-file-change="onLocalFileChange"
-                                @nextcloud-file-picker="openNextcloudFilePicker"
-                                :selected-image-label="selectedImageLabel"
+                                @local-file-change="onDeviceImageLocalFileChange"
+                                @nextcloud-file-picker="onDeviceImageFilePicker"
+                                @preview-error="deviceImage.onPreviewError"
+                                :selected-image-label="deviceImage.selectedLabel"
                             />
                         </div>
                     </div>
