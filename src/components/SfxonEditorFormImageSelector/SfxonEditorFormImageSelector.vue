@@ -7,19 +7,23 @@ import SfxonEditorStyles from '@/components/SfxonEditor/SfxonEditor.module.css'
 import { translate as t } from '@nextcloud/l10n'
 
 const props = withDefaults(defineProps<{
+    accept?: string, // Comma-separated MIME types/extensions for the <input type="file"> accept attribute.
+    downloadUrl?: string | null,
     field: string,
     fieldError: string,
     id: string,
+    isImage?: boolean,
     label: string,
     imagePreviewUrl: string | null | undefined,
     selectedImageLabel: string | null | undefined,
-    isImage?: boolean,
-    downloadUrl?: string | null,
-    accept?: string, // Comma-separated MIME types/extensions for the <input type="file"> accept attribute.
+    showLabel: boolean,
+    style: string,
 }>(), {
-    isImage: true,
-    downloadUrl: null,
     accept: 'image/*,application/pdf',
+    downloadUrl: null,
+    isImage: true,
+    showLabel: false,
+    style: 'sfxonImageSelectorDefault' // Options: sfxonImageSelectorDefault, sfxonImageSelectorCompact
 })
 
 const emit = defineEmits<{
@@ -41,9 +45,19 @@ function onNextcloudFilePicker() {
 </script>
 <template>
     <div :class="SfxonEditorStyles.sfxonFormColumnRow">
+        <div 
+            v-if="showLabel"
+            :class="[SfxonEditorStyles.sfxonFormColumnLabel, $style.formFieldLabel]"
+        >
+            <label :for="id" :class="SfxonEditorStyles.label">{{ label }}</label>
+        </div>
         <div :class="SfxonEditorStyles.sfxonFormColumnInput">
             <div :class="SfxonEditorStyles.field">
-                <div :class="$style.imageContainer">
+                <div :class="[
+                    $style.imageContainer,
+                    $style[style],
+                    (!isImage && downloadUrl) ? $style.fileContainer : ''
+                ]">
                     <img
                         v-if="imagePreviewUrl && isImage"
                         :src="imagePreviewUrl"
@@ -166,6 +180,32 @@ function onNextcloudFilePicker() {
     }
 }
 
+.imageContainer.sfxonImageSelectorCompact {
+    max-width: 75px;
+    max-height: 75px;
+}
+
+.imageContainer.fileContainer {
+    aspect-ratio: auto;
+    max-width: 100%;
+    width: 100%;
+    height: auto;
+    overflow: visible;
+}
+
+.imageContainer.fileContainer .downloadLink {
+    position: static;
+    height: auto;
+    width: 100%;
+    flex-direction: row;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 16px;
+    justify-content: flex-start;
+    text-align: left;
+    border-radius: 6px;
+}
+
 .imagePreview {
     background-color: var(--color-main-background);
     border: 1px solid var(--color-border);
@@ -188,6 +228,7 @@ function onNextcloudFilePicker() {
     margin-left: auto;
     margin-right: auto;
     position: absolute;
+    text-align: center;
 }
 
 .downloadLink {
@@ -216,5 +257,13 @@ function onNextcloudFilePicker() {
     font-size: 0.85rem;
     overflow-wrap: anywhere;
     word-break: break-word;
+}
+
+.formFieldLabel {
+    justify-content: start!important;
+}
+
+.formFieldLabel label {
+    padding-top: 11px;
 }
 </style>

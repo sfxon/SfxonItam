@@ -349,6 +349,8 @@ watch(values, (v) => emit('update:values', { ...v }), { deep: true })
                 @local-file-change="(event) => onFileLocalChange(customField, event)"
                 @nextcloud-file-picker="() => onFileNextcloudPicker(customField)"
                 @preview-error="fileFields[customField.technicalName].onPreviewError"
+                :show-label="true"
+                :style="'sfxonImageSelectorCompact'"
                 v-else-if="customField.type === 'file'"
             />
 
