@@ -1,5 +1,6 @@
 <script setup lang="ts">
 
+import { computed } from 'vue'
 import { mdiClose } from '@mdi/js'
 import NcButton from '@nextcloud/vue/components/NcButton'
 import NcDateTimePickerNative from '@nextcloud/vue/components/NcDateTimePickerNative'
@@ -7,19 +8,24 @@ import NcIconSvgWrapper from '@nextcloud/vue/components/NcIconSvgWrapper'
 import SfxonEditorStyles from '@/components/SfxonEditor/SfxonEditor.module.css'
 import { translate as t } from '@nextcloud/l10n'
 
-const props = defineProps<{
+const props = withDefaults(defineProps<{
     field: string,
     fieldError: string,
     id: string,
     label: string,
     modelValue: Date | null | undefined,
-    placeholder: string | undefined
-}>()
+    placeholder: string | undefined,
+    type?: 'date' | 'datetime'
+}>(), {
+    type: 'date',
+})
 
 const emit = defineEmits<{
     (e: 'update:modelValue', value: Date | null): void
     (e: 'input', field: string): void
 }>()
+
+const nativeType = computed(() => (props.type === 'datetime' ? 'datetime-local' : 'date'))
 
 function onInput(value: Date | null) {
     emit('update:modelValue', value)
@@ -45,7 +51,7 @@ function onClear() {
                         :label="''"
                         :model-value="modelValue"
                         :placeholder="placeholder"
-                        type="date"
+                        :type="nativeType"
                         @update:modelValue="onInput"
                     />
                     <NcButton

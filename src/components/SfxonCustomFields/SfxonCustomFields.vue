@@ -2,11 +2,18 @@
 
 import { reactive, ref, watch } from 'vue'
 import SfxonEditorFormCheckbox from '@/components/SfxonEditorFormCheckbox';
+import SfxonEditorFormDatePicker from '@/components/SfxonEditorFormDatePicker'
 import SfxonEditorFormInput from '@/components/SfxonEditorFormInput'
 import SfxonEditorFormTextareaLabeled from '@/components/SfxonEditorFormTextareaLabeled'
 import SfxonEditorFormEntitySelect from '@/components/SfxonEditorFormEntitySelect'
 import SfxonEditorFormImageSelector from '@/components/SfxonEditorFormImageSelector'
 import { useSfxonFileUploadField } from '@/composables/useSfxonFileUploadField'
+import {
+    parseLocalDateString,
+    parseLocalDateTimeString,
+    toLocalDateString,
+    toLocalDateTimeString,
+} from '@/services/DateService'
 
 interface CustomFieldDefinition {
     id: number
@@ -136,6 +143,30 @@ function buildOptionLabel(record: Record<string, any>, composition: LabelComposi
         .join('')
 }
 
+/** Parses a 'date' or 'datetime' custom field's stored string value back into a Date. */
+function parseCustomDateFieldValue(field: CustomFieldDefinition, incoming: unknown): Date | null {
+    if (!incoming) {
+        return null
+    }
+
+    return field.type === 'datetime'
+        ? parseLocalDateTimeString(String(incoming))
+        : parseLocalDateString(String(incoming))
+}
+
+/** Converts a 'date'/'datetime' custom field's current Date value back into the string format sent to the backend. */
+function serializeCustomFieldValue(field: CustomFieldDefinition, value: unknown): unknown {
+    if (field.type !== 'date' && field.type !== 'datetime') {
+        return value
+    }
+
+    if (!(value instanceof Date)) {
+        return null
+    }
+
+    return field.type === 'datetime' ? toLocalDateTimeString(value) : toLocalDateString(value)
+}
+
 props.customFields.forEach((field) => {
     if (field.type === 'foreign_key') {
         foreignKeyOptions[field.technicalName] = []
@@ -150,6 +181,11 @@ props.customFields.forEach((field) => {
             folder: fileOptions?.folder ?? 'ITAM-CustomFiles',
             accept: fileOptions?.accept,
         }))
+        values[field.technicalName] = null
+        return
+    }
+
+    if (field.type === 'date' || field.type === 'datetime') {
         values[field.technicalName] = null
         return
     }
@@ -187,6 +223,11 @@ watch(
 
             if (field.type === 'foreign_key') {
                 values[field.technicalName] = incoming ?? null
+                continue
+            }
+
+            if (field.type === 'date' || field.type === 'datetime') {
+                values[field.technicalName] = parseCustomDateFieldValue(field, incoming)
                 continue
             }
 
@@ -279,7 +320,17 @@ defineExpose({
     uploadPendingFiles,
 })
 
-watch(values, (v) => emit('update:values', { ...v }), { deep: true })
+watch(values, (v) => {
+    const serialized: Record<string, unknown> = { ...v }
+
+    for (const field of props.customFields) {
+        if (field.type === 'date' || field.type === 'datetime') {
+            serialized[field.technicalName] = serializeCustomFieldValue(field, v[field.technicalName])
+        }
+    }
+
+    emit('update:values', serialized)
+}, { deep: true })
 </script>
 
 <template>
@@ -334,6 +385,16 @@ watch(values, (v) => emit('update:values', { ...v }), { deep: true })
                 :label="customField.name"
                 v-model="values[customField.technicalName]"
                 v-else-if="customField.type === 'boolean'"
+            />
+
+            <SfxonEditorFormDatePicker
+                :field="customField.technicalName"
+                :field-error="''"
+                :id="`custom-field-${customField.technicalName}`"
+                :label="customField.name + ':'"
+                :type="customField.type === 'datetime' ? 'datetime' : 'date'"
+                v-model="values[customField.technicalName]"
+                v-else-if="customField.type === 'date' || customField.type === 'datetime'"
             />
 
             <SfxonEditorFormImageSelector

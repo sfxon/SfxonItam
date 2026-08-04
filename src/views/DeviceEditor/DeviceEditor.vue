@@ -35,6 +35,7 @@ import SfxonMainNavigation from '@/components/SfxonMainNavigation'
 import SfxonQrCodeView from '@/components/SfxonQrCodeView'
 import { useApiErrors } from '@/composables/useApiErrors'
 import { useSfxonFileUploadField } from '@/composables/useSfxonFileUploadField'
+import { parseLocalDateString, toLocalDateString } from '@/services/DateService'
 
 const services = {
     DeviceService,
@@ -162,13 +163,6 @@ const entityConfig = {
 const relations = reactive(buildRelations(props.entityDefinitions, entityConfig))
 /* End: relation definition */
 
-const toLocalDateString = (date: Date): string => {
-    const y = date.getFullYear()
-    const m = String(date.getMonth() + 1).padStart(2, '0')
-    const d = String(date.getDate()).padStart(2, '0')
-    return `${y}-${m}-${d}`
-}
-
 function addItem() {
     window.location.href = generateUrl('/apps/sfxonitam/device/detail')
 }
@@ -287,7 +281,7 @@ async function loadDevice(id: number): Promise<void> {
         description.value = d.description ?? ''
         invoiceNumber.value = d.invoiceNumber ?? ''
         name.value = d.name ?? ''
-        purchaseDate.value = d.purchaseDate ? new Date(d.purchaseDate + 'T00:00:00') : null
+        purchaseDate.value = d.purchaseDate ? parseLocalDateString(d.purchaseDate) : null
         quantity.value = d.quantity ? String(parseFloat(d.quantity)) : ''
         selectedDeviceStatus.value = deviceStatis.value.find(s => s.id === d.deviceStatusId) ?? null
         selectedDeviceType.value = deviceTypes.value.find(s => s.id === d.deviceTypeId) ?? null
