@@ -12,6 +12,35 @@ class CustomFieldDataValidator {
     {
     }
 
+    public function validateBoolean(string $fieldName, mixed $validation, mixed $value): array
+    {
+        $errors = [];
+
+        if (
+            $validation === null ||
+            !isset($validation['boolean']) ||
+            $validation['boolean']['enabled'] === false
+        ) {
+            return [];
+        }
+
+        $rules = $validation['boolean'];
+        $required = $rules['required'] ?? false;
+
+        if (is_string($value)) {
+            $value = trim($value);
+        }
+
+        // Not required: null value is allowed.
+        if ($value === null) {
+            if ($required) {
+                $errors['customFields.' . $fieldName] = $this->l->t('This field is required.', [$fieldName]);
+            }
+        }
+
+        return $errors;
+    }
+
     public function validateDecimal(string $fieldName, mixed $options, mixed $validation, mixed $value): array
     {
         $errors = [];

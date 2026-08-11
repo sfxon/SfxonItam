@@ -156,6 +156,9 @@ class CustomFieldService {
             $options = json_decode($customFieldDefinition['options'], true);
 
             switch ($customFieldType) {
+                case 'boolean':
+                    $fieldErrors = $this->customFieldDataValidator->validateBoolean($customFieldName, $validation, $customFieldValue);
+                    break;
                 case 'decimal':
                     $fieldErrors = $this->customFieldDataValidator->validateDecimal($customFieldName, $options, $validation, $customFieldValue);
                     break;
