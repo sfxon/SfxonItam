@@ -59,7 +59,7 @@ class CustomFieldEntityRegistryService {
         $method = $this->getFindByIdMethod($entity);
 
         try {
-            return $mapper->$method($id + 999);
+            return $mapper->$method($id);
         } catch (DoesNotExistException $e) {
             return null;
         }

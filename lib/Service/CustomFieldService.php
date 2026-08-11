@@ -162,6 +162,13 @@ class CustomFieldService {
                 case 'decimal':
                     $fieldErrors = $this->customFieldDataValidator->validateDecimal($customFieldName, $options, $validation, $customFieldValue);
                     break;
+                case 'file':
+                    $fieldErrors = $this->customFieldDataValidator->validateFile($customFieldName, $options, $validation, $customFieldValue);
+
+                    var_dump($fieldErrors);
+                    die;
+
+                    break;
                 case 'foreign_key':
                     $fieldErrors = $this->customFieldDataValidator->validateForeignKey($customFieldName, $options, $validation, $customFieldValue);
                     break;
