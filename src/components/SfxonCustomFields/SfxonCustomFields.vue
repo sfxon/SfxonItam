@@ -243,6 +243,7 @@ async function getFindFn(targetEntity: string): Promise<FindFn | null> {
     }
 
     const registryEntry = entityRegistry[targetEntity]
+    
     if (!registryEntry) {
         console.error(
             `Keine Entität "${targetEntity}" in entityRegistry registriert. `
@@ -262,11 +263,13 @@ async function searchForeignKeyOptions(
     signal: AbortSignal
 ): Promise<void> {
     const fk = parseForeignKeyOptions(field)
+
     if (!fk) {
         return
     }
 
     const findFn = await getFindFn(fk.targetEntity)
+
     if (!findFn) {
         return
     }

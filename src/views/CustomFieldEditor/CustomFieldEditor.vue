@@ -337,7 +337,6 @@ watch(() => selectedType.value?.id, (newType) => {
         validation.longtext = {
             enabled: false,
             minLength: '',
-            required: false,
         }
      }
 
@@ -819,9 +818,6 @@ onMounted(async () => {
                                 {{ t('sfxonitam', 'Validate') }}
                             </NcCheckboxRadioSwitch>
                             <template v-if="validation.longtext.enabled">
-                                <NcCheckboxRadioSwitch v-model="validation.longtext.required">
-                                    {{ t('sfxonitam', 'Required') }}
-                                </NcCheckboxRadioSwitch>
                                 <NcTextField
                                     v-model="validation.longtext.minLength"
                                     :label="t('sfxonitam', 'Min length')"

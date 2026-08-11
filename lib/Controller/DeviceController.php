@@ -15,8 +15,6 @@ use OCP\IRequest;
 use OCA\SfxonItam\AppInfo\Application;
 use OCA\SfxonItam\Db\Device;
 use OCA\SfxonItam\Db\DeviceMapper;
-use OCA\SfxonItam\Service\DeviceService;
-
 use OCA\SfxonItam\Db\CustomFieldGroupMapper;
 use OCA\SfxonItam\Db\CustomFieldMapper;
 use OCA\SfxonItam\Db\DeviceStatus;
@@ -27,6 +25,8 @@ use OCA\SfxonItam\Db\Manufacturer;
 use OCA\SfxonItam\Db\Merchant;
 use OCA\SfxonItam\Db\Position;
 use OCA\SfxonItam\Db\QuantityUnit;
+use OCA\SfxonItam\Service\CustomFieldService;
+use OCA\SfxonItam\Service\DeviceService;
 
 /**
  * @psalm-suppress UnusedClass
@@ -57,7 +57,8 @@ class DeviceController extends Controller
         private DeviceMapper $deviceMapper,
         private readonly DeviceService $deviceService,
         private CustomFieldGroupMapper $customFieldGroupMapper,
-        private CustomFieldMapper $customFieldMapper,)
+        private CustomFieldMapper $customFieldMapper,
+        private CustomFieldService $customFieldService,)
     {
         parent::__construct($appName, $request);
     }
@@ -95,18 +96,7 @@ class DeviceController extends Controller
             'quantityUnit' => QuantityUnit::getFieldDefinition(),
         ];
 
-        $customFields = [];
-        $customFieldGroup = $this->customFieldGroupMapper->findByEntityName('sfxon_device');
-
-        if ($customFieldGroup !== null) {
-            $result = $this->customFieldMapper->searchPaged(
-                $customFieldGroup->getId(),
-                'position',
-                'ASC',
-                1000
-            );
-            $customFields = $result['mainData'];
-        }
+        $customFields = $this->customFieldService->getCustomFieldsDefinitionByGroup();
 
         return new TemplateResponse(
             Application::APP_ID,
@@ -215,6 +205,15 @@ class DeviceController extends Controller
         $data = $this->deviceService->getDataFromRequest($this->request->getParams(), $this->expectedFields);
         $result = $this->deviceService->validateData($data, $id);
 
+        $customFields = $this->customFieldService->getCustomFieldsDefinitionByGroup();
+        $customFieldData = $this->customFieldService->getCustomFieldDataFromRequest($customFields, $this->request->getParams());
+        $customFieldErrors = $this->customFieldService->validateCustomFieldData($customFields, $customFieldData);
+
+        if(count($customFieldErrors) > 0) {
+            $result['valid'] = false;
+            $result['errors'] = array_merge($result['errors'], $customFieldErrors);
+        }
+
         if ($result['valid'] === false) {
             return new DataResponse([
                 'status' => 'error',
@@ -225,6 +224,7 @@ class DeviceController extends Controller
         // Update.
         $device = $this->setDeviceDataFromRequest($device);
         $updated = $this->deviceMapper->update($device);
+        $this->customFieldService->updateCustomFieldsForEntity('device', $updated->getId(), $customFieldData);
 
         return new DataResponse([
             'status' => 'ok',
