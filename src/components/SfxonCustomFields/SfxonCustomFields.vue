@@ -57,6 +57,7 @@ interface EntityOption {
 
 const props = withDefaults(defineProps<{
     customFields: CustomFieldDefinition[]
+    fieldErrors?: Record<string, string>
     /**
      * Currently stored values, keyed by technicalName (e.g., when editing
      * an existing record). For "file" fields, the stored fileId (BIGINT)
@@ -71,10 +72,12 @@ const props = withDefaults(defineProps<{
      */
     initialValues?: Record<string, unknown>
 }>(), {
+    fieldErrors: () => ({}),
     initialValues: () => ({}),
 })
 
 const emit = defineEmits<{
+    'input': [technicalName: string]
     'update:values': [values: Record<string, unknown>]
 }>()
 
@@ -141,6 +144,14 @@ function buildOptionLabel(record: Record<string, any>, composition: LabelComposi
     return composition
         .map((part) => (part.type === 'field' ? (record[part.id] ?? '') : part.value))
         .join('')
+}
+
+function errorFor(technicalName: string): string {
+    return props.fieldErrors[`customFields.${technicalName}`] ?? ''
+}
+
+function onFieldInput(technicalName: string) {
+    emit('input', technicalName)
 }
 
 /** Parses a 'date' or 'datetime' custom field's stored string value back into a Date. */
@@ -347,6 +358,8 @@ watch(values, (v) => {
                 :id="`custom-field-${customField.technicalName}`"
                 :label="customField.name + ':'"
                 v-model="values[customField.technicalName]"
+                :field-error="errorFor(customField.technicalName)"
+                @input="onFieldInput(customField.technicalName)"
                 v-if="customField.type === 'longtext'"
             />
 
@@ -357,6 +370,8 @@ watch(values, (v) => {
                 :label="customField.name + ':'"
                 v-model="values[customField.technicalName]"
                 type="text"
+                :field-error="errorFor(customField.technicalName)"
+                @input="onFieldInput(customField.technicalName)"
                 v-else-if="customField.type === 'integer'"
             />
 
@@ -367,6 +382,8 @@ watch(values, (v) => {
                 :label="customField.name + ':'"
                 v-model="values[customField.technicalName]"
                 type="text"
+                :field-error="errorFor(customField.technicalName)"
+                @input="onFieldInput(customField.technicalName)"
                 v-else-if="customField.type === 'decimal'"
             />
 
@@ -379,6 +396,8 @@ watch(values, (v) => {
                 track-by="id"
                 :search-fn="(query, signal) => searchForeignKeyOptions(customField, query, signal)"
                 @update:model-value="(val) => onForeignKeyInput(customField, val)"
+                :field-error="errorFor(customField.technicalName)"
+                @input="onFieldInput(customField.technicalName)"
                 v-else-if="customField.type === 'foreign_key'"
             />
 
@@ -387,22 +406,25 @@ watch(values, (v) => {
                 :id="`custom-field-${customField.technicalName}`"
                 :label="customField.name"
                 v-model="values[customField.technicalName]"
+                :field-error="errorFor(customField.technicalName)"
+                @input="onFieldInput(customField.technicalName)"
                 v-else-if="customField.type === 'boolean'"
             />
 
             <SfxonEditorFormDatePicker
                 :field="customField.technicalName"
-                :field-error="''"
                 :id="`custom-field-${customField.technicalName}`"
                 :label="customField.name + ':'"
                 :type="customField.type === 'datetime' ? 'datetime' : 'date'"
                 v-model="values[customField.technicalName]"
+                :field-error="errorFor(customField.technicalName)"
+                @input="onFieldInput(customField.technicalName)"
                 v-else-if="customField.type === 'date' || customField.type === 'datetime'"
             />
 
             <SfxonEditorFormImageSelector
                 :field="customField.technicalName"
-                :field-error="fileFields[customField.technicalName].validationError"
+                :field-error="fileFields[customField.technicalName] ? (errorFor(customField.technicalName) || fileFields[customField.technicalName].validationError) : ''"
                 :id="`custom-field-${customField.technicalName}`"
                 :label="customField.name + ':'"
                 :image-preview-url="fileFields[customField.technicalName].previewUrl"
@@ -415,6 +437,7 @@ watch(values, (v) => {
                 @preview-error="fileFields[customField.technicalName].onPreviewError"
                 :show-label="true"
                 :style="'sfxonImageSelectorCompact'"
+                @input="onFieldInput(customField.technicalName)"
                 v-else-if="customField.type === 'file'"
             />
 
@@ -424,6 +447,8 @@ watch(values, (v) => {
                 :label="customField.name + ':'"
                 v-model="values[customField.technicalName]"
                 type="text"
+                :field-error="errorFor(customField.technicalName)"
+                @input="onFieldInput(customField.technicalName)"
                 v-else
             />
         </template>
@@ -432,8 +457,8 @@ watch(values, (v) => {
 
 <style module>
 .sfxonCustomFields {
-    display: flex;
+    /*display: flex;
     flex-direction: column;
-    gap: 8px;
+    gap: 8px;*/
 }
 </style>

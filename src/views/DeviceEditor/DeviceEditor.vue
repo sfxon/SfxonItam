@@ -734,8 +734,10 @@ onMounted(async () => {
                             <SfxonCustomFields
                                 ref="customFieldsRef"
                                 :customFields="customFields"
+                                :field-errors="fieldErrors"
                                 :initial-values="customFieldInitialValues"
                                 @update:values="onCustomFieldValuesUpdate"
+                                @input="(technicalName) => clearFieldError(`customFields.${technicalName}`)"
                             />
                         </div>
                     </div>

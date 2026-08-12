@@ -395,4 +395,29 @@ class CustomFieldDataValidator {
 
         return $errors;
     }
+
+    public function validateText(string $fieldName, mixed $validation, mixed $value): array
+    {
+        $errors = [];
+
+        if (
+            $validation === null ||
+            !isset($validation['text']) ||
+            $validation['text']['enabled'] === false
+        ) {
+            return [];
+        }
+
+        $rules = $validation['text'];
+
+        if(isset($rules['minLength']) && is_numeric($rules['minLength'])) {
+            $minLength = (int)$rules['minLength'];
+
+            if (empty($value) || mb_strlen(trim($value)) < $minLength) {
+                $errors['customFields.' . $fieldName] = $this->l->t('You should enter at least %d signs.', [$minLength]);
+            }
+        }
+
+        return $errors;
+    }
 }

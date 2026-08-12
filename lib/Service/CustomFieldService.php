@@ -180,6 +180,9 @@ class CustomFieldService {
                 case 'longtext':
                     $fieldErrors = $this->customFieldDataValidator->validateLongtext($customFieldName, $validation, $customFieldValue);
                     break;
+                case 'text':
+                    $fieldErrors = $this->customFieldDataValidator->validateText($customFieldName, $validation, $customFieldValue);
+                    break;
                 default:
                     throw new \Exception('No validator found for custom field type ' . $customFieldType);
             }
@@ -188,8 +191,6 @@ class CustomFieldService {
                 $errors = array_merge($errors, $fieldErrors);
             }
         }
-
-        var_dump($errors);
 
         return $errors;
     }
