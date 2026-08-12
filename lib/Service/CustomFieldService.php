@@ -159,15 +159,17 @@ class CustomFieldService {
                 case 'boolean':
                     $fieldErrors = $this->customFieldDataValidator->validateBoolean($customFieldName, $validation, $customFieldValue);
                     break;
+                case 'date':
+                    $fieldErrors = $this->customFieldDataValidator->validateDate($customFieldName, $validation, $customFieldValue);
+                    break;
+                case 'datetime':
+                    $fieldErrors = $this->customFieldDataValidator->validateDatetime($customFieldName, $validation, $customFieldValue);
+                    break;
                 case 'decimal':
                     $fieldErrors = $this->customFieldDataValidator->validateDecimal($customFieldName, $options, $validation, $customFieldValue);
                     break;
                 case 'file':
                     $fieldErrors = $this->customFieldDataValidator->validateFile($customFieldName, $options, $validation, $customFieldValue);
-
-                    var_dump($fieldErrors);
-                    die;
-
                     break;
                 case 'foreign_key':
                     $fieldErrors = $this->customFieldDataValidator->validateForeignKey($customFieldName, $options, $validation, $customFieldValue);

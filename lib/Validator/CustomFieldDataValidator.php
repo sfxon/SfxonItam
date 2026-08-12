@@ -46,6 +46,120 @@ class CustomFieldDataValidator {
         return $errors;
     }
 
+    public function validateDate(string $fieldName, mixed $validation, mixed $value): array
+    {
+        $errors = [];
+
+        if (
+            $validation === null ||
+            !isset($validation['date']) ||
+            $validation['date']['enabled'] === false
+        ) {
+            return [];
+        }
+
+        $rules = $validation['date'];
+        $required = $rules['required'] ?? false;
+
+        if (is_string($value)) {
+            $value = trim($value);
+        }
+
+        // Not required: null/empty value is allowed.
+        if ($value === null || $value === '') {
+            if ($required) {
+                $errors['customFields.' . $fieldName] = $this->l->t('This field is required.', [$fieldName]);
+            }
+
+            return $errors;
+        }
+
+        if (!is_string($value)) {
+            $errors['customFields.' . $fieldName] = $this->l->t('Invalid date.', [$fieldName]);
+            return $errors;
+        }
+
+        $format = 'Y-m-d';
+        $date = \DateTime::createFromFormat($format, $value);
+
+        // CreateFromFormat returns false on format errors.
+        // Additionally check the output of getLastErrors(), 
+        // because it checks for valid date (e.g. it does not allow 2023-02-30).
+        $errorsInfo = \DateTime::getLastErrors();
+        $dateHasErrors = false;
+        
+        if($errorsInfo !== false && ($errorsInfo['warning_count'] > 0 || $errorsInfo['error_count'] > 0)) {
+            $dateHasErrors = true;
+        }
+
+        if (
+            $date === false ||
+            $dateHasErrors ||
+            $date->format($format) !== $value
+        ) {
+            $errors['customFields.' . $fieldName] = $this->l->t('A valid date must be selected.', [$fieldName]);
+        }
+
+        return $errors;
+    }
+
+    public function validateDatetime(string $fieldName, mixed $validation, mixed $value): array
+    {
+        $errors = [];
+
+        if (
+            $validation === null ||
+            !isset($validation['datetime']) ||
+            $validation['datetime']['enabled'] === false
+        ) {
+            return [];
+        }
+
+        $rules = $validation['datetime'];
+        $required = $rules['required'] ?? false;
+
+        if (is_string($value)) {
+            $value = trim($value);
+        }
+
+        // Not required: null/empty value is allowed.
+        if ($value === null || $value === '') {
+            if ($required) {
+                $errors['customFields.' . $fieldName] = $this->l->t('This field is required.', [$fieldName]);
+            }
+
+            return $errors;
+        }
+
+        if (!is_string($value)) {
+            $errors['customFields.' . $fieldName] = $this->l->t('Invalid date/time.', [$fieldName]);
+            return $errors;
+        }
+
+        $format = 'Y-m-d H:i:s';
+        $dateTime = \DateTime::createFromFormat($format, $value);
+
+        // CreateFromFormat returns false on format errors.
+        // Additionally check the output of getLastErrors(), 
+        // because it checks for valid date (e.g. it does not allow 2023-02-30).
+        $errorsInfo = \DateTime::getLastErrors();
+        $datetimeHasErrors = false;
+        
+        if($errorsInfo !== false && ($errorsInfo['warning_count'] > 0 || $errorsInfo['error_count'] > 0)) {
+            $datetimeHasErrors = true;
+        }
+
+        if (
+            $dateTime === false ||
+            $datetimeHasErrors ||
+            $dateTime->format($format) !== $value
+        ) {
+            $errors['customFields.' . $fieldName] = $this->l->t('A valid date and time must be selected.', [$fieldName]);
+        }
+
+        return $errors;
+    }
+
     public function validateDecimal(string $fieldName, mixed $options, mixed $validation, mixed $value): array
     {
         $errors = [];
