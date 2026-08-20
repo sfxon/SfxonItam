@@ -182,7 +182,8 @@ class DeviceController extends Controller
             );
         }
 
-        $data['mainData'] = $data['mainData']->jsonSerialize();
+        $customFields = $this->customFieldService->getCustomFieldsDefinitionByGroup();
+        $data['mainData'] = $data['mainData']->jsonSerialize($customFields);
         $data['relations'] = $data['relations'];
 
         return new JSONResponse($data);
@@ -224,7 +225,7 @@ class DeviceController extends Controller
         // Update.
         $device = $this->setDeviceDataFromRequest($device);
         $updated = $this->deviceMapper->update($device);
-        $this->customFieldService->updateCustomFieldsForEntity('device', $updated->getId(), $customFieldData);
+        $this->customFieldService->updateCustomFieldsForEntity('sfxon_device', $updated->getId(), $customFieldData);
 
         return new DataResponse([
             'status' => 'ok',

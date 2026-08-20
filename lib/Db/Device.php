@@ -270,8 +270,8 @@ class Device extends Entity implements \JsonSerializable {
     /**
      * @TODO: Check, if this could be changed. It could use the definition of "getFieldDefinition", to serialize the data.
      */
-    public function jsonSerialize(): array {
-        return [
+    public function jsonSerialize(mixed $customFields = null): array {
+        $retval = [
             'assetNumber' => $this->getAssetNumber(),
             'description' => $this->getDescription(),
             'deviceStatusId' => $this->getDeviceStatusId(),
@@ -289,5 +289,33 @@ class Device extends Entity implements \JsonSerializable {
             'serialNumber' => $this->getSerialNumber(),
             'serialNumber2' => $this->getSerialNumber2(),
         ];
+    
+        // Attach custom fields.
+        $customFieldsRetval = [];
+
+        if (is_array($customFields) && !empty($customFields)) {
+            foreach ($customFields as $definition) {
+                $technicalName = $definition['technicalName'] ?? null;
+
+                if ($technicalName === null) {
+                    continue;
+                }
+
+                // transforms for example "long_text" to "LongText" and prefixes custom,
+                // since the dynamicAttributes keys are expected in this format: "customLongText".
+                $pascalName = str_replace('_', '', ucwords($technicalName, '_'));
+                $attributeKey = 'custom' . $pascalName;
+
+                if (!array_key_exists($attributeKey, $this->dynamicAttributes)) {
+                    continue;
+                }
+
+                $customFieldsRetval[$technicalName] = $this->dynamicAttributes[$attributeKey];
+            }
+        }
+
+        $retval['customFields'] = $customFieldsRetval;
+    
+        return $retval;
     }
 }

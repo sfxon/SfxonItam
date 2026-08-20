@@ -7,6 +7,8 @@ use OCA\SfxonItam\Db\CustomFieldMapper;
 use OCA\SfxonItam\Db\CustomFieldGroupMapper;
 use OCA\SfxonItam\Validator\CustomFieldDataValidator;
 use OCA\SfxonItam\Validator\CustomFieldValidator;
+use OCP\DB\QueryBuilder\IQueryBuilder;
+use OCP\IDBConnection;
 
 // At the moment this class provides services for the customField entity as well as services for operations on custom field data.
 // I really had a discussion with myself about it, you know, I know I should refactor it.
@@ -18,9 +20,26 @@ class CustomFieldService {
     public function __construct(
         private readonly CustomFieldGroupMapper $customFieldGroupMapper,
         private readonly CustomFieldMapper $customFieldMapper,
+        private readonly CustomFieldDataParserService $customFieldDataParserService,
         private readonly CustomFieldDataValidator $customFieldDataValidator,
-        private readonly CustomFieldValidator $customFieldValidator,)
+        private readonly CustomFieldValidator $customFieldValidator,
+        private readonly IDBConnection $db,)
     {
+    }
+
+    private function buildCustomFieldUpdateParameters(array $customFieldData): array
+    {
+        $parameters = [];
+
+        foreach ($customFieldData as $fieldName => $value) {
+            $parameters[] = [
+                'column' => 'custom_' . $fieldName,
+                'value' => $value,
+                'type' => $this->resolveParamType($value),
+            ];
+        }
+
+        return $parameters;
     }
 
     public function createCustomField(array $data)
@@ -89,7 +108,51 @@ class CustomFieldService {
             // Cannot use isset here, because isset would return false, even if the array key exists, but the value of the field index is null.
             // The array_key_exists function instead returns true, when the array key exists, even if its value is null.
             if(array_key_exists($customFieldDefinition['technicalName'], $postedCustomFields)) {
-                $validCustomFields[$customFieldDefinition['technicalName']] = $postedCustomFields[$customFieldDefinition['technicalName']];
+                $technicalName = $customFieldDefinition['technicalName'];
+                $customFieldType = $customFieldDefinition['type'];
+                $value = $postedCustomFields[$technicalName];
+                $validation = json_decode($customFieldDefinition['validation'], true);
+                $rules = $validation[$customFieldType];
+
+                $required = false;
+
+                if(isset($result['required'])) {
+                    $required = (bool)$rules['required'];
+                }
+
+                switch($customFieldType) {
+                    case 'boolean':
+                        $value = $this->customFieldDataParserService->getBoolean($value, $required);
+                        break;
+                    case 'date':
+                        $value = $this->customFieldDataParserService->getText($value, $required); // Warning: Does not validate the date.
+                        break;
+                    case 'datetime':
+                        $value = $this->customFieldDataParserService->getText($value, $required); // Warning: Does not validate the datetime.
+                        break;
+                    case 'decimal':
+                        $value = $this->customFieldDataParserService->getDecimal($value, $required);
+                        break;
+                    case 'file':
+                        $value = $this->customFieldDataParserService->getText($value, $required); // Warning: Does not validate the id.
+                        break;
+                    case 'foreign_key':
+                        $value = $this->customFieldDataParserService->getText($value, $required); // Warning: Does not validate the id.
+                        break;
+                    case 'integer':
+                        $value = $this->customFieldDataParserService->getInteger($value, $required);
+                        break;
+                    case 'longtext':
+                        $value = $this->customFieldDataParserService->getText($value, $required);
+                        break;
+                    case 'text':
+                        $value = $this->customFieldDataParserService->getText($value, $required);
+                        break;
+                    default:
+                        throw new \Exception('Unsupported custom field type ' . $customFieldType);
+                }
+                
+                 $validCustomFields[$technicalName] = $value;
             }
         }
 
@@ -120,6 +183,23 @@ class CustomFieldService {
             $requestArray,
             array_flip($expectedFields)
         );
+    }
+
+    private function resolveParamType(mixed $value): int
+    {
+        switch (true) {
+            case $value === null:
+                return IQueryBuilder::PARAM_NULL;
+
+            case is_bool($value):
+                return IQueryBuilder::PARAM_BOOL;
+
+            case is_int($value):
+                return IQueryBuilder::PARAM_INT;
+
+            default:
+                return IQueryBuilder::PARAM_STR;
+        }
     }
 
     public function validateCustomFieldData(array $customFieldDefinitions, array $customFieldData): array
@@ -203,5 +283,26 @@ class CustomFieldService {
     public function validateUpdateData(array $data, ?int $excludeId = null)
     {
         return $this->customFieldValidator->validateUpdate($data, $excludeId);
+    }
+
+    public function updateCustomFieldsForEntity(string $entityName, int $id, mixed $customFieldData)
+    {
+        $parameters = $this->buildCustomFieldUpdateParameters($customFieldData);
+
+        $qb = $this->db->getQueryBuilder();
+        $qb->update($entityName);
+
+        foreach ($parameters as $param) {
+            $qb->set(
+                $param['column'],
+                $qb->createNamedParameter($param['value'], $param['type'])
+            );
+        }
+
+        $qb->where(
+            $qb->expr()->eq('id', $qb->createNamedParameter($id, IQueryBuilder::PARAM_INT))
+        );
+
+        $qb->executeStatement();
     }
 }

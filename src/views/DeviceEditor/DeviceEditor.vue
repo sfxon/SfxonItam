@@ -292,9 +292,8 @@ async function loadDevice(id: number): Promise<void> {
         serialNumber.value = d.serialNumber ?? ''
         serialNumber2.value = d.serialNumber2 ?? ''
 
-	// Load image preview.
-        await deviceImage.setFromExisting(d.imageFileId ?? null)
-	customFieldInitialValues.value = d.customFields ?? {}
+        deviceImage.setFromExisting(d.imageFileId ?? null)
+        customFieldInitialValues.value = d.customFields ?? {}
     } catch (e: any) {
         generalError.value = t('sfxonitam', 'Could not load device.')
         console.error('Error while loading device:', e)

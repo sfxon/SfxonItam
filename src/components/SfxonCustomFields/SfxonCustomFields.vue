@@ -215,10 +215,12 @@ Object.keys(fileFields).forEach((technicalName) => {
 
 watch(
     () => props.initialValues,
-    async (newValues) => {
+    (newValues) => {
         if (!newValues) {
             return
         }
+
+        const fileLoads: Promise<void>[] = []
 
         for (const field of props.customFields) {
             if (!(field.technicalName in newValues)) {
@@ -228,7 +230,9 @@ watch(
             const incoming = newValues[field.technicalName]
 
             if (field.type === 'file') {
-                await fileFields[field.technicalName].setFromExisting((incoming as number) ?? null)
+                fileLoads.push(
+                    fileFields[field.technicalName].setFromExisting((incoming as number) ?? null)
+                )
                 continue
             }
 
@@ -244,6 +248,11 @@ watch(
 
             values[field.technicalName] = incoming ?? ''
         }
+
+        // Loads the file values in the background. Prevents "blocks" in the rendering process.
+        Promise.all(fileLoads).catch((e) => {
+            console.error('Error while loading custom file fields:', e)
+        })
     },
     { immediate: true }
 )
