@@ -83,11 +83,18 @@ const emit = defineEmits<{
 
 type FindFn = (params: { filters: Record<string, string[]> }, signal: AbortSignal) => Promise<any>
 
-const entityRegistry: Record<string, { load: () => Promise<FindFn> }> = {
+const entityRegistry: Record<string, {
+    load: () => Promise<FindFn>
+    loadById: () => Promise<(id: number) => Promise<any>>
+}> = {
     user: {
         load: async () => {
             const mod = await import('@/services/ItamUserService')
             return mod.findItamUsers
+        },
+        loadById: async () => {
+            const mod = await import('@/services/ItamUserService')
+            return mod.fetchItamUser
         },
     },
     merchant: {
@@ -95,16 +102,42 @@ const entityRegistry: Record<string, { load: () => Promise<FindFn> }> = {
             const mod = await import('@/services/MerchantService')
             return mod.findMerchants
         },
+        loadById: async () => {
+            const mod = await import('@/services/MerchantService')
+            return mod.fetchMerchant // ggf. Namen anpassen
+        },
     },
     position: {
         load: async () => {
             const mod = await import('@/services/PositionService')
             return mod.findPositions
         },
+        loadById: async () => {
+            const mod = await import('@/services/PositionService')
+            return mod.fetchPosition // ggf. Namen anpassen
+        },
     },
 }
 
 const loadedFindFns: Record<string, FindFn> = {}
+const loadedFetchByIdFns: Record<string, (id: number) => Promise<any>> = {}
+
+async function getFetchByIdFn(targetEntity: string) {
+    if (loadedFetchByIdFns[targetEntity]) {
+        return loadedFetchByIdFns[targetEntity]
+    }
+
+    const registryEntry = entityRegistry[targetEntity]
+
+    if (!registryEntry) {
+        console.error(`Keine Entität "${targetEntity}" in entityRegistry registriert.`)
+        return null
+    }
+
+    const fetchFn = await registryEntry.loadById()
+    loadedFetchByIdFns[targetEntity] = fetchFn
+    return fetchFn
+}
 
 const values = reactive<Record<string, unknown>>({})
 const foreignKeyOptions = reactive<Record<string, EntityOption[]>>({})
@@ -201,6 +234,11 @@ props.customFields.forEach((field) => {
         return
     }
 
+    if (field.type === 'boolean') {
+        values[field.technicalName] = false
+        return
+    }
+
     if (!(field.technicalName in values)) {
         values[field.technicalName] = ''
     }
@@ -238,11 +276,17 @@ watch(
 
             if (field.type === 'foreign_key') {
                 values[field.technicalName] = incoming ?? null
+                fileLoads.push(loadForeignKeySelected(field, incoming))
                 continue
             }
 
             if (field.type === 'date' || field.type === 'datetime') {
                 values[field.technicalName] = parseCustomDateFieldValue(field, incoming)
+                continue
+            }
+
+            if (field.type === 'boolean') {
+                values[field.technicalName] = normalizeBooleanValue(incoming)
                 continue
             }
 
@@ -275,6 +319,32 @@ async function getFindFn(targetEntity: string): Promise<FindFn | null> {
     const findFn = await registryEntry.load()
     loadedFindFns[targetEntity] = findFn
     return findFn
+}
+
+// Very kindly allow null, false, true, 0 or 1 as values,
+// but parse them all to true or false.
+// This is a reaction to the database designs -
+// since Nc can at least use 3 different kind of databases (sqlite, mysql, postgre sql).
+// Note: I might move this into the SfxonEditorFormCheckbox component later.
+function normalizeBooleanValue(incoming: unknown): boolean | null {
+    if (incoming === null || incoming === undefined) {
+        return null
+    }
+
+    if (typeof incoming === 'boolean') {
+        return incoming
+    }
+
+    if (incoming === 1 || incoming === '1') {
+        return true
+    }
+
+    if (incoming === 0 || incoming === '0') {
+        return false
+    }
+
+    console.warn('Unerwarteter Boolean-Wert für Custom Field:', incoming)
+    return null
 }
 
 async function searchForeignKeyOptions(
@@ -316,6 +386,38 @@ async function searchForeignKeyOptions(
         }))
     } finally {
         foreignKeyLoading[field.technicalName] = false
+    }
+}
+
+async function loadForeignKeySelected(field: CustomFieldDefinition, id: unknown): Promise<void> {
+    if (id === null || id === undefined || id === '') {
+        foreignKeySelected[field.technicalName] = null
+        return
+    }
+
+    const fk = parseForeignKeyOptions(field)
+    if (!fk) return
+
+    const fetchById = await getFetchByIdFn(fk.targetEntity)
+    if (!fetchById) return
+
+    try {
+        const record = await fetchById(Number(id))
+
+        if (!record) return
+
+        const option: EntityOption = {
+            id: record.id,
+            label: buildOptionLabel(record, fk.labelComposition),
+        }
+
+        foreignKeySelected[field.technicalName] = option
+
+        if (!foreignKeyOptions[field.technicalName].some((o) => o.id === option.id)) {
+            foreignKeyOptions[field.technicalName] = [...foreignKeyOptions[field.technicalName], option]
+        }
+    } catch (e) {
+        console.error(`Error while loading foreign key label for field "${field.technicalName}":`, e)
     }
 }
 

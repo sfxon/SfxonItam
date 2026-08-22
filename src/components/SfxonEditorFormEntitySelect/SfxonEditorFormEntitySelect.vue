@@ -101,10 +101,6 @@ function triggerPreload() {
     props.searchFn!('', ctrl.signal)
 }
 
-function onClickAddIcon() {
-    alert('test')
-}
-
 </script>
 <template>
     <div :class="SfxonEditorStyles.sfxonFormColumnRow">

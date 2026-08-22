@@ -185,21 +185,21 @@ class CustomFieldService {
         );
     }
 
-    private function resolveParamType(mixed $value): int
+    private function resolveParamType(mixed $value): mixed
     {
-        switch (true) {
-            case $value === null:
-                return IQueryBuilder::PARAM_NULL;
-
-            case is_bool($value):
-                return IQueryBuilder::PARAM_BOOL;
-
-            case is_int($value):
-                return IQueryBuilder::PARAM_INT;
-
-            default:
-                return IQueryBuilder::PARAM_STR;
+        if($value === null) {
+            return IQueryBuilder::PARAM_NULL;
         }
+
+        if(is_bool($value)) {
+            return IQueryBuilder::PARAM_BOOL;
+        }
+
+        if(is_int($value)) {
+            return IQueryBuilder::PARAM_INT;
+        }
+
+        return IQueryBuilder::PARAM_STR;
     }
 
     public function validateCustomFieldData(array $customFieldDefinitions, array $customFieldData): array

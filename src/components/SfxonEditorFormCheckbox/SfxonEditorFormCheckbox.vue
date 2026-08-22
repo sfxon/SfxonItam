@@ -1,6 +1,6 @@
 <script setup lang="ts">
 
-import { useAttrs } from 'vue'
+import { useAttrs, ref, watch } from 'vue'
 import NcCheckboxRadioSwitch from '@nextcloud/vue/components/NcCheckboxRadioSwitch'
 import SfxonEditorStyles from '@/components/SfxonEditor/SfxonEditor.module.css'
 
@@ -13,7 +13,7 @@ const props = defineProps<{
     fieldError: string,
     id: string,
     label: string,
-    modelValue: boolean,
+    modelValue: boolean|null,
 }>()
 
 const emit = defineEmits<{
@@ -23,7 +23,14 @@ const emit = defineEmits<{
 
 const attrs = useAttrs()
 
+const localValue = ref<boolean>(props.modelValue ?? false)
+
+watch(() => props.modelValue, (newVal) => {
+    localValue.value = newVal ?? false
+}, { immediate: true })
+
 function onInput(value: boolean) {
+    localValue.value = value // Redundant/ample, but safe.
     emit('update:modelValue', value)
     emit('input', props.field)
 }
@@ -36,14 +43,13 @@ function onInput(value: boolean) {
         </div>
         <div :class="SfxonEditorStyles.sfxonFormColumnInput">
             <div :class="[SfxonEditorStyles.field, $style.switchFieldContainer]">
-                <!-- v-bind="attrs" must be at first position, to avoid overriding of other properties -->
                 <NcCheckboxRadioSwitch
                     v-bind="attrs"
                     :id="id"
-                    :model-value="modelValue"
+                    v-model="localValue"
                     type="switch"
                     :class="[$style.switchField, fieldError ? SfxonEditorStyles.fieldError : '']"
-                    @update:modelValue="onInput"
+                    @update:model-value="onInput"
                 >
                     {{ label }}
                 </NcCheckboxRadioSwitch>
