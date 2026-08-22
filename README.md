@@ -147,11 +147,11 @@ Editor:
             - ✅ On Creation there should be three buttons: a) Save & New, b) Save & Back (to listview), c) Save.
         - ✅ Some of the boxes have different border radius. Fix that.
 
-    * Device Entity custom Fields:
+    * ✅ Device Entity custom Fields:
         Moved it a little further > maybe I get some feedback on the planning in the nextcloud forum:
         https://help.nextcloud.com/t/morphing-database-tables-vs-json-vs-eav-model/245588
 
-        - Integrate Custom-Fields in DeviceEditor.
+        - ✅ Integrate Custom-Fields in DeviceEditor.
             The editor is a little different to the other ones. It lists the groups, but the groups are not extendable,
             also they come with a database table/entity definition. The groups define, to which entity a custom field belongs.
             You have first to select a group -> which leads to the fields page, where you can CRUD the different fields.
@@ -159,7 +159,7 @@ Editor:
             but they are here for completeness. Maybe at a later point in time, we render only from what this data setup -
             to have an integrated and common system. Sounds crazy, but is actually pretty nice, I imagine.
 
-            - Add migrations
+            - ✅ Add migrations
                 a) ✅ sfxon_custom_field_group
 
                 b) ✅ sfxon_custom_field
@@ -210,13 +210,11 @@ Editor:
                     - ✅ Debug, test.
             - Add custom fields to the device editor view.
                 - ✅ Show custom fields in device editor.
-                - Show different custom field types.
-                - Make custom field values saveable in editor.
-                - Load saved values for custom fields.
+                - ✅ Show different custom field types.
+                - ✅ Make custom field values saveable in editor.
+                - ✅ Load saved values for custom fields.
 
     - Optimize data loading in device list view.
-
-    - Breadcrumb auf allen Seiten vereinheitlichen durch das Nextcloud Breadcrumb Element: https://nextcloud-vue-components.netlify.app/#/Components/NcBreadcrumbs?id=ncbreadcrumb
 
     - List views: The filter dropdowns should be loaded lazy, not all after the load and not with full data. Use same strategy as for dropdowns on the device detail page.
 
@@ -230,10 +228,22 @@ Editor:
         - ✅ Create SfxonEditorFormDate component.
         - Implement style, new fields and functionality on all the other editor views.
 
+    - Breadcrumb auf allen Seiten vereinheitlichen durch das Nextcloud Breadcrumb Element: https://nextcloud-vue-components.netlify.app/#/Components/NcBreadcrumbs?id=ncbreadcrumb. Es wird bspw. bei Custom Fields verwendet.
+
+    - Menü zu Geräteliste hinzufügen, mit dem die Reihenfolge der Spalten geändert werden kann, sowie eingestellt werden kann, in welcher Reihenfolge gefiltert werden kann und welche Spalten überhaupt angezeigt werden sollen.
     - Geräteliste auch nach Entitäten sortierbar machen.
-    - Menü hinzufügen, mit dem die Reihenfolge der Spalten geändert werden kann, sowie eingestellt werden kann, in welcher Reihenfolge gefiltert werden kann und welche Spalten überhaupt angezeigt werden sollen.
 
     * Take over device loading optimization from device list view to other entities.
+
+* Einkauf/Verkauf hinzufügen
+    - Einzelne Geräte oder Lizenzen können über einen Einkauf/Verkauf gekauft oder verkauft werden.
+    - Angebote sind einzeln stehend, und enthalten Vor-Ab-Informationen.
+    - Im Grunde wird damit der gesamte Produkt-Lebenszyklus abgebildet.
+    - Bei beiden Typen können die benötigten Dokumente angehangen werden: Angebot, Rechnung, Lieferschein, weitere Dokumente (bspw. Gutschrift, Storno, Lizenzinfos, Vertrag, etc).
+    - Das Konzept dahinter ist, dass man selten nur einen Einkauf tätigt, sondern stattdessen chargenmäßig einkauft.
+    - Dadurch soll es weniger umständlich sein, einen Einkauf vielen Geräte zuzuordenen. Alle Geräte dieses Einkaufs oder Verkaufs verweisen bereits auf die passenden Dokumente. Es müssen keine Dokumente mehrfach gepflegt werden.
+    - Dieses Konzept ist eleganter, als jedem Dokument diese Eigenschaften manuell zuweisen zu müssen.
+    - PurchaseDate und Merchant müssen ausgegliedert, und in diese Entitäten extrahiert werden. InvoiceNumber gehört an das Rechnungs-Dokument, usw.
 
 * Icons für Gerätetypen integrieren
     - Sie sollen dann auch im ListView der Geräte angezeigt werden können, bzw. standardmäßig statt der Gerätebilder angezeigt werden.
@@ -345,6 +355,10 @@ Editor:
 
 * Add batch editing for entities
     - change common values (same field), like shopware allows this.
+
+* Badge printing labels
+
+* Badge printing qrcodes.
 
 
 ## Aktuelle Funktionen
