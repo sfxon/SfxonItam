@@ -97,20 +97,17 @@ class DeviceMapper extends QBMapper {
         }
     }
 
-    /** @return Device[] */
-    public function findAll(): array {
-        $qb = $this->db->getQueryBuilder();
-        $qb->select('*')->from($this->getTableName());
-        return $this->findEntities($qb);
-    }
 
-    /** @return Device[] */
+    /**
+    * @return array{mainData: Device[], relations: array}
+    */
     public function findAllPaged(
         string $orderBy = 'name',
         string $direction = 'ASC',
         int $limit = 20,
         int $offset = 0,
-        ?array $filters = null
+        ?array $filters = null,
+        ?array $include = null
     ): array {
         $allowedSortColumns = [
             'assetNumber',
@@ -123,7 +120,7 @@ class DeviceMapper extends QBMapper {
         ];
         $col = in_array($orderBy, $allowedSortColumns, true) ? 'd.' . $orderBy : 'd.name';
         $col = $this->camelToSnake($col);
- 
+
         $dir = strtoupper($direction) === 'DESC' ? 'DESC' : 'ASC';
 
         $qb = $this->db->getQueryBuilder();
@@ -133,11 +130,21 @@ class DeviceMapper extends QBMapper {
             ->setMaxResults($limit)
             ->setFirstResult($offset);
 
-        if($filters !== null) {
+        if ($filters !== null) {
             $this->applyFilters($qb, $filters);
         }
-        
-        return $this->findEntities($qb);
+
+        $devices = $this->findEntities($qb);
+        $relations = [];
+
+        if (null !== $include && !empty($include)) {
+            $relations = $this->loadRelations($devices, $include);
+        }
+
+        return [
+            'mainData' => $devices,
+            'relations' => $relations,
+        ];
     }
 
     private function applyFilters(IQueryBuilder $qb, array $filters): void {
@@ -311,6 +318,54 @@ class DeviceMapper extends QBMapper {
         return strtolower(preg_replace('/[A-Z]/', '_$0', $input));
     }
 
+    private function loadNestedRelations(array $rows, array $with): array {
+        foreach ($with as $nestedName => $nestedConfig) {
+            $localKey = $nestedConfig['localKey'];
+            $table = $nestedConfig['table'];
+            $fields = $nestedConfig['fields'] ?? ['id', 'name'];
+
+            $nestedIdsIndexed = [];
+
+            foreach ($rows as $row) {
+                if (isset($row[$localKey]) && $row[$localKey] !== null) {
+                    $nestedIdsIndexed[$row[$localKey]] = true;
+                }
+            }
+
+            $nestedIds = array_keys($nestedIdsIndexed);
+
+            if (empty($nestedIds)) {
+                continue;
+            }
+
+            $qb = $this->db->getQueryBuilder();
+            $qb->select($fields);
+            $qb->from($table);
+            $qb->where($qb->expr()->in(
+                'id',
+                $qb->createNamedParameter($nestedIds, IQueryBuilder::PARAM_INT_ARRAY)
+            ));
+
+            $result = $qb->executeQuery();
+            $nestedIndexed = [];
+
+            while ($row = $result->fetch()) {
+                $nestedIndexed[(int)$row['id']] = $row;
+            }
+
+            $result->closeCursor();
+
+            foreach ($rows as $id => $row) {
+                $nestedId = $row[$localKey] ?? null;
+                $rows[$id][$nestedName] = $nestedId !== null && isset($nestedIndexed[$nestedId])
+                    ? $nestedIndexed[$nestedId]
+                    : null;
+            }
+        }
+
+        return $rows;
+    }
+
     private function loadRelations(array $devices, array $include): array {
         $relations = [];
     
@@ -366,6 +421,10 @@ class DeviceMapper extends QBMapper {
             }
 
             $result->closeCursor();
+
+            if (isset($relationData['with']) && !empty($indexedResult)) {
+                $indexedResult = $this->loadNestedRelations($indexedResult, $relationData['with']);
+            }
 
             $relations[$relationName] = $indexedResult;
         }

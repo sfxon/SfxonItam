@@ -130,11 +130,15 @@ class DeviceController extends Controller
         ?array $filters = null,): JSONResponse
     {
         $offset = ($page - 1) * $limit;
-        $devices = $this->deviceMapper->findAllPaged($orderBy, $direction, $limit, $offset, $filters);
+        $include = $this->getDefaultIncludes();
+        $data = $this->deviceMapper->findAllPaged($orderBy, $direction, $limit, $offset, $filters, $include);
         $total   = $this->deviceMapper->countAll($filters);
 
+        $data['mainData'] = array_map(fn($d) => $d->jsonSerialize(/* $customFields */), $data['mainData']);
+        $data['relations'] = $data['relations'];
+
         return new JSONResponse([
-            'devices' => array_map(fn($d) => $d->jsonSerialize(), $devices),
+            'devices' => $data,
             'total'   => $total,
             'page'    => $page,
             'limit'   => $limit,
@@ -229,8 +233,28 @@ class DeviceController extends Controller
 
         return new DataResponse([
             'status' => 'ok',
-            'id'     => $updated->getId(),
+            'id' => $updated->getId(),
         ]);
+    }
+
+    private function getDefaultIncludes(): array {
+        return [
+            'deviceStatus' => [],
+            'deviceType' => [],
+            'itamUser' => ['fields' => ['id', 'firstname', 'lastname']],
+            'merchant' => [],
+            'position' => [
+                'fields' => ['id', 'name', 'location_id'],
+                'with' => [
+                    'location' => [
+                        'table' => 'sfxon_location',
+                        'localKey' => 'location_id',
+                        'fields' => ['id', 'name'],
+                    ],
+                ],
+            ],
+            'quantityUnit' => [],
+        ];
     }
 
     private function sanitizeForeignKey($foreignKeyValue)

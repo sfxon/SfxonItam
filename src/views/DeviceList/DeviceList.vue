@@ -151,6 +151,34 @@ function imageCellMounted(el: HTMLElement, dataRow: any) {
     }
 }
 
+const relationLabelBuilders: Record<string, (row: any) => string> = {
+    deviceStatus: (row) => row.name,
+    deviceType: (row) => row.name,
+    itamUser: (row) => `${row.firstname} ${row.lastname}`,
+    merchant: (row) => row.name,
+    position: (row) => row.location ? `${row.location.name} - ${row.name}` : row.name,
+    quantityUnit: (row) => row.name,
+}
+
+function applyRelations(relations?: Record<string, Record<string, any>>) {
+    if (!relations) {
+        return
+    }
+
+    for (const [relationName, buildLabel] of Object.entries(relationLabelBuilders)) {
+        const rows = relations[relationName]
+
+        if (!rows) {
+            continue
+        }
+
+        relatedEntityData[relationName] = Object.values(rows).map((row: any) => ({
+            id: row.id,
+            label: buildLabel(row),
+        }))
+    }
+}
+
 async function loadDevices() {
     error.value = null
 
@@ -169,8 +197,10 @@ async function loadDevices() {
             limit: listState.limit,
             filters
         })
-        devices.value = data.devices
+
+        devices.value = data.devices.mainData
         listState.total = data.total
+        applyRelations(data.devices.relations)
     } catch (e) {
         error.value = t('sfxonitam', 'Fehler beim Laden der Geräte.')
         console.log(e)
@@ -379,6 +409,7 @@ function previewClear(_dataRow: any) {
 async function reloadDevices() {
     loading.value = true
 
+    /*
     await loadDeviceStatis()
     await loadDeviceTypes()
     await loadItamUsers()
@@ -386,6 +417,7 @@ async function reloadDevices() {
     await loadMerchants()
     await loadPositions()
     await loadQuantityUnits()
+    */
 
     // Load other entities before Devices.
     await loadDevices()
