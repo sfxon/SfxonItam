@@ -289,6 +289,10 @@ class CustomFieldService {
     {
         $parameters = $this->buildCustomFieldUpdateParameters($customFieldData);
 
+        if (empty($parameters)) {
+            return;
+        }
+
         $qb = $this->db->getQueryBuilder();
         $qb->update($entityName);
 

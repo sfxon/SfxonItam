@@ -3,13 +3,10 @@
 import { mdiPlus } from '@mdi/js'
 import NcIconSvgWrapper from '@nextcloud/vue/components/NcIconSvgWrapper'
 import NcSelect from '@nextcloud/vue/components/NcSelect'
-import { ref } from 'vue'
 import SfxonEditorStyles from '@/components/SfxonEditor/SfxonEditor.module.css'
 import { translate as t } from '@nextcloud/l10n'
+import { useSfxonEntitySearch } from '@/composables/useSfxonEntitySearch'
 
-const isSearching = ref(false)
-const preloaded = ref<boolean>(false)
-const hoverTimeout = ref<ReturnType<typeof setTimeout> | null>(null)
 const props = withDefaults(defineProps<{
     addRecordFn?: () => void,
     disabled?: boolean,
@@ -42,63 +39,36 @@ function onInput(value: Record<string, unknown> | null) {
     emit('input', props.field)
 }
 
-function onMouseEnter() {
-    if (props.disabled || props.readonly) {
-        return
-    }
-
-    hoverTimeout.value = setTimeout(triggerPreload, 150)
-}
-
-function onMouseLeave() {
-    if (hoverTimeout.value) clearTimeout(hoverTimeout.value)
-}
-
-// -- Async Search Handler --
-// The AbortController helps to avoid problems with fast paced loads,
-// for example, when the server is slow, and the user types fast,
-// and would trigger multiple loads, this could lead to false results.
-// To avoid this completely, we dismiss a prior load, and only accept the one,
-// that reallly was the last one.
-const searchTimeout = ref<ReturnType<typeof setTimeout> | null>(null)
-const abortController = ref<AbortController | null>(null) // Aborts a previous call.
+const {
+    isSearching,
+    onSearch: baseOnSearch,
+    onMouseEnter: baseOnMouseEnter,
+    onMouseLeave,
+    triggerPreload: baseTriggerPreload,
+} = useSfxonEntitySearch(props.searchFn)
 
 async function onSearch(query: string) {
     if (props.disabled || props.readonly) {
         return
     }
 
-    if (searchTimeout.value) {
-        clearTimeout(searchTimeout.value)
-    }
-
-    // Abort previous call.
-    if (abortController.value) {
-        abortController.value.abort()
-    }
-
-    if(query === null || query.trim() === "") {
-        return;
-    }
-
-    searchTimeout.value = setTimeout(async () => {
-        abortController.value = new AbortController()
-        isSearching.value = true
-        await props.searchFn!(query, abortController.value.signal)
-        isSearching.value = false
-    }, 300)
+    baseOnSearch(query)
 }
 
-// Prefills the select with up to 20 values.
-// Improves smootheness of the components.
-function triggerPreload() {
-    if (preloaded.value || !props.searchFn || props.disabled || props.readonly) {
+function onMouseEnter() {
+    if (props.disabled || props.readonly) {
         return
     }
 
-    preloaded.value = true
-    const ctrl = new AbortController()
-    props.searchFn!('', ctrl.signal)
+    baseOnMouseEnter()
+}
+
+function triggerPreload() {
+    if (props.disabled || props.readonly) {
+        return
+    }
+
+    baseTriggerPreload()
 }
 
 </script>

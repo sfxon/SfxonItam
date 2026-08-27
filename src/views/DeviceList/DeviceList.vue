@@ -2,7 +2,7 @@
 
 import { deleteDevice } from '@/services/DeviceService'
 import type { Device } from '@/services/DeviceService'
-import { fetchDevices} from '@/services/DeviceService'
+import { fetchDevices } from '@/services/DeviceService'
 import { generateUrl } from '@nextcloud/router'
 import { reactive } from 'vue'
 import { ref } from 'vue'
@@ -25,33 +25,29 @@ import SfxonPagination from '@/components/SfxonPagination'
 import SfxonQrCodeView from '@/components/SfxonQrCodeView'
 import SfxonTable from '@/components/SfxonTable'
 import { useListState } from '@/composables/useListState'
-import { fetchAllDeviceStatis, getDeviceStatusDetailLink } from '@/services/DeviceStatusService'
-import { fetchAllDeviceTypes, getDeviceTypeDetailLink } from '@/services/DeviceTypeService'
-import { fetchAllItamUsers, getItamUserDetailLink } from '@/services/ItamUserService'
+import * as DeviceStatusService from '@/services/DeviceStatusService'
+import { getDeviceStatusDetailLink } from '@/services/DeviceStatusService'
+import * as DeviceTypeService from '@/services/DeviceTypeService'
+import { getDeviceTypeDetailLink } from '@/services/DeviceTypeService'
+import * as ItamUserService from '@/services/ItamUserService'
+import { getItamUserDetailLink } from '@/services/ItamUserService'
 import { fetchAllLocations } from '@/services/LocationService'
 import { fetchAllManufacturers, getManufacturerDetailLink } from '@/services/ManufacturerService'
-import { fetchAllMerchants, getMerchantDetailLink } from '@/services/MerchantService'
-import { fetchAllPositions, getPositionDetailLink } from '@/services/PositionService'
-import { fetchAllQuantityUnits, getQuantityUnitDetailLink } from '@/services/QuantityUnitService'
+import * as MerchantService from '@/services/MerchantService'
+import { getMerchantDetailLink } from '@/services/MerchantService'
+import * as PositionService from '@/services/PositionService'
+import { getPositionDetailLink } from '@/services/PositionService'
+import * as QuantityUnitService from '@/services/QuantityUnitService'
+import { getQuantityUnitDetailLink } from '@/services/QuantityUnitService'
 import { watch } from 'vue'
 
-const deviceStatisLoading = ref(false)
-const deviceTypesLoading = ref(false)
 const filterSidebarOpen = ref(true)
-const itamUsersLoading = ref(false)
 const loading = ref(false)
-const locationsLoading = ref(false)
-const manufacturersLoading = ref(false)
-const merchantsLoading = ref(false)
-const positionsLoading = ref(false)
-const quantityUnitsLoading = ref(false)
 const error = ref<string | null>(null)
 const listState = useListState()
 const devices = ref<Device[]>([])
 const deviceToDelete = ref<Device | null>(null)
 const filterValues = reactive<Record<string, { value: any }[]>>({})
-const locations = ref<{ id: string; label: string}[]>([])
-const manufacturers = ref<{ id: string; label: string}[]>([])
 const modalState = reactive<{
     dataRow: any | null,
     type: 'barcode' | 'image' | 'qrCode'
@@ -100,13 +96,6 @@ function cancelDelete() {
 
 function clearData() {
     devices.value = []
-    locations.value = []
-    manufacturers.value = []
-    relatedEntityData.deviceStatus = []
-    relatedEntityData.deviceType = []
-    relatedEntityData.itamUser = []
-    relatedEntityData.merchant = []
-    relatedEntityData.position = []
 }
 
 function closeModal() {
@@ -204,153 +193,138 @@ async function loadDevices() {
     } catch (e) {
         error.value = t('sfxonitam', 'Fehler beim Laden der Geräte.')
         console.log(e)
-    } finally {
     }
 }
 
-async function loadDeviceStatis() {
-    try {
-        const data = await fetchAllDeviceStatis({})
+async function searchDeviceStatis(query: string, signal: AbortSignal): Promise<void> {
+    const filters = { name: [query] }
 
-        relatedEntityData['deviceStatus'] = Object.values(data.deviceStatis).map((deviceStatus: any) => ({
-            id: deviceStatus.id,
-            label: deviceStatus.name
-        }))
-    } catch(e) {
-        console.error('Fehler beim Laden der Device-Stati', e)
-    } finally {
-        deviceStatisLoading.value = false
+    const data = await DeviceStatusService.findDeviceStatis({ filters }, signal)
+
+    if (data === null || data.mainData === null) {
+        return
     }
+
+    relatedEntityData['deviceStatus'] = Object.values(data.mainData).map((deviceStatus: any) => ({
+        id: deviceStatus.id,
+        label: deviceStatus.name
+    }))
 }
 
-async function loadDeviceTypes() {
-    deviceTypesLoading.value = true
+async function searchDeviceTypes(query: string, signal: AbortSignal): Promise<void> {
+    const filters = { name: [query] }
 
-    try {
-        const data = await fetchAllDeviceTypes({})
+    const data = await DeviceTypeService.findDeviceTypes({ filters }, signal)
 
-        relatedEntityData['deviceType'] = Object.values(data.deviceTypes).map((deviceType: any) => ({
-            id: deviceType.id,
-            label: deviceType.name
-        }))
-    } catch(e) {
-        console.error('Fehler beim Laden der Device-Types', e)
-    } finally {
-        deviceTypesLoading.value = false
+    if (data === null || data.mainData === null) {
+        return
     }
+
+    relatedEntityData['deviceType'] = Object.values(data.mainData).map((deviceType: any) => ({
+        id: deviceType.id,
+        label: deviceType.name
+    }))
 }
 
-async function loadItamUsers() {
-    itamUsersLoading.value = true
-
-    try {
-        const data = await fetchAllItamUsers({})
-
-        relatedEntityData['itamUser'] = Object.values(data.itamUsers).map((itamUser: any) => ({
-            id: itamUser.id,
-            label: itamUser.firstname + ' ' + itamUser.lastname
-        }))
-    } catch(e) {
-        console.error('Fehler beim Laden der itamUsers', e)
-    } finally {
-        itamUsersLoading.value = false
+async function searchItamUsers(query: string, signal: AbortSignal): Promise<void> {
+    const filters = {
+        firstname: [query],
+        lastname: [query],
+        email: [query]
     }
+
+    const data = await ItamUserService.findItamUsers({ filters }, signal)
+
+    if (data === null || data.mainData === null) {
+        return
+    }
+
+    relatedEntityData['itamUser'] = Object.values(data.mainData).map((itamUser: any) => ({
+        id: itamUser.id,
+        label: itamUser.firstname + ' ' + itamUser.lastname
+    }))
 }
 
-async function loadLocations() {
-    locationsLoading.value = true
+async function searchMerchants(query: string, signal: AbortSignal): Promise<void> {
+    const filters = { name: [query] }
 
-    try {
-        const data = await fetchAllLocations({})
+    const data = await MerchantService.findMerchants({ filters }, signal)
 
-        locations.value = Object.values(data.locations).map((location: any) => ({
-            id: location.id,
-            label: location.name
-        }))
-        relatedEntityData['location'] = locations
-    } catch(e) {
-        console.error('Fehler beim Laden der Locations', e)
-    } finally {
-        locationsLoading.value = false
+    if (data === null || data.mainData === null) {
+        return
     }
+
+    relatedEntityData['merchant'] = Object.values(data.mainData).map((merchant: any) => ({
+        id: merchant.id,
+        label: merchant.name
+    }))
 }
 
-async function loadMerchants() {
-    merchantsLoading.value = true
+async function searchPositions(query: string, signal: AbortSignal): Promise<void> {
+    const filters = { name: [query] }
+    const include = { location: {} }
 
-    try {
-        const data = await fetchAllMerchants({})
+    const data = await PositionService.findPositions({ filters, include }, signal)
 
-        relatedEntityData['merchant'] = Object.values(data.merchants).map((merchant: any) => ({
-            id: merchant.id,
-            label: merchant.name
-        }))
-    } catch(e) {
-        console.error('Fehler beim Laden der Merchants', e)
-    } finally {
-        merchantsLoading.value = false
+    if (data === null || data.result === null || data.result.mainData === null) {
+        return
     }
+
+    relatedEntityData['position'] = Object.values(data.result.mainData).map((position: any) => {
+        const location = data.result.relations?.location?.[position.locationId]
+        const label = location ? `${location.name} - ${position.name}` : position.name
+        
+        return {
+            id: position.id,
+            label
+        }
+    })
+
+    // Sort list alphabetically ASC.
+    relatedEntityData['position'].sort((a, b) => a.label.localeCompare(b.label))
 }
 
-async function loadManufacturers() {
-    manufacturersLoading.value = true
+async function searchQuantityUnits(query: string, signal: AbortSignal): Promise<void> {
+    const filters = { name: [query] }
+    const data = await QuantityUnitService.findQuantityUnits({ filters }, signal)
 
-    try {
-        const data = await fetchAllManufacturers({})
-
-        relatedEntityData['manufacturer'] = Object.values(data.manufacturers).map((manufacturer: any) => ({
-            id: manufacturer.id,
-            label: manufacturer.name
-        }))
-    } catch(e) {
-        console.error('Error while loading Manufacturers', e)
-    } finally {
-        manufacturersLoading.value = false
+    if (data === null || data.mainData === null) {
+        return
     }
+
+    relatedEntityData['quantityUnit'] = Object.values(data.mainData).map((quantityUnit: any) => ({
+        id: quantityUnit.id,
+        label: quantityUnit.name
+    }))
 }
 
-async function loadPositions() {
-    await loadLocations()
+async function searchManufacturers(_query: string, _signal: AbortSignal): Promise<void> {
+    const data = await fetchAllManufacturers({})
 
-    positionsLoading.value = true
-
-    try {
-        const data = await fetchAllPositions({})
-
-        relatedEntityData['position'] = Object.values(data.positions).map((position: any) => {
-            const location = locations.value.find(l => l.id == position.locationId)
-            return {
-                id: position.id,
-                label: location
-                    ? location.label + ' - ' + position.name
-                    : position.name
-            }
-        })
-
-        // Sort list alphabetically ASC.
-        relatedEntityData['position'].sort((a, b) => a.label.localeCompare(b.label))
-    } catch(e) {
-        console.error('Fehler beim Laden der Positionen', e)
-    } finally {
-        positionsLoading.value = false
-    }
+    relatedEntityData['manufacturer'] = Object.values(data.manufacturers).map((manufacturer: any) => ({
+        id: manufacturer.id,
+        label: manufacturer.name
+    }))
 }
 
-async function loadQuantityUnits() {
-    quantityUnitsLoading.value = true
+async function searchLocations(_query: string, _signal: AbortSignal): Promise<void> {
+    const data = await fetchAllLocations({})
 
-    try {
-        const data = await fetchAllQuantityUnits({})
+    relatedEntityData['location'] = Object.values(data.locations).map((location: any) => ({
+        id: location.id,
+        label: location.name
+    }))
+}
 
-        relatedEntityData['quantityUnit'] = Object.values(data.quantityUnits).map((quantityUnit: any) => ({
-            id: quantityUnit.id,
-            label: quantityUnit.name
-        }))
-    } catch(e) {
-        console.error('Error while loading Quantity Units', e)
-    } finally {
-        quantityUnitsLoading.value = false
-    }
+const relatedEntitySearchFns = {
+    deviceStatus: searchDeviceStatis,
+    deviceType: searchDeviceTypes,
+    itamUser: searchItamUsers,
+    location: searchLocations,
+    manufacturer: searchManufacturers,
+    merchant: searchMerchants,
+    position: searchPositions,
+    quantityUnit: searchQuantityUnits,
 }
 
 function onEditDevice(device: Device) {
@@ -408,18 +382,6 @@ function previewClear(_dataRow: any) {
 
 async function reloadDevices() {
     loading.value = true
-
-    /*
-    await loadDeviceStatis()
-    await loadDeviceTypes()
-    await loadItamUsers()
-    await loadManufacturers()
-    await loadMerchants()
-    await loadPositions()
-    await loadQuantityUnits()
-    */
-
-    // Load other entities before Devices.
     await loadDevices()
 
     loading.value = false
@@ -578,6 +540,7 @@ onMounted(async () => {
             :filterValues="filterValues"
             :onFilterBtn="onFilterBtn"
             :relatedEntityData="relatedEntityData"
+            :relatedEntitySearchFns="relatedEntitySearchFns"
         />
     </NcContent>
 

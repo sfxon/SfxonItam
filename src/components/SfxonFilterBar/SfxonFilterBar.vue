@@ -24,6 +24,7 @@ const props = defineProps<{
     filterValues: Record<string, FilterValue[]>
     filterSidebarOpen: boolean
     relatedEntityData: []
+    relatedEntitySearchFns?: Record<string, (query: string, signal: AbortSignal) => Promise<void>>
     onFilterBtn?: (() => void) | null
 }>()
 
@@ -43,6 +44,7 @@ const emit = defineEmits<{ 'update:filterSidebarOpen': [value: boolean] }>()
                         <SfxonFilterFieldEntity
                             :label="filterField.label"
                             :entityData="relatedEntityData[filterField.relatedEntityName]"
+                            :searchFn="relatedEntitySearchFns?.[filterField.relatedEntityName]"
                             v-model="filterValues[filterField.key]"
                         />
                     </template>

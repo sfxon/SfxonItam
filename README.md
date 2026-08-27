@@ -214,9 +214,9 @@ Editor:
                 - ✅ Make custom field values saveable in editor.
                 - ✅ Load saved values for custom fields.
 
-    - Optimize data loading in device list view.
+    - ✅ Optimize data loading in device list view.
 
-    - List views: The filter dropdowns should be loaded lazy, not all after the load and not with full data. Use same strategy as for dropdowns on the device detail page.
+    - ✅ List views: The filter dropdowns should be loaded lazy, not all after the load and not with full data. Use same strategy as for dropdowns on the device detail page.
 
     - Add a results per page dropdown/input, so we can also show 100 results or 1000 results on one page. Load data paged then too - meaning to not overload the server - so the loading should be junked to junks of size 20 (configurable in code).
 
