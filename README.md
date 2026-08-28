@@ -218,9 +218,11 @@ Editor:
 
     - ✅ List views: The filter dropdowns should be loaded lazy, not all after the load and not with full data. Use same strategy as for dropdowns on the device detail page.
 
-    - Add a results per page dropdown/input, so we can also show 100 results or 1000 results on one page. Load data paged then too - meaning to not overload the server - so the loading should be junked to junks of size 20 (configurable in code).
+    - ✅ Add a results per page dropdown/input, so we can also show 100 results or 1000 results on one page.
 
-    - Take over new functionality for detail page and listing to all other editor pages..
+    - Take over breadcrumb to device list: https://nextcloud-vue-components.netlify.app/#/Components/NcBreadcrumbs?id=ncbreadcrumb. It is used for example for Custom Fields. In that next step, I will automatically take it over for the other list views.
+
+    - Take over new functionality for detail page to all other editor pages..
         - ✅ Build an editor.module.css and import it on every editor page. That way, I can use general stylings for that pages.
         - ✅ Create SfxonEditorFormInput component, to wrap common layout and logic for repeating fields. This improves code quality.
         - ✅ Create SfxonEditorFormEntitySelect component.
@@ -228,8 +230,7 @@ Editor:
         - ✅ Create SfxonEditorFormDate component.
         - Implement style, new fields and functionality on all the other editor views.
 
-    - Breadcrumb auf allen Seiten vereinheitlichen durch das Nextcloud Breadcrumb Element: https://nextcloud-vue-components.netlify.app/#/Components/NcBreadcrumbs?id=ncbreadcrumb. Es wird bspw. bei Custom Fields verwendet.
-
+    
     - Menü zu Geräteliste hinzufügen, mit dem die Reihenfolge der Spalten geändert werden kann, sowie eingestellt werden kann, in welcher Reihenfolge gefiltert werden kann und welche Spalten überhaupt angezeigt werden sollen.
     - Geräteliste auch nach Entitäten sortierbar machen.
 
@@ -356,9 +357,9 @@ Editor:
 * Add batch editing for entities
     - change common values (same field), like shopware allows this.
 
-* Badge printing labels
+* Batch printing labels
 
-* Badge printing qrcodes.
+* Batch printing qrcodes.
 
 
 ## Aktuelle Funktionen

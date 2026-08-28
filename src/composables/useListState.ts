@@ -1,6 +1,6 @@
 import { reactive, computed } from 'vue'
 
-export function useListState(defaultLimit = 20) {
+export function useListState(defaultLimit = 25) {
     const state = reactive({
         page: 1,
         limit: defaultLimit,
@@ -16,7 +16,21 @@ export function useListState(defaultLimit = 20) {
                 state.orderDirection = 'ASC'
             }
             state.page = 1
-        }
+        },
+        setLimit(newLimit: number) {
+            if (newLimit === state.limit) {
+                return
+            }
+
+            const firstVisibleIndex = (state.page - 1) * state.limit
+
+            state.limit = newLimit
+
+            state.page = Math.min(
+                Math.max(1, Math.floor(firstVisibleIndex / newLimit) + 1),
+                state.totalPages,
+            )
+        },
     })
     return state
 }

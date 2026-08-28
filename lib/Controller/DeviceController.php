@@ -126,9 +126,13 @@ class DeviceController extends Controller
         string $orderBy = 'name',
         string $direction = 'ASC',
         int $page = 1,
-        int $limit = 20,
+        int $limit = 25,
         ?array $filters = null,): JSONResponse
     {
+        if($limit != 10 && $limit != 25 && $limit != 50 && $limit != 100 && $limit != 500 && $limit != 1000) {
+            $limit = 25;
+        }
+
         $offset = ($page - 1) * $limit;
         $include = $this->getDefaultIncludes();
         $data = $this->deviceMapper->findAllPaged($orderBy, $direction, $limit, $offset, $filters, $include);
