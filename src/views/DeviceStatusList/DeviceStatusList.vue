@@ -78,7 +78,7 @@ async function loadDeviceStatis() {
         deviceStatis.value = data.deviceStatis.mainData
         listState.total = data.total
     } catch (e) {
-        error.value = t('sfxonitam', 'Fehler beim Laden der Gerätestati.')
+        error.value = t('sfxonitam', 'Error while loading Device Status.')
     } finally {
         loading.value = false
     }

@@ -110,9 +110,9 @@ class DeviceStatusController extends Controller
 
         return new JSONResponse([
             'deviceStatis' => $data,
-            'total'   => $total,
-            'page'    => $page,
-            'limit'   => $limit,
+            'total' => $total,
+            'page' => $page,
+            'limit' => $limit,
         ]);
     }
 
@@ -178,9 +178,9 @@ class DeviceStatusController extends Controller
 
         return new JSONResponse([
             'mainData' => array_map(fn($d) => $d->jsonSerialize(), $result),
-            'total'   => $total,
-            'page'    => $page,
-            'limit'   => $limit,
+            'total' => $total,
+            'page' => $page,
+            'limit' => $limit,
         ]);
     }
 
@@ -220,7 +220,6 @@ class DeviceStatusController extends Controller
 
         $data = $this->deviceStatusService->getDataFromRequest($this->request->getParams(), $this->expectedFields);
         $result = $this->deviceStatusService->validateData($data, $id);
-
         $customFields = $this->customFieldService->getCustomFieldsDefinitionByGroup('sfxon_device_status');
         $customFieldData = $this->customFieldService->getCustomFieldDataFromRequest($customFields, $this->request->getParams());
         $customFieldErrors = $this->customFieldService->validateCustomFieldData($customFields, $customFieldData);

@@ -1,5 +1,15 @@
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import * as DeviceService from '@/services/DeviceService'
+import * as DeviceStatusService from '@/services/DeviceStatusService'
+import * as DeviceTypeService from '@/services/DeviceTypeService'
+import * as ItamUserService from '@/services/ItamUserService'
+import * as LocationService from '@/services/LocationService'
+import * as ManufacturerService from '@/services/ManufacturerService'
+import * as MerchantService from '@/services/MerchantService'
+import * as PositionService from '@/services/PositionService'
+import * as QuantityUnitService from '@/services/QuantityUnitService'
+import { computed, onMounted, reactive, ref } from 'vue'
+import { generateUrl } from '@nextcloud/router'
 import { mdiPlus } from '@mdi/js'
 import NcAppContent from '@nextcloud/vue/components/NcAppContent'
 import NcAppNavigation from '@nextcloud/vue/components/NcAppNavigation'
@@ -9,53 +19,165 @@ import NcContent from '@nextcloud/vue/components/NcContent'
 import NcButton from '@nextcloud/vue/components/NcButton'
 import NcIconSvgWrapper from '@nextcloud/vue/components/NcIconSvgWrapper'
 import NcNoteCard from '@nextcloud/vue/components/NcNoteCard'
-import NcSelect from '@nextcloud/vue/components/NcSelect'
-import NcTextArea from '@nextcloud/vue/components/NcTextArea'
-import NcTextField from '@nextcloud/vue/components/NcTextField'
-import { translate as t } from '@nextcloud/l10n'
-import { generateUrl } from '@nextcloud/router'
-import { useApiErrors } from '@/composables/useApiErrors'
 import { fetchDeviceType, createDeviceType, updateDeviceType } from '@/services/DeviceTypeService'
+import SfxonCustomFields from '@/components/SfxonCustomFields'
+import SfxonEntityDialog from '@/components/SfxonEntityDialog'
+import SfxonItamHeaderBc, { type BreadcrumbItem } from '@/components/SfxonItamHeaderBc'
+import SfxonSaveBadge from '@/components/SfxonSaveBadge'
+import SfxonEditorFormEntitySelect from '@/components/SfxonEditorFormEntitySelect'
+import SfxonEditorFormInput from '@/components/SfxonEditorFormInput'
+import SfxonEditorFormTextareaLabeled from '@/components/SfxonEditorFormTextareaLabeled'
+import SfxonEditorStyles from '@/components/SfxonEditor/SfxonEditor.module.css'
 import SfxonMainNavigation from '@/components/SfxonMainNavigation'
 import { fetchAllManufacturers } from '@/services/ManufacturerService'
+import { translate as t } from '@nextcloud/l10n'
+import { useApiErrors } from '@/composables/useApiErrors'
+import { useSaveBadge } from '@/composables/useSaveBadge'
 
-// Formulardaten
+const services = {
+    DeviceService,
+    DeviceStatusService,
+    DeviceTypeService,
+    ItamUserService,
+    ManufacturerService,
+    MerchantService,
+    LocationService,
+    PositionService,
+    QuantityUnitService
+}
+const addEntityEntryDialogEntityName = ref('')
 const name = ref('')
+const props = defineProps({
+    entityDefinitions: {
+        type: Object,
+        required: true,
+    },
+    customFields: {
+        type: Array,
+        default: () => [],
+    },
+})
+
 const selectedManufacturer = ref<{ id: string; label: string } | null>(null)
 const comment = ref('')
 const savedSuccessfully = ref(false);
 const manufacturersLoading = ref(false)
 const deviceTypeLoading = ref(false)
 const isSaving = ref(false)
-
-// Fehlerbehandlung
 const { fieldErrors, generalError, handleApiError, clearErrors, clearFieldError } = useApiErrors()
-
-// Id und Modus laden.
+const { visible: saveVisible, isReflash: saveIsReflash, flashKey: saveFlashKey, trigger: triggerSaveSuccess } = useSaveBadge()
 const deviceTypeId = computed(() => {
     const param = new URLSearchParams(window.location.search).get('deviceTypeId')
     return param ? parseInt(param, 10) : undefined
 })
 const isEditMode = computed(() => !!deviceTypeId.value)
-// Abhängige Entitäten definieren.
-const manufacturers = ref<{ id: string; label: string}[]>([])
+const breadcrumbs = computed<BreadcrumbItem[]>(() => [
+    {
+        label: t('sfxonitam', 'Device Type'),
+        link: generateUrl('/apps/sfxonitam/device-type/'),
+        forceIconText: true,
+        disableDrop: true,
+    },
+    {
+        label: isEditMode.value ? t('sfxonitam', 'Edit') : t('sfxonitam', 'Create'),
+        clickable: false,
+        forceIconText: true,
+        disableDrop: true,
+    },
+])
 
-// Funktionen definieren.
+const manufacturers = ref<{ id: string; label: string}[]>([])
+const customFieldsRef = ref<InstanceType<typeof SfxonCustomFields> | null>(null)
+const customFieldValues = ref<Record<string, unknown>>({})
+
+function onCustomFieldValuesUpdate(newValues: Record<string, unknown>) {
+    customFieldValues.value = newValues
+}
+
+const customFieldInitialValues = ref<Record<string, unknown>>({})
+
+/**
+ * @deprecated
+ * 
+ * This is in subject to be more streamlined.
+ * Since entities will be even more dynamic in the future, especially when we think of custom fields,
+ * this is only a first draft, on how this could be archived.
+ * Later, the fields "selectTarget, optionsTarget and labelFields" should be dynamically generated in the buildRelations method.
+ * The input fields below should then only be rendered in a loop, with the given input fields.
+ * For the time between, we use this as a middle solution.
+ * 
+ */
+const entityConfig = {
+    manufacturer: {
+        selectTarget: selectedManufacturer,
+        optionsTarget: manufacturers,
+        labelFields: { fields: ['name'] },
+    },
+}
+const relations = reactive(buildRelations(props.entityDefinitions, entityConfig))
+
 function addItem() {
     window.location.href = generateUrl('/apps/sfxonitam/device-type/detail')
 }
 
-async function loadDeviceType(id: number): Promise<void> {
-    deviceTypeLoading.value = true
+function buildRelations(entityDefinitions, dropdownBindings = {}) {
+    let retval = {};
 
+    for(const [entityName, entityDefinition] of Object.entries(entityDefinitions)) {
+        const fields = []
+
+        for(const fieldDefinition of entityDefinition) {
+            if(!fieldDefinition.requiredOnCreate) {
+                continue;
+            }
+
+            const field = {
+                fieldName: fieldDefinition.name,
+                label: t('sfxonitam', fieldDefinition.label) + ':',
+                sfxonType: mapFrontendBackendFieldType(fieldDefinition.type),
+                type: mapFrontendBackendFieldSubtype(fieldDefinition.type),
+                value: ''
+            }
+
+            fields.push(field);
+        }
+
+        const capitalizedEntityName = entityName.charAt(0).toUpperCase() + entityName.slice(1)
+        const entry = {
+            heading: t('sfxonitam', 'Add ' + entityName),
+            fields: fields,
+            saveFunction: services[`${capitalizedEntityName}Service`][`create${capitalizedEntityName}`]
+        }
+
+        retval[entityName] = {
+            addRecordModal: entry
+        }
+
+        const binding = dropdownBindings[entityName] ?? {}
+
+        retval[entityName] = {
+            addRecordModal: entry,
+            selectTarget: binding.selectTarget ?? null,
+            optionsTarget: binding.optionsTarget ?? null,
+            labelFields: binding.labelFields ?? { fields: ['name'] },
+        }
+    }
+
+    return retval;
+}
+
+async function loadDeviceType(id: number): Promise<void> {
     try {
-        const d = await fetchDeviceType(id)
+        deviceTypeLoading.value = true
+        const data = await fetchDeviceType(id)
+        const d = data.mainData
         name.value = d.name ?? ''
         selectedManufacturer.value = manufacturers.value.find(s => s.id == d.manufacturerId) ?? null
         comment.value = d.comment ? d.comment : ''
+        customFieldInitialValues.value = d.customFields ?? {}
     } catch (e: any) {
-        generalError.value = t('sfxonitam', 'DeviceType konnte nicht geladen werden.')
-        console.error('Fehler beim Laden der DeviceType:', e)
+        generalError.value = t('sfxonitam', 'Device Type could not be loaded.')
+        console.error('Error while loading DeviceType:', e)
     } finally {
         deviceTypeLoading.value = false
     }
@@ -78,15 +200,106 @@ async function loadManufacturers() {
     }
 }
 
+function mapFrontendBackendFieldType(backendType) {
+    switch(backendType) {
+        case 'VARCHAR':
+            return 'SfxonEditorFormInput';
+    }
+
+    throw new Error('Unknown field type ' + backendType);
+}
+
+function mapFrontendBackendFieldSubtype(backendType) {
+    switch(backendType) {
+        case 'VARCHAR':
+            return 'text';
+    }
+
+    throw new Error('Unknown field type ' + backendType);
+}
+
+function onEntitySaved(payload: { entityName: string; newOption: { id: string; label: string } }) {
+    const { entityName, newOption } = payload
+    const relation = relations[entityName]
+    const config = entityConfig[entityName]
+
+     if (relation?.optionsTarget) {
+        if (!relation.optionsTarget.some((o: any) => o.id === newOption.id)) {
+            relation.optionsTarget.push(newOption)
+        }
+    }
+
+    if (config?.selectTarget) {
+        config.selectTarget.value = newOption
+    }
+
+    triggerSaveSuccess()
+}
+
+async function openAddEntityDialog(payload: any) {
+    addEntityEntryDialogEntityName.value = payload.entity
+}
+
+async function save() {
+    const submitSuccess = await submitForm()
+
+    if(submitSuccess !== false && typeof deviceTypeId.value === 'undefined') {
+        window.location.href = generateUrl('apps/sfxonitam/device-type/detail?deviceTypeId=' + submitSuccess)
+    }
+}
+
+async function saveAndBack() {
+    const submitSuccess = await submitForm()
+
+    if (submitSuccess !== false) {
+        window.location.href = generateUrl('/apps/sfxonitam/device-type')
+    }
+}
+
+async function saveAndNew() {
+    const submitSuccess = await submitForm()
+    
+    if (submitSuccess !== false) {
+        window.location.href = generateUrl('/apps/sfxonitam/device-type/detail')
+    }
+}
+
+async function searchManufacturers(query: string, signal: AbortSignal): Promise<void> {
+    let filters = {
+        name: [query]
+    };
+
+    const data = await ManufacturerService.findManufacturer({ filters: filters }, signal)
+
+    if (data === null || data.mainData === null) {
+        return;
+    }
+
+    manufacturers.value = Object.values(data.mainData).map((merchant: any) => ({
+        id: merchant.id,
+        label: merchant.name
+    }))
+}
+
 async function submitForm() {
     clearErrors()
     savedSuccessfully.value = false;
     isSaving.value = true
 
+    try {
+        await customFieldsRef.value?.uploadPendingFiles()
+    } catch (e) {
+        console.error('Image upload failed:', e)
+        generalError.value = t('sfxonitam', 'Image upload failed.')
+        isSaving.value = false
+        return false
+    }
+
     const payload = {
         name: name.value,
         manufacturerId: selectedManufacturer.value?.id ?? null,
         comment: comment.value,
+        customFields: customFieldValues.value,
     }
 
     try {
@@ -96,21 +309,27 @@ async function submitForm() {
 
         // Backend gibt status: 'error' mit HTTP 200 zurück
         if (data?.status === 'error') {
-            handleApiError(data, t('sfxonitam', 'Bitte korrigiere die markierten Felder.'))
-            return
+            handleApiError(data, t('sfxonitam', 'Please correct the highlighted fields.'))
+            return false
         }
 
-        savedSuccessfully.value = true;
+        triggerSaveSuccess()
+        isSaving.value = false
+        return data.id
     } catch (error: any) {
         // HTTP-Fehler (4xx/5xx) – Backend gibt evtl. trotzdem JSON zurück
         const data = error?.response?.data
 
         if (data?.status === 'error') {
-            handleApiError(data, t('sfxonitam', 'Bitte korrigiere die markierten Felder.'))
+            handleApiError(data, t('sfxonitam', 'Please correct the highlighted fields.'))
         } else {
-            generalError.value = t('sfxonitam', 'Unbekannter Fehler beim Speichern.')
+            generalError.value = t('sfxonitam', 'Unknown error while saving.')
         }
+
+        isSaving.value = false
     }
+
+    return false
 }
 
 onMounted(async () => {
@@ -138,133 +357,126 @@ onMounted(async () => {
             <SfxonMainNavigation :currentPage="'deviceTypes'" />
         </NcAppNavigation>
 
-        <!-- Inhaltsbereich -->
-        <NcAppContent :class="$style.content">
-            <div :class="$style.form">
-                <h2>
-                    {{ isEditMode
-                        ? t('sfxonitam', 'Geräte-Typ bearbeiten')
-                        : t('sfxonitam', 'Geräte-Typ erfassen') }}
-                </h2>
+        <NcAppContent>
+            <SfxonItamHeaderBc
+                :breadcrumbs="breadcrumbs">
+            </SfxonItamHeaderBc>
 
-                <!-- Allgemeine Fehlermeldung -->
-                <NcNoteCard
+            <div :class="SfxonEditorStyles.form">
+                <div
+                    :class="SfxonEditorStyles.myfavNotificationContainer"
                     v-if="generalError"
-                    type="error"
                 >
-                    {{ generalError }}
-                </NcNoteCard>
-
-                <!-- Erfolgsmeldung -->
-                <NcNoteCard
-                    v-if="savedSuccessfully"
-                    type="success"
-                >
-                    {{ t('sfxonitam', 'Die Änderungen wurden gespeichert.') }}
-                </NcNoteCard>
-
-                <!-- Name -->
-                <div :class="$style.field">
-                    <NcTextField
-                        id="name"
-                        v-model="name"
-                        :label="t('sfxonitam', 'Name')"
-                        :placeholder="t('sfxonitam', 'z.B. In Nutzung')"
-                        :class="fieldErrors.name ? $style.fieldError : ''"
-                        @input="clearFieldError('name')"
-                    />
-                    <span v-if="fieldErrors.name" :class="$style.errorText">
-                        {{ fieldErrors.name }}
-                    </span>
+                    <NcNoteCard type="error">
+                        {{ generalError }}
+                    </NcNoteCard>
                 </div>
 
-                <!-- Locatoin -->
-                <div :class="$style.field">
-                    <label for="manufacturer-select" :class="$style.label">
-                        {{ t('sfxonitam', 'Manufacturer') }}
-                    </label>
-                    <NcSelect
-                        id="device-status-select"
-                        v-model="selectedManufacturer"
-                        :options="manufacturers"
-                        :loading="manufacturersLoading"
-                        :label="'label'"
-                        track-by="id"
-                        :class="fieldErrors.manufacturerId ? $style.fieldError : ''"
-                        @input="clearFieldError('manufacturerId')"
-                    />
-                    <span v-if="fieldErrors.manufacturerId" :class="$style.errorText">
-                        {{ fieldErrors.manufacturerId }}
-                    </span>
+                <SfxonSaveBadge
+                    :visible="saveVisible"
+                    :is-reflash="saveIsReflash"
+                    :flash-key="saveFlashKey"
+                />
+
+                <div :class="[SfxonEditorStyles.sfxonFormRow]">
+                    <div :class="[SfxonEditorStyles.sfxonFormSection, $style.formSection1]">
+                        <div :class="[SfxonEditorStyles.sfxonFormColumn]">
+                            <SfxonEditorFormInput
+                                field="name"
+                                id="name"
+                                v-model="name"
+                                :label="t('sfxonitam', 'Name') + ':'"
+                                type="text"
+                                :placeholder="t('sfxonitam', 'e.g. Laptop')"
+                                @input="clearFieldError('name')"
+                                :fieldError="fieldErrors.name"
+                            />
+
+                            <SfxonEditorFormEntitySelect
+                                :addRecordFn="() => openAddEntityDialog({ entity: 'manufacturer' })"
+                                field="manufacturerId"
+                                :fieldError="fieldErrors.manufacturerId"
+                                id="manufacturer-select"
+                                @input="clearFieldError('manufacturerId')"
+                                :label="t('sfxonitam', 'Manufacturer') + ':'"
+                                :options="manufacturers"
+                                :searchFn="searchManufacturers"
+                                trackBy="id"
+                                v-model="selectedManufacturer"
+                            />
+
+                            <SfxonEditorFormTextareaLabeled
+                                field="comment"
+                                id="comment"
+                                v-model="comment"
+                                :label="t('sfxonitam', 'Description/Comment') + ':'"
+                                @input="clearFieldError('comment')"
+                                :field-error="fieldErrors.comment"
+                                :class="$style.commentField"
+                            />
+
+                            <SfxonCustomFields
+                                ref="customFieldsRef"
+                                :customFields="customFields"
+                                :field-errors="fieldErrors"
+                                :initial-values="customFieldInitialValues"
+                                @update:values="onCustomFieldValuesUpdate"
+                                @input="(technicalName) => clearFieldError(`customFields.${technicalName}`)"
+                            />
+                        </div>
+                    </div>
                 </div>
 
-                <!-- Kommentar -->
-                <div :class="$style.field">
-                    <NcTextArea
-                        id="comment"
-                        v-model="comment"
-                        :label="t('sfxonitam', 'Beschreibung/Kommentare')"
-                        :class="fieldErrors.comment ? $style.fieldError : ''"
-                        @input="clearFieldError('comment')"
-                    />
-                    <span v-if="fieldErrors.comment" :class="$style.errorText">
-                        {{ fieldErrors.comment }}
-                    </span>
-                </div>
 
+                <!-- Bottom Action Bar -->
+                <div :class="[SfxonEditorStyles.sfxonFormRow, SfxonEditorStyles.sfxonFormRowActionBar]">
+                    <div :class="[SfxonEditorStyles.sfxonFormSection, SfxonEditorStyles.sfxonFormSectionSave]">
+                        <div :class="SfxonEditorStyles.sfxonFormColumn">
+                            <div :class="SfxonEditorStyles.actions">
+                                <NcButton
+                                    :disabled="isSaving"
+                                    variant="secondary"
+                                    @click="saveAndBack"
+                                >
+                                    {{ t('sfxonitam', 'Save & Back') }}
+                                </NcButton>
 
-                <!-- Absenden -->
-                <div :class="$style.actions">
-                    <NcButton variant="primary" @click="submitForm">
-                        {{ t('sfxonitam', 'Speichern') }}
-                    </NcButton>
+                                <NcButton
+                                    :disabled="isSaving"
+                                    variant="secondary"
+                                    @click="saveAndNew"
+                                >
+                                    {{ t('sfxonitam', 'Save & New') }}
+                                </NcButton>
+                                
+                                <NcButton
+                                    :disabled="isSaving"
+                                    variant="primary"
+                                    @click="save">
+                                    {{ t('sfxonitam', 'Save') }}
+                                </NcButton>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </NcAppContent>
     </NcContent>
+
+    <SfxonEntityDialog
+        :relations="relations"
+        :entity-name="addEntityEntryDialogEntityName"
+        @close="addEntityEntryDialogEntityName = ''"
+        @saved="onEntitySaved"
+    />
 </template>
 
-<style module>
-.content {
-    display: flex;
-    justify-content: center;
-    margin: 16px;
+<style module scoped>
+.formSection1 {
+    max-width: 600px;
 }
 
-.form {
-    width: 100%;
-    max-width: 480px;
-    display: flex;
-    flex-direction: column;
-    gap: 16px;
-}
-
-.field {
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-}
-
-.label {
-    font-weight: bold;
-    font-size: 0.875rem;
-    color: var(--color-text-maxcontrast);
-}
-
-.actions {
-    display: flex;
-    justify-content: flex-end;
-    margin-top: 8px;
-}
-
-.fieldError :deep(input),
-.fieldError :deep(.v-select) {
-    border-color: var(--color-error) !important;
-    box-shadow: 0 0 0 2px var(--color-error-hover) !important;
-}
-
-.errorText {
-    color: var(--color-element-error);
-    margin-top: 2px;
+.commentField :deep(textarea) {
+    min-height: 160px!important;
 }
 </style>

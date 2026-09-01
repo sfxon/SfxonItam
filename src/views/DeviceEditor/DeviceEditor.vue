@@ -302,7 +302,6 @@ async function loadDevice(id: number): Promise<void> {
         selectedQuantityUnit.value = quantityUnits.value.find(s => s.id === d.quantityUnitId) ?? null
         serialNumber.value = d.serialNumber ?? ''
         serialNumber2.value = d.serialNumber2 ?? ''
-
         deviceImage.setFromExisting(d.imageFileId ?? null)
         customFieldInitialValues.value = d.customFields ?? {}
     } catch (e: any) {
@@ -491,7 +490,7 @@ async function submitForm() {
         console.error('Image upload failed:', e)
         generalError.value = t('sfxonitam', 'Image upload failed.')
         isSaving.value = false
-        return
+        return false
     }
 
     const payload = {

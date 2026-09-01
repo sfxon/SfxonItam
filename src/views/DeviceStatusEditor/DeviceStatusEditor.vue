@@ -1,17 +1,15 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { generateUrl } from '@nextcloud/router'
+import { mdiPlus } from '@mdi/js'
 import NcAppContent from '@nextcloud/vue/components/NcAppContent'
 import NcAppNavigation from '@nextcloud/vue/components/NcAppNavigation'
 import NcAppNavigationList from '@nextcloud/vue/components/NcAppNavigationList'
 import NcAppNavigationNew from '@nextcloud/vue/components/NcAppNavigationNew'
 import NcContent from '@nextcloud/vue/components/NcContent'
-import { mdiPlus } from '@mdi/js'
-import { translate as t } from '@nextcloud/l10n'
 import NcButton from '@nextcloud/vue/components/NcButton'
-import NcNoteCard from '@nextcloud/vue/components/NcNoteCard'
-import { useApiErrors } from '@/composables/useApiErrors'
 import NcIconSvgWrapper from '@nextcloud/vue/components/NcIconSvgWrapper'
+import NcNoteCard from '@nextcloud/vue/components/NcNoteCard'
 import { fetchDeviceStatus, createDeviceStatus, updateDeviceStatus } from '@/services/DeviceStatusService'
 import SfxonCustomFields from '@/components/SfxonCustomFields'
 import SfxonItamHeaderBc, { type BreadcrumbItem } from '@/components/SfxonItamHeaderBc'
@@ -20,6 +18,8 @@ import SfxonEditorFormInput from '@/components/SfxonEditorFormInput'
 import SfxonEditorFormTextareaLabeled from '@/components/SfxonEditorFormTextareaLabeled'
 import SfxonEditorStyles from '@/components/SfxonEditor/SfxonEditor.module.css'
 import SfxonMainNavigation from '@/components/SfxonMainNavigation'
+import { translate as t } from '@nextcloud/l10n'
+import { useApiErrors } from '@/composables/useApiErrors'
 import { useSaveBadge } from '@/composables/useSaveBadge'
 
 const name = ref('')
@@ -76,8 +76,8 @@ async function loadDeviceStatus(id: number): Promise<void> {
         comment.value = d.comment ? d.comment : ''
         customFieldInitialValues.value = d.customFields ?? {}
     } catch (e: any) {
-        generalError.value = t('sfxonitam', 'Gerätestatus konnte nicht geladen werden.')
-        console.error('Fehler beim Laden des Gerätestatus:', e)
+        generalError.value = t('sfxonitam', 'Device Status could not be loaded.')
+        console.error('Error while loading device status:', e)
     } finally {
         deviceStatusLoading.value = false
     }
@@ -117,7 +117,7 @@ async function submitForm() {
         console.error('Image upload failed:', e)
         generalError.value = t('sfxonitam', 'Image upload failed.')
         isSaving.value = false
-        return
+        return false
     }
 
     const payload = {
