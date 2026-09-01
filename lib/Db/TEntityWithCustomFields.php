@@ -31,4 +31,55 @@ trait TEntityWithCustomFields {
 
         throw new \BadFunctionCallException($name . ' is not a valid attribute');
     }
+
+    private function snakeToCamel(string $snakeCase): string {
+        return lcfirst(str_replace('_', '', ucwords($snakeCase, '_')));
+    }
+
+    /**
+     * @param mixed $customFieldsDefinition array<int, array{technicalName?: string}>|null
+     * @return array<string, mixed>
+     */
+    protected function jsonSerializeFields(mixed $customFieldsDefinition = null): array {
+        $retval = [];
+
+        foreach (static::getFieldDefinition() as $definition) {
+            $property = $this->snakeToCamel($definition['name']);
+            $getter = 'get' . ucfirst($property);
+            $retval[$property] = $this->$getter();
+        }
+
+        $retval['customFields'] = $this->extractCustomFields($customFieldsDefinition);
+
+        return $retval;
+    }
+
+    /**
+     * @param mixed $customFieldsDefinition array<int, array{technicalName?: string}>|null
+     * @return array<string, mixed>
+     */
+    protected function extractCustomFields(mixed $customFieldsDefinition): array {
+        $result = [];
+
+        if (!is_array($customFieldsDefinition) || empty($customFieldsDefinition)) {
+            return $result;
+        }
+
+        foreach ($customFieldsDefinition as $definition) {
+            $technicalName = $definition['technicalName'] ?? null;
+            if ($technicalName === null) {
+                continue;
+            }
+
+            $attributeKey = 'custom' . str_replace('_', '', ucwords($technicalName, '_'));
+
+            if (!array_key_exists($attributeKey, $this->dynamicAttributes)) {
+                continue;
+            }
+
+            $result[$technicalName] = $this->dynamicAttributes[$attributeKey];
+        }
+
+        return $result;
+    }
 }

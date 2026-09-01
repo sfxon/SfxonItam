@@ -1,5 +1,6 @@
 <?php
 declare(strict_types=1);
+
 namespace OCA\SfxonItam\Db;
 
 use OCP\AppFramework\Db\Entity;
@@ -11,6 +12,8 @@ use OCP\AppFramework\Db\Entity;
  * @method void setComment(string|null $comment)
  */
 class DeviceStatus extends Entity implements \JsonSerializable {
+    use TEntityWithCustomFields;
+
     protected ?string $name = null;
     protected ?string $comment = null;
 
@@ -25,11 +28,13 @@ class DeviceStatus extends Entity implements \JsonSerializable {
         return [
             [
                 'defaultValue' => NULL,
+                'filterType' => 'none',
                 'foreignEntity' => false,
                 'index' => true,
                 'label' => 'Identifier',
                 'length' => 20,
                 'name' => 'id',
+                'propertyName' => 'id',
                 'type' => 'BIGINT',
                 'requiredOnCreate' => false,
                 'requiredOnUpdate' => true,
@@ -37,11 +42,13 @@ class DeviceStatus extends Entity implements \JsonSerializable {
             ],
             [
                 'defaultValue' => NULL,
+                'filterType' => 'like',
                 'foreignEntity' => false,
                 'index' => true,
                 'label' => 'Name',
                 'length' => 300,
                 'name' => 'name',
+                'propertyName' => 'name',
                 'type' => 'VARCHAR',
                 'requiredOnCreate' => true,
                 'requiredOnUpdate' => true,
@@ -49,11 +56,13 @@ class DeviceStatus extends Entity implements \JsonSerializable {
             ],
             [
                 'defaultValue' => NULL,
+                'filterType' => 'none',
                 'foreignEntity' => false,
                 'index' => false,
                 'label' => 'Comment',
                 'length' => null,
                 'name' => 'comment',
+                'propertyName' => 'comment',
                 'type' => 'TEXT',
                 'requiredOnCreate' => false,
                 'requiredOnUpdate' => false,
@@ -63,13 +72,10 @@ class DeviceStatus extends Entity implements \JsonSerializable {
     }
 
     /**
-     * @TODO: Check, if this could be changed. It could use the definition of "getFieldDefinition", to serialize the data.
+     * @param mixed $customFields array<int, array{technicalName?: string}>|null
+     * @return array<string, mixed>
      */
-    public function jsonSerialize(): array {
-        return [
-            'id' => $this->getId(),
-            'name' => $this->getName(),
-            'comment' => $this->getComment()
-        ];
+    public function jsonSerialize(mixed $customFields = null): array {
+        return $this->jsonSerializeFields($customFields);
     }
 }

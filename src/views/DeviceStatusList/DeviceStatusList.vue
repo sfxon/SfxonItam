@@ -75,7 +75,7 @@ async function loadDeviceStatis() {
             page: listState.page,
             limit: listState.limit
         })
-        deviceStatis.value = data.deviceStatis
+        deviceStatis.value = data.deviceStatis.mainData
         listState.total = data.total
     } catch (e) {
         error.value = t('sfxonitam', 'Fehler beim Laden der Gerätestati.')

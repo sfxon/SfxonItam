@@ -16,6 +16,7 @@ use OCA\SfxonItam\AppInfo\Application;
 use OCA\SfxonItam\Db\DeviceMapper;
 use OCA\SfxonItam\Db\DeviceStatus;
 use OCA\SfxonItam\Db\DeviceStatusMapper;
+use OCA\SfxonItam\Service\CustomFieldService;
 use OCA\SfxonItam\Service\DeviceStatusService;
 
 /**
@@ -30,7 +31,8 @@ class DeviceStatusController extends Controller
         IRequest $request,
         private DeviceMapper $deviceMapper,
         private DeviceStatusMapper $deviceStatusMapper,
-        private readonly DeviceStatusService $deviceStatusService,)
+        private readonly DeviceStatusService $deviceStatusService,
+        private CustomFieldService $customFieldService,)
     {
         parent::__construct($appName, $request);
     }
@@ -52,7 +54,7 @@ class DeviceStatusController extends Controller
         // Put this in a try-catch block, since findById will throw an error,
         // if it does not find an element with the given id.
         try {
-            $deviceStatus = $this->deviceStatusMapper->findById($id);
+            $deviceStatus = $this->deviceStatusMapper->findById($id)['mainData'];
             $this->deviceStatusMapper->delete($deviceStatus);
         } catch(\Error $error) {
         }
@@ -65,11 +67,17 @@ class DeviceStatusController extends Controller
     #[NoCSRFRequired]
     #[OpenAPI(OpenAPI::SCOPE_IGNORE)]
     #[FrontpageRoute(verb: 'GET', url: '/device-status/detail')]
-    public function deviceDetail(): TemplateResponse
+    public function deviceStatusDetail(): TemplateResponse
     {
+        $customFields = $this->customFieldService->getCustomFieldsDefinitionByGroup('sfxon_device_status');
+
         return new TemplateResponse(
             Application::APP_ID,
             'device-status/editor',
+            [
+                'entityDefinitions' => $entityDefinitions,
+                'customFields' => $customFields,
+            ]
         );
     }
 
@@ -94,11 +102,14 @@ class DeviceStatusController extends Controller
         int $limit = 20,): JSONResponse
     {
         $offset = ($page - 1) * $limit;
-        $deviceStatis = $this->deviceStatusMapper->findAllPaged($orderBy, $direction, $limit, $offset);
+        $data = $this->deviceStatusMapper->findAllPaged($orderBy, $direction, $limit, $offset);
         $total   = $this->deviceStatusMapper->countAll();
 
+        $data['mainData'] = array_map(fn($d) => $d->jsonSerialize(/* $customFields */), $data['mainData']);
+        $data['relations'] = $data['relations'];
+
         return new JSONResponse([
-            'deviceStatis' => array_map(fn($d) => $d->jsonSerialize(), $deviceStatis),
+            'deviceStatis' => $data,
             'total'   => $total,
             'page'    => $page,
             'limit'   => $limit,
@@ -124,6 +135,16 @@ class DeviceStatusController extends Controller
     {
         $data = $this->deviceStatusService->getDataFromRequest($this->request->getParams(), $this->expectedFields);
         $result = $this->deviceStatusService->validateData($data);
+        $deviceStatus = new DeviceStatus();
+        $customFields = $this->customFieldService->getCustomFieldsDefinitionByGroup('sfxon_device_status');
+        $deviceStatus = $this->setDeviceStatusDataFromRequest($deviceStatus);
+        $customFieldData = $this->customFieldService->getCustomFieldDataFromRequest($customFields, $this->request->getParams());
+        $customFieldErrors = $this->customFieldService->validateCustomFieldData($customFields, $customFieldData);
+
+        if(count($customFieldErrors) > 0) {
+            $result['valid'] = false;
+            $result['errors'] = array_merge($result['errors'], $customFieldErrors);
+        }
 
         if($result['valid'] === false) {
             return new DataResponse([
@@ -132,10 +153,8 @@ class DeviceStatusController extends Controller
             ], Http::STATUS_UNPROCESSABLE_ENTITY); // Returns error 422
         }
 
-        $deviceStatus = new DeviceStatus();
-        $deviceStatus->setName($this->request->getParam('name'));
-        $deviceStatus->setComment($this->request->getParam('comment') ?? '');
         $saved = $this->deviceStatusMapper->insert($deviceStatus);
+        $this->customFieldService->updateCustomFieldsForEntity('sfxon_device_status', $saved->getId(), $customFieldData);
 
         return new DataResponse([
             'status' => 'ok',
@@ -171,7 +190,7 @@ class DeviceStatusController extends Controller
     public function show(int $id): JSONResponse
     {
         try {
-            $deviceStatus = $this->deviceStatusMapper->findById($id);
+            $data = $this->deviceStatusMapper->findById($id);
         } catch (DoesNotExistException) {
             return new JSONResponse(
                 ['status' => 'error', 'message' => 'Device not found'],
@@ -179,7 +198,10 @@ class DeviceStatusController extends Controller
             );
         }
 
-        return new JSONResponse($deviceStatus->jsonSerialize());
+        $customFields = $this->customFieldService->getCustomFieldsDefinitionByGroup('sfxon_device_status');
+        $data['mainData'] = $data['mainData']->jsonSerialize($customFields);
+        $data['relations'] = $data['relations'];
+        return new JSONResponse($data);
     }
 
     #[OpenAPI(OpenAPI::SCOPE_IGNORE)]
@@ -188,7 +210,7 @@ class DeviceStatusController extends Controller
     {
         // Return 404 if entry was not found.
         try {
-            $deviceStatus = $this->deviceStatusMapper->findById($id);
+            $deviceStatus = $this->deviceStatusMapper->findById($id)['mainData'];
         } catch (\OCP\AppFramework\Db\DoesNotExistException) {
             return new DataResponse(
                 ['status' => 'error', 'message' => 'Device not found'],
@@ -197,8 +219,16 @@ class DeviceStatusController extends Controller
         }
 
         $data = $this->deviceStatusService->getDataFromRequest($this->request->getParams(), $this->expectedFields);
-
         $result = $this->deviceStatusService->validateData($data, $id);
+
+        $customFields = $this->customFieldService->getCustomFieldsDefinitionByGroup('sfxon_device_status');
+        $customFieldData = $this->customFieldService->getCustomFieldDataFromRequest($customFields, $this->request->getParams());
+        $customFieldErrors = $this->customFieldService->validateCustomFieldData($customFields, $customFieldData);
+
+        if(count($customFieldErrors) > 0) {
+            $result['valid'] = false;
+            $result['errors'] = array_merge($result['errors'], $customFieldErrors);
+        }
 
         if ($result['valid'] === false) {
             return new DataResponse([
@@ -207,15 +237,21 @@ class DeviceStatusController extends Controller
             ], Http::STATUS_UNPROCESSABLE_ENTITY);
         }
 
-        // Update fields.
-        $deviceStatus->setName($this->request->getParam('name'));
-        $deviceStatus->setComment($this->request->getParam('comment') ?? '');
-
+        $deviceStatus = $this->setDeviceStatusDataFromRequest($deviceStatus);
         $updated = $this->deviceStatusMapper->update($deviceStatus);
+        $this->customFieldService->updateCustomFieldsForEntity('sfxon_device_status', $updated->getId(), $customFieldData);
 
         return new DataResponse([
             'status' => 'ok',
-            'id'     => $updated->getId(),
+            'id' => $updated->getId(),
         ]);
+    }
+
+    private function setDeviceStatusDataFromRequest($deviceStatus)
+    {
+        $deviceStatus->setName($this->request->getParam('name'));
+        $deviceStatus->setComment($this->request->getParam('comment') ?? '');
+
+        return $deviceStatus;
     }
 }

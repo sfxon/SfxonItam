@@ -29,29 +29,31 @@ function onInput(value: string | Event) {
 
 </script>
 <template>
-    <div :class="SfxonEditorStyles.sfxonFormColumnRow">
-        <div :class="[SfxonEditorStyles.sfxonFormColumnLabel, $style.formFieldLabel]">
-            <label :for="id" :class="SfxonEditorStyles.label">{{ label }}</label>
-        </div>
-        <div :class="SfxonEditorStyles.sfxonFormColumnInput">
-            <div :class="SfxonEditorStyles.field">
-                <NcTextArea
-                    :id="id"
-                    :model-value="modelValue"
-                    :label-outside="true"
-                    :class="[fieldError ? SfxonEditorStyles.fieldError : '', SfxonEditorStyles.sfxonDescriptionInput, $style.myDescriptionInput]"
-                    @update:modelValue="onInput"
-                >
-                </NcTextArea>
+    <div>
+        <div :class="SfxonEditorStyles.sfxonFormColumnRow">
+            <div :class="[SfxonEditorStyles.sfxonFormColumnLabel, $style.formFieldLabel]">
+                <label :for="id" :class="SfxonEditorStyles.label">{{ label }}</label>
+            </div>
+            <div :class="SfxonEditorStyles.sfxonFormColumnInput">
+                <div :class="SfxonEditorStyles.field">
+                    <NcTextArea
+                        :id="id"
+                        :model-value="modelValue"
+                        :label-outside="true"
+                        :class="[fieldError ? SfxonEditorStyles.fieldError : '', SfxonEditorStyles.sfxonDescriptionInput, $style.myDescriptionInput]"
+                        @update:modelValue="onInput"
+                    >
+                    </NcTextArea>
+                </div>
             </div>
         </div>
-    </div>
-    <div :class="[SfxonEditorStyles.sfxonFormColumnRow, SfxonEditorStyles.sfxonFormColumnRowError]" v-if="fieldError">
-        <div :class="SfxonEditorStyles.sfxonFormColumnLabel">&nbsp;</div>
-        <div :class="SfxonEditorStyles.sfxonFormColumnInput">
-            <span :class="SfxonEditorStyles.errorText">
-                {{ fieldError }}
-            </span>
+        <div :class="[SfxonEditorStyles.sfxonFormColumnRow, SfxonEditorStyles.sfxonFormColumnRowError]" v-if="fieldError">
+            <div :class="SfxonEditorStyles.sfxonFormColumnLabel">&nbsp;</div>
+            <div :class="SfxonEditorStyles.sfxonFormColumnInput">
+                <span :class="SfxonEditorStyles.errorText">
+                    {{ fieldError }}
+                </span>
+            </div>
         </div>
     </div>
 </template>

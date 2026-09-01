@@ -17,10 +17,10 @@ use OCP\AppFramework\Db\Entity;
  * @method void setPositionId(int|null $positionId)
  * @method int|null getDeviceTypeId()
  * @method void setDeviceTypeId(int|null $deviceTypeId)
- * @method int getImageFileId()
- * @method void setImageFileId(int $imageFileId)
- * @method int getItamUserId()
- * @method void setItamUserId(int $itamUserId)
+ * @method int|null getImageFileId()
+ * @method void setImageFileId(int|null $imageFileId)
+ * @method int|null getItamUserId()
+ * @method void setItamUserId(int|null $itamUserId)
  * @method string|null getSerialNumber()
  * @method void setSerialNumber(string|null $serialNumber)
  * @method string|null getSerialNumber2()
@@ -35,7 +35,7 @@ use OCP\AppFramework\Db\Entity;
  * @method void setPurchaseDate(\DateTimeImmutable|null $purchaseDate)
  * @method string|null getCustomFields()
  * @method void setCustomFields(string|null $customFields)
- * @method string|null getDescription())
+ * @method string|null getDescription()
  * @method void setDescription(string|null $description)
  */
 class Device extends Entity implements \JsonSerializable {
@@ -63,6 +63,7 @@ class Device extends Entity implements \JsonSerializable {
         $this->addType('positionId', 'integer');
         $this->addType('deviceTypeId', 'integer');
         $this->addType('imageFileId', 'integer');
+        $this->addType('itamUserId', 'integer');
         $this->addType('merchantId', 'integer');
         $this->addType('quantityUnitId', 'integer');
     }
@@ -74,11 +75,13 @@ class Device extends Entity implements \JsonSerializable {
         return [
             [
                 'defaultValue' => NULL,
+                'filterType' => 'none',
                 'foreignEntity' => false,
                 'index' => true,
                 'label' => 'Identifier',
                 'length' => 20,
                 'name' => 'id',
+                'propertyName' => 'id',
                 'type' => 'BIGINT',
                 'requiredOnCreate' => false,
                 'requiredOnUpdate' => true,
@@ -86,11 +89,13 @@ class Device extends Entity implements \JsonSerializable {
             ],
             [
                 'defaultValue' => NULL,
+                'filterType' => 'like',
                 'foreignEntity' => false,
                 'index' => true,
                 'label' => 'assetNumber',
                 'length' => 300,
                 'name' => 'asset_number',
+                'propertyName' => 'assetNumber',
                 'type' => 'VARCHAR',
                 'requiredOnCreate' => false,
                 'requiredOnUpdate' => false,
@@ -98,11 +103,13 @@ class Device extends Entity implements \JsonSerializable {
             ],
             [
                 'defaultValue' => NULL,
+                'filterType' => 'none',
                 'foreignEntity' => false,
                 'index' => false,
                 'label' => 'Description',
                 'length' => null,
                 'name' => 'description',
+                'propertyName' => 'description',
                 'type' => 'TEXT',
                 'requiredOnCreate' => false,
                 'requiredOnUpdate' => false,
@@ -110,11 +117,13 @@ class Device extends Entity implements \JsonSerializable {
             ],
             [
                 'defaultValue' => NULL,
+                'filterType' => 'in',
                 'foreignEntity' => 'device_status',
                 'index' => true,
                 'label' => 'Device Status',
                 'length' => null,
                 'name' => 'device_status_id',
+                'propertyName' => 'deviceStatusId',
                 'type' => 'BIGINT',
                 'requiredOnCreate' => false,
                 'requiredOnUpdate' => false,
@@ -122,11 +131,13 @@ class Device extends Entity implements \JsonSerializable {
             ],
             [
                 'defaultValue' => NULL,
+                'filterType' => 'in',
                 'foreignEntity' => 'device_type',
                 'index' => true,
                 'label' => 'Device Type',
                 'length' => null,
                 'name' => 'device_type_id',
+                'propertyName' => 'deviceTypeId',
                 'type' => 'BIGINT',
                 'requiredOnCreate' => false,
                 'requiredOnUpdate' => false,
@@ -134,11 +145,13 @@ class Device extends Entity implements \JsonSerializable {
             ],
             [
                 'defaultValue' => NULL,
+                'filterType' => 'none',
                 'foreignEntity' => 'image_file',
                 'index' => true,
                 'label' => 'Image File',
                 'length' => null,
                 'name' => 'image_file_id',
+                'propertyName' => 'imageFileId',
                 'type' => 'BIGINT',
                 'requiredOnCreate' => false,
                 'requiredOnUpdate' => false,
@@ -146,11 +159,13 @@ class Device extends Entity implements \JsonSerializable {
             ],
             [
                 'defaultValue' => NULL,
+                'filterType' => 'like',
                 'foreignEntity' => false,
                 'index' => true,
                 'label' => 'Invoice Number',
                 'length' => 300,
                 'name' => 'invoice_number',
+                'propertyName' => 'invoiceNumber',
                 'type' => 'VARCHAR',
                 'requiredOnCreate' => false,
                 'requiredOnUpdate' => false,
@@ -158,11 +173,13 @@ class Device extends Entity implements \JsonSerializable {
             ],
             [
                 'defaultValue' => NULL,
+                'filterType' => 'in',
                 'foreignEntity' => 'itam_user',
                 'index' => true,
                 'label' => 'Itam User',
                 'length' => null,
                 'name' => 'itam_user_id',
+                'propertyName' => 'itamUserId',
                 'type' => 'BIGINT',
                 'requiredOnCreate' => false,
                 'requiredOnUpdate' => false,
@@ -170,11 +187,13 @@ class Device extends Entity implements \JsonSerializable {
             ],
             [
                 'defaultValue' => NULL,
+                'filterType' => 'in',
                 'foreignEntity' => 'merchant',
                 'index' => true,
                 'label' => 'Merchant',
                 'length' => null,
                 'name' => 'merchant_id',
+                'propertyName' => 'merchantId',
                 'type' => 'BIGINT',
                 'requiredOnCreate' => false,
                 'requiredOnUpdate' => false,
@@ -182,11 +201,13 @@ class Device extends Entity implements \JsonSerializable {
             ],
             [
                 'defaultValue' => NULL,
+                'filterType' => 'like',
                 'foreignEntity' => false,
                 'index' => true,
                 'label' => 'Name',
                 'length' => 300,
                 'name' => 'name',
+                'propertyName' => 'name',
                 'type' => 'VARCHAR',
                 'requiredOnCreate' => true,
                 'requiredOnUpdate' => true,
@@ -194,11 +215,13 @@ class Device extends Entity implements \JsonSerializable {
             ],
             [
                 'defaultValue' => NULL,
+                'filterType' => 'in',
                 'foreignEntity' => 'position',
                 'index' => true,
                 'label' => 'Position',
                 'length' => null,
                 'name' => 'position_id',
+                'propertyName' => 'positionId',
                 'type' => 'BIGINT',
                 'requiredOnCreate' => false,
                 'requiredOnUpdate' => false,
@@ -206,11 +229,13 @@ class Device extends Entity implements \JsonSerializable {
             ],
             [
                 'defaultValue' => NULL,
+                'filterType' => 'dateFromTo',
                 'foreignEntity' => false,
                 'index' => true,
                 'label' => 'Purchase Date',
                 'length' => null,
                 'name' => 'purchase_date',
+                'propertyName' => 'purchaseDate',
                 'type' => 'DATE',
                 'requiredOnCreate' => false,
                 'requiredOnUpdate' => false,
@@ -218,11 +243,13 @@ class Device extends Entity implements \JsonSerializable {
             ],
             [
                 'defaultValue' => NULL,
+                'filterType' => 'numericFromTo',
                 'foreignEntity' => false,
                 'index' => true,
                 'label' => 'Quantity',
                 'length' => '10,4',
                 'name' => 'quantity',
+                'propertyName' => 'quantity',
                 'type' => 'DECIMAL',
                 'requiredOnCreate' => false,
                 'requiredOnUpdate' => false,
@@ -230,11 +257,13 @@ class Device extends Entity implements \JsonSerializable {
             ],
             [
                 'defaultValue' => NULL,
+                'filterType' => 'in',
                 'foreignEntity' => 'quantity_unit',
                 'index' => true,
                 'label' => 'Quantity Unit',
                 'length' => null,
                 'name' => 'quantity_unit_id',
+                'propertyName' => 'quantityUnitId',
                 'type' => 'BIGINT',
                 'requiredOnCreate' => false,
                 'requiredOnUpdate' => false,
@@ -242,11 +271,13 @@ class Device extends Entity implements \JsonSerializable {
             ],
             [
                 'defaultValue' => NULL,
+                'filterType' => 'like',
                 'foreignEntity' => false,
                 'index' => true,
                 'label' => 'Serial Number',
                 'length' => 300,
                 'name' => 'serial_number',
+                'propertyName' => 'serialNumber',
                 'type' => 'VARCHAR',
                 'requiredOnCreate' => false,
                 'requiredOnUpdate' => false,
@@ -254,11 +285,13 @@ class Device extends Entity implements \JsonSerializable {
             ],
             [
                 'defaultValue' => NULL,
+                'filterType' => 'like',
                 'foreignEntity' => false,
                 'index' => true,
                 'label' => 'Serial Number 2',
                 'length' => 300,
                 'name' => 'serial_number_2',
+                'propertyName' => 'serialNumber2',
                 'type' => 'VARCHAR',
                 'requiredOnCreate' => false,
                 'requiredOnUpdate' => false,
@@ -268,54 +301,10 @@ class Device extends Entity implements \JsonSerializable {
     }
 
     /**
-     * @TODO: Check, if this could be changed. It could use the definition of "getFieldDefinition", to serialize the data.
+     * @param array<int, array{technicalName?: string}>|null $customFields
+     * @return array<string, mixed>
      */
     public function jsonSerialize(mixed $customFields = null): array {
-        $retval = [
-            'assetNumber' => $this->getAssetNumber(),
-            'description' => $this->getDescription(),
-            'deviceStatusId' => $this->getDeviceStatusId(),
-            'deviceTypeId' => $this->getDeviceTypeId(),
-            'id' => $this->getId(),
-            'imageFileId' => $this->getImageFileId(),
-            'invoiceNumber' => $this->getInvoiceNumber(),
-            'itamUserId' => $this->getItamUserId(),
-            'merchantId' => $this->getMerchantId(),
-            'name' => $this->getName(),
-            'positionId' => $this->getPositionId(),
-            'purchaseDate' => $this->getPurchaseDate(),
-            'quantity' => $this->getQuantity(),
-            'quantityUnitId' => $this->getQuantityUnitId(),
-            'serialNumber' => $this->getSerialNumber(),
-            'serialNumber2' => $this->getSerialNumber2(),
-        ];
-    
-        // Attach custom fields.
-        $customFieldsRetval = [];
-
-        if (is_array($customFields) && !empty($customFields)) {
-            foreach ($customFields as $definition) {
-                $technicalName = $definition['technicalName'] ?? null;
-
-                if ($technicalName === null) {
-                    continue;
-                }
-
-                // transforms for example "long_text" to "LongText" and prefixes custom,
-                // since the dynamicAttributes keys are expected in this format: "customLongText".
-                $pascalName = str_replace('_', '', ucwords($technicalName, '_'));
-                $attributeKey = 'custom' . $pascalName;
-
-                if (!array_key_exists($attributeKey, $this->dynamicAttributes)) {
-                    continue;
-                }
-
-                $customFieldsRetval[$technicalName] = $this->dynamicAttributes[$attributeKey];
-            }
-        }
-
-        $retval['customFields'] = $customFieldsRetval;
-    
-        return $retval;
+        return $this->jsonSerializeFields($customFields);
     }
 }

@@ -159,10 +159,10 @@ class CustomFieldService {
         return $validCustomFields;
     }
 
-    public function getCustomFieldsDefinitionByGroup(): array
+    public function getCustomFieldsDefinitionByGroup($groupName): array
     {
         $customFields = [];
-        $customFieldGroup = $this->customFieldGroupMapper->findByEntityName('sfxon_device');
+        $customFieldGroup = $this->customFieldGroupMapper->findByEntityName($groupName);
 
         if ($customFieldGroup !== null) {
             $result = $this->customFieldMapper->searchPaged(

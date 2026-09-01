@@ -15,8 +15,6 @@ use OCP\IRequest;
 use OCA\SfxonItam\AppInfo\Application;
 use OCA\SfxonItam\Db\Device;
 use OCA\SfxonItam\Db\DeviceMapper;
-use OCA\SfxonItam\Db\CustomFieldGroupMapper;
-use OCA\SfxonItam\Db\CustomFieldMapper;
 use OCA\SfxonItam\Db\DeviceStatus;
 use OCA\SfxonItam\Db\DeviceType;
 use OCA\SfxonItam\Db\ItamUser;
@@ -56,8 +54,6 @@ class DeviceController extends Controller
         IRequest $request,
         private DeviceMapper $deviceMapper,
         private readonly DeviceService $deviceService,
-        private CustomFieldGroupMapper $customFieldGroupMapper,
-        private CustomFieldMapper $customFieldMapper,
         private CustomFieldService $customFieldService,)
     {
         parent::__construct($appName, $request);
@@ -71,7 +67,7 @@ class DeviceController extends Controller
         // if it does not find an element with the given id.
         try {
             $device = $this->deviceMapper->findById($id);
-            $this->deviceMapper->delete($device);
+            $this->deviceMapper->delete($device['mainData']);
         } catch(\Error $error) {
         }
 
@@ -96,7 +92,7 @@ class DeviceController extends Controller
             'quantityUnit' => QuantityUnit::getFieldDefinition(),
         ];
 
-        $customFields = $this->customFieldService->getCustomFieldsDefinitionByGroup();
+        $customFields = $this->customFieldService->getCustomFieldsDefinitionByGroup('sfxon_device');
 
         return new TemplateResponse(
             Application::APP_ID,
@@ -190,7 +186,7 @@ class DeviceController extends Controller
             );
         }
 
-        $customFields = $this->customFieldService->getCustomFieldsDefinitionByGroup();
+        $customFields = $this->customFieldService->getCustomFieldsDefinitionByGroup('sfxon_device');
         $data['mainData'] = $data['mainData']->jsonSerialize($customFields);
         $data['relations'] = $data['relations'];
 
@@ -214,7 +210,7 @@ class DeviceController extends Controller
         $data = $this->deviceService->getDataFromRequest($this->request->getParams(), $this->expectedFields);
         $result = $this->deviceService->validateData($data, $id);
 
-        $customFields = $this->customFieldService->getCustomFieldsDefinitionByGroup();
+        $customFields = $this->customFieldService->getCustomFieldsDefinitionByGroup('sfxon_device');
         $customFieldData = $this->customFieldService->getCustomFieldDataFromRequest($customFields, $this->request->getParams());
         $customFieldErrors = $this->customFieldService->validateCustomFieldData($customFields, $customFieldData);
 

@@ -16,8 +16,8 @@ import NcAppNavigationList from '@nextcloud/vue/components/NcAppNavigationList'
 import NcAppNavigationNew from '@nextcloud/vue/components/NcAppNavigationNew'
 import NcButton from '@nextcloud/vue/components/NcButton'
 import NcContent from '@nextcloud/vue/components/NcContent'
+import { parseLocalDateString, toLocalDateString } from '@/services/DateService'
 import { mdiPlus } from '@mdi/js'
-import { translate as t } from '@nextcloud/l10n'
 import { generateUrl } from '@nextcloud/router'
 import NcNoteCard from '@nextcloud/vue/components/NcNoteCard'
 import NcIconSvgWrapper from '@nextcloud/vue/components/NcIconSvgWrapper'
@@ -30,12 +30,14 @@ import SfxonEditorFormInput from '@/components/SfxonEditorFormInput'
 import SfxonEditorFormTextarea from '@/components/SfxonEditorFormTextarea'
 import SfxonEditorStyles from '@/components/SfxonEditor/SfxonEditor.module.css'
 import SfxonEntityDialog from '@/components/SfxonEntityDialog'
-import SfxonItamHeader from '@/components/SfxonItamHeader'
+import SfxonItamHeaderBc from '@/components/SfxonItamHeaderBc'
 import SfxonMainNavigation from '@/components/SfxonMainNavigation'
 import SfxonQrCodeView from '@/components/SfxonQrCodeView'
+import SfxonSaveBadge from '@/components/SfxonSaveBadge'
+import { translate as t } from '@nextcloud/l10n'
 import { useApiErrors } from '@/composables/useApiErrors'
 import { useSfxonFileUploadField } from '@/composables/useSfxonFileUploadField'
-import { parseLocalDateString, toLocalDateString } from '@/services/DateService'
+import { useSaveBadge } from '@/composables/useSaveBadge'
 
 const services = {
     DeviceService,
@@ -65,11 +67,6 @@ const props = defineProps({
 })
 const purchaseDate = ref<Date | null>(null)
 const quantity = ref('')
-
-const saveFlashKey = ref(0) // Changing this key re-triggers the CSS animation.
-const saveVisible = ref(false) // Used to control the visibility of symbols.
-const saveIsReflash = ref(false) // Marks the distinction between initial vs. re-trigger animations.
-let saveHideTimer: ReturnType<typeof setTimeout> | null = null
 const selectedDeviceStatus = ref<{ id: string; label: string } | null>(null)
 const selectedDeviceType = ref<{ id: string; label: string } | null>(null)
 const selectedItamUser = ref<{ id: string; label: string } | null>(null)
@@ -81,6 +78,7 @@ const serialNumber2 = ref('')
 const deviceLoading = ref(false)
 const isSaving = ref(false)
 const { fieldErrors, generalError, handleApiError, clearErrors, clearFieldError } = useApiErrors()
+const { visible: saveVisible, isReflash: saveIsReflash, flashKey: saveFlashKey, trigger: triggerSaveSuccess } = useSaveBadge()
 
 // Id und Modus laden.
 const deviceId = computed(() => {
@@ -88,6 +86,20 @@ const deviceId = computed(() => {
     return param ? parseInt(param, 10) : undefined
 })
 const isEditMode = computed(() => !!deviceId.value)
+const breadcrumbs = computed<BreadcrumbItem[]>(() => [
+    {
+        label: t('sfxonitam', 'Device Management'),
+        link: generateUrl('/apps/sfxonitam/'),
+        forceIconText: true,
+        disableDrop: true,
+    },
+    {
+        label: isEditMode.value ? t('sfxonitam', 'Edit') : t('sfxonitam', 'Create'),
+        clickable: false,
+        forceIconText: true,
+        disableDrop: true,
+    },
+])
 
 // Define related entities.
 const itamUsers = ref<{ id: string; label: string }[]>([])
@@ -108,7 +120,6 @@ async function onDeviceImageFilePicker(): Promise<void> {
 }
 
 const customFieldsRef = ref<InstanceType<typeof SfxonCustomFields> | null>(null)
-
 const customFieldValues = ref<Record<string, unknown>>({})
 
 function onCustomFieldValuesUpdate(newValues: Record<string, unknown>) {
@@ -324,10 +335,18 @@ async function openAddEntityDialog(payload: any) {
     addEntityEntryDialogEntityName.value = payload.entity
 }
 
+async function save() {
+    const submitSuccess = await submitForm()
+
+    if(submitSuccess !== false && typeof deviceId.value === 'undefined') {
+        window.location.href = generateUrl('apps/sfxonitam/device/detail?deviceId=' + submitSuccess)
+    }
+}
+
 async function saveAndBack() {
     const submitSuccess = await submitForm()
     
-    if (submitSuccess) {
+    if (submitSuccess !== false) {
         window.location.href = generateUrl('/apps/sfxonitam')
     }
 }
@@ -335,7 +354,7 @@ async function saveAndBack() {
 async function saveAndNew() {
     const submitSuccess = await submitForm()
     
-    if (submitSuccess) {
+    if (submitSuccess !== false) {
         window.location.href = generateUrl('/apps/sfxonitam/device/detail')
     }
 }
@@ -501,47 +520,27 @@ async function submitForm() {
 
         // Backend returns status: 'error' with HTTP 200
         if (data?.status === 'error') {
-            handleApiError(data, t('sfxonitam', 'Bitte korrigiere die markierten Felder.'))
-            return
+            handleApiError(data, t('sfxonitam', 'Please correct the highlighted fields.'))
+            return false
         }
 
         triggerSaveSuccess()
         isSaving.value = false
-        return true
+        return data.id
     } catch (error: any) {
         // HTTP-Error (4xx/5xx), backend may despite return JSON .
         const data = error?.response?.data
 
         if (data?.status === 'error') {
-            handleApiError(data, t('sfxonitam', 'Bitte korrigiere die markierten Felder.'))
+            handleApiError(data, t('sfxonitam', 'Please correct the highlighted fields.'))
         } else {
-            generalError.value = t('sfxonitam', 'Unbekannter Fehler beim Speichern.')
+            generalError.value = t('sfxonitam', 'Unknown error while saving.')
         }
 
         isSaving.value = false
     }
 
     return false
-}
-
-function triggerSaveSuccess() {
-    const HIDE_DELAY = 3500 // ms
-
-    if (saveVisible.value) {
-        // Retrigger: with prominent highlighting.
-        saveIsReflash.value = true
-        saveFlashKey.value++
-        setTimeout(() => { saveIsReflash.value = false }, 600)
-    } else {
-        saveVisible.value = true
-        saveIsReflash.value = false
-        saveFlashKey.value++
-    }
-
-    if (saveHideTimer) clearTimeout(saveHideTimer)
-    saveHideTimer = setTimeout(() => {
-        saveVisible.value = false
-    }, HIDE_DELAY)
 }
 
 onMounted(async () => {
@@ -567,21 +566,12 @@ onMounted(async () => {
             <SfxonMainNavigation :currentPage="'devices'" />
         </NcAppNavigation>
 
-        <!-- Inhaltsbereich -->
         <NcAppContent>
-            <SfxonItamHeader
-                :titleLabel="isEditMode ? t('sfxonitam', 'Edit device') : t('sfxonitam', 'Create device')"
-            >
-                <template #actionButtonsRight>
-                    <NcButton
-                        @click="onBackButton"
-                    >
-                        {{ t('sfxonitam', 'Back') }}
-                    </NcButton>
-                </template>
-            </SfxonItamHeader>
+            <SfxonItamHeaderBc
+                :titleLabel="''"
+                :breadcrumbs="breadcrumbs">
+            </SfxonItamHeaderBc>
 
-            <!-- Form -->
             <div :class="SfxonEditorStyles.form">
                 <div
                     :class="SfxonEditorStyles.myfavNotificationContainer"
@@ -592,23 +582,11 @@ onMounted(async () => {
                     </NcNoteCard>
                 </div>
 
-                <!-- Save animation -->
-                <div :class="$style.saveBadgeOuter">
-                    <Transition name="save-badge">
-                        <div
-                            v-if="saveVisible"
-                            :key="saveFlashKey"
-                            :class="[$style.saveBadge, saveIsReflash && $style.saveBadgeReflash]"
-                            aria-live="polite"
-                            role="status"
-                        >
-                            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" :class="$style.saveBadgeIcon">
-                                <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="1.8" fill="rgba(255,255,255,0.1)"/>
-                                <polyline points="7,12.5 10.5,16 17,9" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
-                            </svg>
-                        </div>
-                    </Transition>
-                </div>
+                <SfxonSaveBadge
+                    :visible="saveVisible"
+                    :is-reflash="saveIsReflash"
+                    :flash-key="saveFlashKey"
+                />
 
                 <div :class="[SfxonEditorStyles.sfxonFormRow, $style.sfxonFormRow1]">
                     <div :class="[SfxonEditorStyles.sfxonFormSection, $style.sfxonFormSection1]">
@@ -858,7 +836,7 @@ onMounted(async () => {
                                 <NcButton
                                     :disabled="isSaving"
                                     variant="primary"
-                                    @click="submitForm">
+                                    @click="save">
                                     {{ t('sfxonitam', 'Save') }}
                                 </NcButton>
                             </div>
@@ -956,76 +934,6 @@ onMounted(async () => {
 .sfxonFormColumnDescription {
     min-height: 200px;
     width: 100%;
-}
-
-/* Save Badge */
-.saveBadgeOuter {
-    position: absolute;
-    top: 6px;
-    right: -134px;
-    width: 126px;
-    height: 100%;
-    overflow: visible;
-    pointer-events: none;
-    z-index: 1500;
-}
-
-.saveBadge {
-    align-items: center;
-    animation: saveBadgeEnter 0.45s cubic-bezier(0.34, 1.56, 0.64, 1) both;
-    background: color-mix(in srgb, var(--color-success) 80%, transparent);
-    border-radius: var(--border-radius-large, 12px);
-    box-shadow:
-        0 6px 20px color-mix(in srgb, var(--color-success) 50%, transparent),
-        0 2px 6px rgba(0,0,0,0.15),
-        inset 0 1px 0 rgba(255,255,255,0.15);
-    display: flex;
-    height: 108px;
-    justify-content: center;
-    pointer-events: auto;
-    position: sticky;
-    right: 0;
-    top: 12px; /*top: calc(var(--header-height, 50px) + 50px);*/
-    transform-origin: top right;
-    translate: -126px 0;
-    width: 108px;
-    z-index: 9999;
-}
-
-.saveBadgeIcon {
-    color: var(--color-success-text);
-    height: 66px;
-    width: 66px;
-}
-
-/* Retrigger: Bounce and Flash */
-.saveBadgeReflash {
-    animation:
-        saveBadgeEnter 0.45s cubic-bezier(0.34, 1.56, 0.64, 1) both,
-        saveBadgeFlash 0.55s ease-out both;
-}
-
-/* Vue Transition for fadeout. */
-:global(.save-badge-leave-active) {
-    display: none;
-    position: absolute; /* Step out of the flow, so that the new icon can stick at the top. */
-    transition: opacity 0.4s ease, transform 0.4s ease;
-}
-
-:global(.save-badge-leave-to) {
-    opacity: 0;
-    transform: scale(0.8) translateY(-4px);
-}
-
-@keyframes saveBadgeEnter {
-    0%   { opacity: 0; transform: scale(0.5) translateY(-8px); }
-    100% { opacity: 1; transform: scale(1) translateY(0); }
-}
-
-@keyframes saveBadgeFlash {
-    0%   { box-shadow: 0 6px 20px color-mix(in srgb, var(--color-success) 50%, transparent), 0 2px 6px rgba(0,0,0,0.15); }
-    30%  { box-shadow: 0 0 0 10px color-mix(in srgb, var(--color-success) 35%, transparent), 0 8px 30px color-mix(in srgb, var(--color-success) 70%, transparent); }
-    100% { box-shadow: 0 6px 20px color-mix(in srgb, var(--color-success) 50%, transparent), 0 2px 6px rgba(0,0,0,0.15); }
 }
 
 /* Error Messages */
