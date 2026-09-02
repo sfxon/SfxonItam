@@ -1,5 +1,12 @@
 import { createApp } from 'vue'
-import MerchantEditor from './MerchantEditor.vue'
+import App from './MerchantEditor.vue'
 
-const merchantEditor = createApp(MerchantEditor)
-merchantEditor.mount('#sfxonitammerchanteditor')
+const el = document.getElementById('sfxonitammerchanteditor')
+const entityDefinitions = JSON.parse(el.dataset.entityDefinitions || '{}')
+const customFields = JSON.parse(el.dataset.customFields || '[]')
+
+const app = createApp(App, {
+    entityDefinitions,
+    customFields,
+})
+app.mount('#sfxonitammerchanteditor')

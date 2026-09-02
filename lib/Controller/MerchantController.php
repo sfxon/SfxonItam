@@ -16,12 +16,14 @@ use OCA\SfxonItam\AppInfo\Application;
 use OCA\SfxonItam\Db\DeviceMapper;
 use OCA\SfxonItam\Db\Merchant;
 use OCA\SfxonItam\Db\MerchantMapper;
+use OCA\SfxonItam\Service\CustomFieldService;
 use OCA\SfxonItam\Service\MerchantService;
 
 /**
  * @psalm-suppress UnusedClass
  */
-class MerchantController extends Controller {
+class MerchantController extends Controller
+{
     private array $expectedFields = ['name', 'comment'];
 
     public function __construct(
@@ -29,7 +31,8 @@ class MerchantController extends Controller {
         IRequest $request,
         private DeviceMapper $deviceMapper,
         private MerchantMapper $merchantMapper,
-        private readonly MerchantService $merchantService,)
+        private readonly MerchantService $merchantService,
+        private CustomFieldService $customFieldService,)
     {
         parent::__construct($appName, $request);
     }
@@ -51,7 +54,7 @@ class MerchantController extends Controller {
         // Put this in a try-catch block, since findById will throw an error,
         // if it does not find an element with the given id.
         try {
-            $merchant = $this->merchantMapper->findById($id);
+            $merchant = $this->merchantMapper->findById($id)['mainData'];
             $this->merchantMapper->delete($merchant);
         } catch(\Error $error) {
         }
@@ -66,9 +69,14 @@ class MerchantController extends Controller {
     #[FrontpageRoute(verb: 'GET', url: '/merchant/detail')]
     public function merchantDetail(): TemplateResponse
     {
+        $customFields = $this->customFieldService->getCustomFieldsDefinitionByGroup('sfxon_merchant');
+
         return new TemplateResponse(
             Application::APP_ID,
             'merchant/editor',
+            [
+                'customFields' => $customFields,
+            ]
         );
     }
 
@@ -93,14 +101,17 @@ class MerchantController extends Controller {
         int $limit = 20): JSONResponse
     {
         $offset = ($page - 1) * $limit;
-        $merchants = $this->merchantMapper->findAllPaged($orderBy, $direction, $limit, $offset);
+        $data = $this->merchantMapper->findAllPaged($orderBy, $direction, $limit, $offset);
         $total   = $this->merchantMapper->countAll();
 
+        $data['mainData'] = array_map(fn($d) => $d->jsonSerialize(/* $customFields */), $data['mainData']);
+        $data['relations'] = $data['relations'];
+
         return new JSONResponse([
-            'merchants' => array_map(fn($d) => $d->jsonSerialize(), $merchants),
-            'total'   => $total,
-            'page'    => $page,
-            'limit'   => $limit,
+            'merchants' => $data,
+            'total' => $total,
+            'page' => $page,
+            'limit' => $limit,
         ]);
     }
 
@@ -123,6 +134,16 @@ class MerchantController extends Controller {
     {
         $data = $this->merchantService->getDataFromRequest($this->request->getParams(), $this->expectedFields);
         $result = $this->merchantService->validateData($data);
+        $merchant = new Merchant();
+        $customFields = $this->customFieldService->getCustomFieldsDefinitionByGroup('sfxon_merchant');
+        $merchant = $this->setMerchantDataFromRequest($merchant);
+        $customFieldData = $this->customFieldService->getCustomFieldDataFromRequest($customFields, $this->request->getParams());
+        $customFieldErrors = $this->customFieldService->validateCustomFieldData($customFields, $customFieldData);
+
+        if(count($customFieldErrors) > 0) {
+            $result['valid'] = false;
+            $result['errors'] = array_merge($result['errors'], $customFieldErrors);
+        }
 
         if($result['valid'] === false) {
             return new DataResponse([
@@ -131,10 +152,8 @@ class MerchantController extends Controller {
             ], Http::STATUS_UNPROCESSABLE_ENTITY); // Returns error 422
         }
 
-        $merchant = new Merchant();
-        $merchant->setName($this->request->getParam('name'));
-        $merchant->setComment($this->request->getParam('comment') ?? '');
         $saved = $this->merchantMapper->insert($merchant);
+        $this->customFieldService->updateCustomFieldsForEntity('sfxon_device_status', $saved->getId(), $customFieldData);
 
         return new DataResponse([
             'status' => 'ok',
@@ -158,9 +177,9 @@ class MerchantController extends Controller {
 
         return new JSONResponse([
             'mainData' => array_map(fn($d) => $d->jsonSerialize(), $result),
-            'total'   => $total,
-            'page'    => $page,
-            'limit'   => $limit,
+            'total' => $total,
+            'page' => $page,
+            'limit' => $limit,
         ]);
     }
 
@@ -170,7 +189,7 @@ class MerchantController extends Controller {
     public function show(int $id): JSONResponse
     {
         try {
-            $merchant = $this->merchantMapper->findById($id);
+            $data = $this->merchantMapper->findById($id);
         } catch (DoesNotExistException) {
             return new JSONResponse(
                 ['status' => 'error', 'message' => 'Merchant not found'],
@@ -178,7 +197,10 @@ class MerchantController extends Controller {
             );
         }
 
-        return new JSONResponse($merchant->jsonSerialize());
+        $customFields = $this->customFieldService->getCustomFieldsDefinitionByGroup('sfxon_merchant');
+        $data['mainData'] = $data['mainData']->jsonSerialize($customFields);
+        $data['relations'] = $data['relations'];
+        return new JSONResponse($data);
     }
 
     #[OpenAPI(OpenAPI::SCOPE_IGNORE)]
@@ -187,7 +209,7 @@ class MerchantController extends Controller {
     {
         // Gerät laden – 404 wenn nicht vorhanden
         try {
-            $merchant = $this->merchantMapper->findById($id);
+            $merchant = $this->merchantMapper->findById($id)['mainData'];
         } catch (\OCP\AppFramework\Db\DoesNotExistException) {
             return new DataResponse(
                 ['status' => 'error', 'message' => 'Merchant not found'],
@@ -196,8 +218,15 @@ class MerchantController extends Controller {
         }
 
         $data = $this->merchantService->getDataFromRequest($this->request->getParams(), $this->expectedFields);
-
         $result = $this->merchantService->validateData($data, $id);
+        $customFields = $this->customFieldService->getCustomFieldsDefinitionByGroup('sfxon_merchant');
+        $customFieldData = $this->customFieldService->getCustomFieldDataFromRequest($customFields, $this->request->getParams());
+        $customFieldErrors = $this->customFieldService->validateCustomFieldData($customFields, $customFieldData);
+
+        if(count($customFieldErrors) > 0) {
+            $result['valid'] = false;
+            $result['errors'] = array_merge($result['errors'], $customFieldErrors);
+        }
 
         if ($result['valid'] === false) {
             return new DataResponse([
@@ -206,15 +235,21 @@ class MerchantController extends Controller {
             ], Http::STATUS_UNPROCESSABLE_ENTITY);
         }
 
-        // Felder aktualisieren
-        $merchant->setName($this->request->getParam('name'));
-        $merchant->setComment($this->request->getParam('comment') ?? '');
-
+        $merchant = $this->setMerchantDataFromRequest($merchant);
         $updated = $this->merchantMapper->update($merchant);
+        $this->customFieldService->updateCustomFieldsForEntity('sfxon_merchant', $updated->getId(), $customFieldData);
 
         return new DataResponse([
             'status' => 'ok',
-            'id'     => $updated->getId(),
+            'id' => $updated->getId(),
         ]);
+    }
+
+    private function setMerchantDataFromRequest($merchant)
+    {
+        $merchant->setName($this->request->getParam('name'));
+        $merchant->setComment($this->request->getParam('comment') ?? '');
+
+        return $merchant;
     }
 }

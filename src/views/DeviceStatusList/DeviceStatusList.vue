@@ -20,9 +20,9 @@ import NcDialog from '@nextcloud/vue/components/NcDialog'
 import NcButton from '@nextcloud/vue/components/NcButton'
 import NcNoteCard from '@nextcloud/vue/components/NcNoteCard'
 
-const loading   = ref(false)
-const error     = ref<string | null>(null)
-const deviceStatis   = ref<DeviceSatus[]>([])
+const loading = ref(false)
+const error = ref<string | null>(null)
+const deviceStatis = ref<DeviceSatus[]>([])
 const listState = useListState()
 const deviceStatusToDelete = ref<DeviceStatus | null>(null)
 const generalError = ref<string>('')

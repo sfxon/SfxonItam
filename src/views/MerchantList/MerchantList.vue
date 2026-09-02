@@ -20,9 +20,9 @@ import NcDialog from '@nextcloud/vue/components/NcDialog'
 import NcButton from '@nextcloud/vue/components/NcButton'
 import NcNoteCard from '@nextcloud/vue/components/NcNoteCard'
 
-const loading   = ref(false)
-const error     = ref<string | null>(null)
-const merchants   = ref<Merchant[]>([])
+const loading = ref(false)
+const error = ref<string | null>(null)
+const merchants = ref<Merchant[]>([])
 const listState = useListState()
 const merchantToDelete = ref<Merchant | null>(null)
 const generalError = ref<string>('')
@@ -54,7 +54,7 @@ async function confirmDelete() {
         if(e.response && e.response.status == 422) {
             generalError.value = e.response.data.errors.join('<br>')
         } else {
-            generalError.value = 'Es ist ein Fehler beim Löschen aufgetreten.'
+            generalError.value = 'An error occured on delete.'
         }
         return;
     }
@@ -75,10 +75,10 @@ async function loadMerchants() {
             page: listState.page,
             limit: listState.limit
         })
-        merchants.value = data.merchants
+        merchants.value = data.merchants.mainData
         listState.total = data.total
     } catch (e) {
-        error.value = t('sfxonitam', 'Fehler beim Laden der Gerätestati.')
+        error.value = t('sfxonitam', 'Error while loading Merchants')
     } finally {
         loading.value = false
     }
