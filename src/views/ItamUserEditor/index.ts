@@ -1,5 +1,12 @@
 import { createApp } from 'vue'
-import ItamUserEditor from './ItamUserEditor.vue'
+import App from './ItamUserEditor.vue'
 
-const itamUserEditor = createApp(ItamUserEditor)
-itamUserEditor.mount('#sfxonitamitamusereditor')
+const el = document.getElementById('sfxonitamitamusereditor')
+const entityDefinitions = JSON.parse(el.dataset.entityDefinitions || '{}')
+const customFields = JSON.parse(el.dataset.customFields || '[]')
+
+const app = createApp(App, {
+    entityDefinitions,
+    customFields,
+})
+app.mount('#sfxonitamitamusereditor')

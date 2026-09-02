@@ -1,40 +1,29 @@
-<?php
-declare(strict_types=1);
+<?php declare(strict_types=1);
+
 namespace OCA\SfxonItam\Db;
 
 use OCP\AppFramework\Db\QBMapper;
-use OCP\DB\QueryBuilder\IQueryBuilder;
 use OCP\IDBConnection;
 
 /**
  * @template-extends QBMapper<ItamUser>
  */
 class ItamUserMapper extends QBMapper {
-    private string $tableNameAlias = 'iu';
+    use TSfxonEntityMapper;
+
+    private const TABLE_NAME = 'sfxon_itam_user';
+    private const TABLE_ALIAS = 'iu';
+
+    private array $allowedEntityIdFields = [];
+
+    private array $allowedSortColumns = [
+        'firstname', 'lastname', 'email',
+    ];
+
+    private const JOIN_FILTERS = [];
 
     public function __construct(IDBConnection $db) {
-        parent::__construct($db, 'sfxon_itam_user', ItamUser::class);
-    }
-
-    public function countAll(?array $filters = null): int {
-        $qb = $this->db->getQueryBuilder();
-        $qb->select($qb->func()->count('*', 'count'));
-        $qb->from($this->getTableName(), $this->tableNameAlias);
-
-        if ($filters !== null) {
-            $this->applyFilters($qb, $filters);
-        }
-
-        return (int) $qb->executeQuery()->fetchOne();
-    }
-
-    public function findById(int $id): ItamUser {
-        $qb = $this->db->getQueryBuilder();
-        $qb->select('*')
-            ->from($this->getTableName())
-            ->where($qb->expr()->eq('id', $qb->createNamedParameter($id, IQueryBuilder::PARAM_INT)));
-
-        return $this->findEntity($qb);
+        parent::__construct($db, self::TABLE_NAME, ItamUser::class);
     }
 
     // TODO: Have to check, what happens with case sensitivity.
@@ -55,91 +44,5 @@ class ItamUserMapper extends QBMapper {
         } catch (\OCP\AppFramework\Db\DoesNotExistException) {
             return null;
         }
-    }
-
-    #[\Deprecated(message: "Will be removed.", since: "1.9")]
-    /** @return ItamUser[] */
-    public function findAll(): array {
-        $qb = $this->db->getQueryBuilder();
-        $qb->select('*')->from($this->getTableName());
-        return $this->findEntities($qb);
-    }
-
-    #[\Deprecated(message: "Will be replaced by searchPaged", since: "1.9")]
-    /** @return ItamUser[] */
-    public function findAllPaged(
-        string $orderBy = 'email',
-        string $direction = 'ASC',
-        int $limit = 20,
-        int $offset = 0
-    ): array {
-        $allowedColumns = [ 'firstname', 'lastname', 'email' ];
-        $col = in_array($orderBy, $allowedColumns, true) ? $orderBy : 'email';
-        $col = strtolower(preg_replace('/[A-Z]/', '_$0', $col)); // CamelCase to SnakeCase umwandeln.
-        $dir = strtoupper($direction) === 'DESC' ? 'DESC' : 'ASC';
-
-        $qb = $this->db->getQueryBuilder();
-        $qb->select('*')
-            ->from($this->getTableName())
-            ->orderBy($col, $dir)
-            ->setMaxResults($limit)
-            ->setFirstResult($offset);
-
-        return $this->findEntities($qb);
-    }
-
-    /** @return ItamUser[] */
-    public function searchPaged(
-        string $orderBy = 'email',
-        string $direction = 'ASC',
-        int $limit = 20,
-        int $offset = 0,
-        ?array $filters = null
-    ): array {
-        $allowedColumns = [ 'firstname', 'lastname', 'email' ];
-        $col = in_array($orderBy, $allowedColumns, true) ? $orderBy : 'email';
-        $col = strtolower(preg_replace('/[A-Z]/', '_$0', $col)); // Convert camel case to snake case.
-        $dir = strtoupper($direction) === 'DESC' ? 'DESC' : 'ASC';
-
-        $qb = $this->db->getQueryBuilder();
-        $qb->select('*')
-            ->from($this->getTableName(), $this->tableNameAlias)
-            ->orderBy($col, $dir)
-            ->setMaxResults($limit)
-            ->setFirstResult($offset);
-
-        if($filters !== null) {
-            $this->applyFilters($qb, $filters);
-        }
-
-        return $this->findEntities($qb);
-    }
-
-    private function applyFilters(IQueryBuilder $qb, array $filters): void {
-        foreach ($filters as $key => $values) {
-            if (empty($values)) {
-                continue;
-            }
-
-            match ($key) {
-                'name' => $this->applyLikeFilter($qb, $this->tableNameAlias . '.name', $values),
-                default => null,
-            };
-        }
-    }
-
-    private function applyLikeFilter(IQueryBuilder $qb, string $column, array $values): void {
-        // For multiple values: OR combination
-        $orX = $qb->expr()->orX();
-
-        foreach ($values as $value) {
-            $param = $qb->createNamedParameter('%' . $this->db->escapeLikeParameter(strtolower($value)) . '%');
-            $orX->add($qb->expr()->like(
-                $qb->func()->lower($column), 
-                $param)
-            );
-        }
-
-        $qb->andWhere($orX);
     }
 }

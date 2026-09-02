@@ -75,7 +75,6 @@ class DeviceStatusController extends Controller
             Application::APP_ID,
             'device-status/editor',
             [
-                'entityDefinitions' => $entityDefinitions,
                 'customFields' => $customFields,
             ]
         );

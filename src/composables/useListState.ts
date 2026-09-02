@@ -1,10 +1,10 @@
 import { reactive, computed } from 'vue'
 
-export function useListState(defaultLimit = 25) {
+export function useListState(defaultLimit = 25, defaultOrderBy = 'name') {
     const state = reactive({
         page: 1,
         limit: defaultLimit,
-        orderBy: 'name',
+        orderBy: defaultOrderBy,
         orderDirection: 'ASC' as 'ASC' | 'DESC',
         total: 0,
         totalPages: computed(() => Math.max(1, Math.ceil(state.total / state.limit))),

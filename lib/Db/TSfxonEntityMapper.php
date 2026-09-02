@@ -61,6 +61,14 @@ trait TSfxonEntityMapper {
         };
     }
 
+    /**
+     * Default sort field, used when no orderBy is given or the given one is invalid.
+     * Override in the concrete Mapper class if the entity has no 'name' field.
+     */
+    protected function getDefaultSortField(): string {
+        return 'name';
+    }
+
     private function getFilterFieldMap(): array {
         if (static::$filterFieldMap === null) {
             static::$filterFieldMap = [];
@@ -97,7 +105,7 @@ trait TSfxonEntityMapper {
         if (isset($fieldMap[$orderBy])) {
             $col = self::TABLE_ALIAS . '.' . $fieldMap[$orderBy]['name'];
         } else {
-            $col = self::TABLE_ALIAS . '.name';
+            $col = self::TABLE_ALIAS . '.' . $this->getDefaultSortField();
         }
 
         $dir = strtoupper($direction) === 'DESC' ? 'DESC' : 'ASC';

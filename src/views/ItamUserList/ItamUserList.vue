@@ -23,7 +23,7 @@ import NcNoteCard from '@nextcloud/vue/components/NcNoteCard'
 const loading   = ref(false)
 const error     = ref<string | null>(null)
 const itamUsers   = ref<ItamUser[]>([])
-const listState = useListState()
+const listState = useListState(25, 'email')
 const itamUserToDelete = ref<ItamUser | null>(null)
 const generalError = ref<string>('')
 
@@ -56,7 +56,7 @@ async function confirmDelete() {
         if(e.response && e.response.status == 422) {
             generalError.value = e.response.data.errors.join('<br>')
         } else {
-            generalError.value = 'Es ist ein Fehler beim Löschen aufgetreten.'
+            generalError.value = 'An error occured on delete.'
         }
         return;
     }
@@ -77,10 +77,10 @@ async function loadItamUsers() {
             page: listState.page,
             limit: listState.limit
         })
-        itamUsers.value = data.itamUsers
+        itamUsers.value = data.itamUsers.mainData
         listState.total = data.total
     } catch (e) {
-        error.value = t('sfxonitam', 'Fehler beim Laden der Gerätestati.')
+        error.value = t('sfxonitam', 'Error while loading ItamUsers')
     } finally {
         loading.value = false
     }

@@ -54,7 +54,7 @@ async function confirmDelete() {
         if(e.response && e.response.status == 422) {
             generalError.value = e.response.data.errors.join('<br>')
         } else {
-            generalError.value = 'Es ist ein Fehler beim Löschen aufgetreten.'
+            generalError.value = 'An error occured on delete.'
         }
         return;
     }

@@ -1,5 +1,5 @@
-<?php
-declare(strict_types=1);
+<?php declare(strict_types=1);
+
 namespace OCA\SfxonItam\Db;
 
 use OCP\AppFramework\Db\Entity;
@@ -15,6 +15,8 @@ use OCP\AppFramework\Db\Entity;
  * @method void setComment(string|null $comment)
  */
 class ItamUser extends Entity implements \JsonSerializable {
+    use TEntityWithCustomFields;
+
     protected ?string $firstname = null;
     protected ?string $lastname = null;
     protected ?string $email = null;
@@ -24,6 +26,10 @@ class ItamUser extends Entity implements \JsonSerializable {
         $this->addType('id', 'integer');
     }
 
+    protected function getDefaultSortField(): string {
+        return 'email';
+    }
+
     /**
      * Field definitions are used to check input and create automatic forms.
      */
@@ -31,11 +37,13 @@ class ItamUser extends Entity implements \JsonSerializable {
         return [
             [
                 'defaultValue' => NULL,
+                'filterType' => 'none',
                 'foreignEntity' => false,
                 'index' => true,
                 'label' => 'Identifier',
                 'length' => 20,
                 'name' => 'id',
+                'propertyName' => 'id',
                 'type' => 'BIGINT',
                 'requiredOnCreate' => false,
                 'requiredOnUpdate' => true,
@@ -43,11 +51,13 @@ class ItamUser extends Entity implements \JsonSerializable {
             ],
             [
                 'defaultValue' => NULL,
+                'filterType' => 'like',
                 'foreignEntity' => false,
                 'index' => true,
                 'label' => 'Firstname',
                 'length' => 300,
                 'name' => 'firstname',
+                'propertyName' => 'firstname',
                 'type' => 'VARCHAR',
                 'requiredOnCreate' => true,
                 'requiredOnUpdate' => true,
@@ -55,11 +65,13 @@ class ItamUser extends Entity implements \JsonSerializable {
             ],
             [
                 'defaultValue' => NULL,
+                'filterType' => 'like',
                 'foreignEntity' => false,
                 'index' => true,
                 'label' => 'Lastname',
                 'length' => 300,
                 'name' => 'lastname',
+                'propertyName' => 'lastname',
                 'type' => 'VARCHAR',
                 'requiredOnCreate' => true,
                 'requiredOnUpdate' => true,
@@ -67,11 +79,13 @@ class ItamUser extends Entity implements \JsonSerializable {
             ],
             [
                 'defaultValue' => NULL,
+                'filterType' => 'like',
                 'foreignEntity' => false,
                 'index' => true,
                 'label' => 'Email',
                 'length' => 300,
                 'name' => 'email',
+                'propertyName' => 'email',
                 'type' => 'VARCHAR',
                 'requiredOnCreate' => true,
                 'requiredOnUpdate' => true,
@@ -79,11 +93,13 @@ class ItamUser extends Entity implements \JsonSerializable {
             ],
             [
                 'defaultValue' => NULL,
+                'filterType' => 'none',
                 'foreignEntity' => false,
                 'index' => false,
                 'label' => 'Comment',
                 'length' => null,
                 'name' => 'comment',
+                'propertyName' => 'comment',
                 'type' => 'TEXT',
                 'requiredOnCreate' => false,
                 'requiredOnUpdate' => false,
@@ -93,15 +109,10 @@ class ItamUser extends Entity implements \JsonSerializable {
     }
 
     /**
-     * @TODO: Check, if this could be changed. It could use the definition of "getFieldDefinition", to serialize the data.
+     * @param mixed $customFields array<int, array{technicalName?: string}>|null
+     * @return array<string, mixed>
      */
-    public function jsonSerialize(): array {
-        return [
-            'id' => $this->getId(),
-            'firstname' => $this->getFirstname(),
-            'lastname' => $this->getLastname(),
-            'email' => $this->getEmail(),
-            'comment' => $this->getComment()
-        ];
+    public function jsonSerialize(mixed $customFields = null): array {
+        return $this->jsonSerializeFields($customFields);
     }
 }
