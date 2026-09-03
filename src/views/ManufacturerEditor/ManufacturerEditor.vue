@@ -1,67 +1,132 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
+import { generateUrl } from '@nextcloud/router'
+import { mdiPlus } from '@mdi/js'
+import { fetchManufacturer, createManufacturer, updateManufacturer } from '@/services/ManufacturerService'
 import NcAppContent from '@nextcloud/vue/components/NcAppContent'
 import NcAppNavigation from '@nextcloud/vue/components/NcAppNavigation'
 import NcAppNavigationList from '@nextcloud/vue/components/NcAppNavigationList'
 import NcAppNavigationNew from '@nextcloud/vue/components/NcAppNavigationNew'
 import NcContent from '@nextcloud/vue/components/NcContent'
-import { mdiPlus } from '@mdi/js'
-import { translate as t } from '@nextcloud/l10n'
-import { generateUrl } from '@nextcloud/router'
 import NcButton from '@nextcloud/vue/components/NcButton'
 import NcTextArea from '@nextcloud/vue/components/NcTextArea'
 import NcTextField from '@nextcloud/vue/components/NcTextField'
-import NcNoteCard from '@nextcloud/vue/components/NcNoteCard'
-import { useApiErrors } from '@/composables/useApiErrors'
 import NcIconSvgWrapper from '@nextcloud/vue/components/NcIconSvgWrapper'
-import { fetchManufacturer, createManufacturer, updateManufacturer } from '@/services/ManufacturerService'
+import NcNoteCard from '@nextcloud/vue/components/NcNoteCard'
+import SfxonCustomFields from '@/components/SfxonCustomFields'
+import SfxonItamHeaderBc, { type BreadcrumbItem } from '@/components/SfxonItamHeaderBc'
+import SfxonSaveBadge from '@/components/SfxonSaveBadge'
+import SfxonEditorFormInput from '@/components/SfxonEditorFormInput'
+import SfxonEditorFormTextareaLabeled from '@/components/SfxonEditorFormTextareaLabeled'
+import SfxonEditorStyles from '@/components/SfxonEditor/SfxonEditor.module.css'
 import SfxonMainNavigation from '@/components/SfxonMainNavigation'
+import { translate as t } from '@nextcloud/l10n'
+import { useApiErrors } from '@/composables/useApiErrors'
+import { useSaveBadge } from '@/composables/useSaveBadge'
 
-// Formulardaten
 const name = ref('')
+const props = defineProps({
+    customFields: {
+        type: Array,
+        default: () => [],
+    },
+})
+
 const comment = ref('')
-const savedSuccessfully = ref(false);
 const manufacturerLoading = ref(false)
 const isSaving = ref(false)
-
-// Fehlerbehandlung
 const { fieldErrors, generalError, handleApiError, clearErrors, clearFieldError } = useApiErrors()
-
-// Id und Modus laden.
+const { visible: saveVisible, isReflash: saveIsReflash, flashKey: saveFlashKey, trigger: triggerSaveSuccess } = useSaveBadge()
 const manufacturerId = computed(() => {
     const param = new URLSearchParams(window.location.search).get('manufacturerId')
     return param ? parseInt(param, 10) : undefined
 })
 const isEditMode = computed(() => !!manufacturerId.value)
+const breadcrumbs = computed<BreadcrumbItem[]>(() => [
+    {
+        label: t('sfxonitam', 'Manufacturers'),
+        link: generateUrl('/apps/sfxonitam/manufacturer/'),
+        forceIconText: true,
+        disableDrop: true,
+    },
+    {
+        label: isEditMode.value ? t('sfxonitam', 'Edit') : t('sfxonitam', 'Create'),
+        clickable: false,
+        forceIconText: true,
+        disableDrop: true,
+    },
+])
+const customFieldsRef = ref<InstanceType<typeof SfxonCustomFields> | null>(null)
+const customFieldValues = ref<Record<string, unknown>>({})
+
+function onCustomFieldValuesUpdate(newValues: Record<string, unknown>) {
+    customFieldValues.value = newValues
+}
+
+const customFieldInitialValues = ref<Record<string, unknown>>({})
 
 function addItem() {
     window.location.href = generateUrl('/apps/sfxonitam/manufacturer/detail')
 }
 
-// Funktionen definieren.
 async function loadManufacturer(id: number): Promise<void> {
     manufacturerLoading.value = true
 
     try {
-        const d = await fetchManufacturer(id)
+        const data = await fetchManufacturer(id)
+        const d = data.mainData
         name.value = d.name ?? ''
         comment.value = d.comment ? d.comment : ''
+        customFieldInitialValues.value = d.customFields ?? {}
     } catch (e: any) {
-        generalError.value = t('sfxonitam', 'Hersteller konnte nicht geladen werden.')
-        console.error('Fehler beim Laden des Herstellers:', e)
+        generalError.value = t('sfxonitam', 'Manufacturer could not be loaded.')
+        console.error('Error while loading manufacturer:', e)
     } finally {
         manufacturerLoading.value = false
     }
 }
 
+async function save() {
+    const submitSuccess = await submitForm()
+
+    if(submitSuccess !== false && typeof manufacturerId.value === 'undefined') {
+        window.location.href = generateUrl('apps/sfxonitam/manufacturer/detail?manufacturerId=' + submitSuccess)
+    }
+}
+
+async function saveAndBack() {
+    const submitSuccess = await submitForm()
+
+    if (submitSuccess !== false) {
+        window.location.href = generateUrl('/apps/sfxonitam/manufacturer')
+    }
+}
+
+async function saveAndNew() {
+    const submitSuccess = await submitForm()
+    
+    if (submitSuccess !== false) {
+        window.location.href = generateUrl('/apps/sfxonitam/manufacturer/detail')
+    }
+}
+
 async function submitForm() {
     clearErrors()
-    savedSuccessfully.value = false;
     isSaving.value = true
+
+    try {
+        await customFieldsRef.value?.uploadPendingFiles()
+    } catch (e) {
+        console.error('Image upload failed:', e)
+        generalError.value = t('sfxonitam', 'Image upload failed.')
+        isSaving.value = false
+        return false
+    }
 
     const payload = {
         name: name.value,
         comment: comment.value,
+        customFields: customFieldValues.value,
     }
 
     try {
@@ -69,23 +134,29 @@ async function submitForm() {
             ? await updateManufacturer(manufacturerId.value!, payload)
             : await createManufacturer(payload)
 
-        // Backend gibt status: 'error' mit HTTP 200 zurück
+        // Backend returns status: 'error' with HTTP 200.
         if (data?.status === 'error') {
-            handleApiError(data, t('sfxonitam', 'Bitte korrigiere die markierten Felder.'))
-            return
+            handleApiError(data, t('sfxonitam', 'Please correct the highlighted fields.'))
+            return false
         }
 
-        savedSuccessfully.value = true;
+        triggerSaveSuccess()
+        isSaving.value = false
+        return data.id
     } catch (error: any) {
-        // HTTP-Fehler (4xx/5xx) – Backend gibt evtl. trotzdem JSON zurück
+        // HTTP-Error (4xx/5xx), backend may despite return JSON.
         const data = error?.response?.data
 
         if (data?.status === 'error') {
-            handleApiError(data, t('sfxonitam', 'Bitte korrigiere die markierten Felder.'))
+            handleApiError(data, t('sfxonitam', 'Please correct the highlighted fields.'))
         } else {
-            generalError.value = t('sfxonitam', 'Unbekannter Fehler beim Speichern.')
+            generalError.value = t('sfxonitam', 'Unknown error while saving.')
         }
+
+        isSaving.value = false
     }
+
+    return false
 }
 
 onMounted(async () => {
@@ -100,7 +171,7 @@ onMounted(async () => {
         <NcAppNavigation>
             <NcAppNavigationList>
                 <NcAppNavigationNew
-                :text="t('sfxonitam', 'Neuer Hersteller')"
+                :text="t('sfxonitam', 'Add manufacturer')"
                 @click="addItem"
                 >
                     <template #icon>
@@ -111,113 +182,105 @@ onMounted(async () => {
             <SfxonMainNavigation :currentPage="'manufacturers'" />
         </NcAppNavigation>
 
-        <!-- Inhaltsbereich -->
-        <NcAppContent :class="$style.content">
-            <div :class="$style.form">
-                <h2>
-                    {{ isEditMode
-                        ? t('sfxonitam', 'Hersteller bearbeiten')
-                        : t('sfxonitam', 'Hersteller erfassen') }}
-                </h2>
+        <NcAppContent>
+            <SfxonItamHeaderBc
+                :breadcrumbs="breadcrumbs">
+            </SfxonItamHeaderBc>
 
-                <!-- Allgemeine Fehlermeldung -->
-                <NcNoteCard
+            <div :class="SfxonEditorStyles.form">
+                <div
+                    :class="SfxonEditorStyles.myfavNotificationContainer"
                     v-if="generalError"
-                    type="error"
                 >
-                    {{ generalError }}
-                </NcNoteCard>
-
-                <!-- Erfolgsmeldung -->
-                <NcNoteCard
-                    v-if="savedSuccessfully"
-                    type="success"
-                >
-                    {{ t('sfxonitam', 'Die Änderungen wurden gespeichert.') }}
-                </NcNoteCard>
-
-                <!-- Name -->
-                <div :class="$style.field">
-                    <NcTextField
-                        id="name"
-                        v-model="name"
-                        :label="t('sfxonitam', 'Name')"
-                        :placeholder="t('sfxonitam', 'z.B. In Nutzung')"
-                        :class="fieldErrors.name ? $style.fieldError : ''"
-                        @input="clearFieldError('name')"
-                    />
-                    <span v-if="fieldErrors.name" :class="$style.errorText">
-                        {{ fieldErrors.name }}
-                    </span>
+                    <NcNoteCard type="error">
+                        {{ generalError }}
+                    </NcNoteCard>
                 </div>
 
-                <!-- Kommentar -->
-                <div :class="$style.field">
-                    <NcTextArea
-                        id="comment"
-                        v-model="comment"
-                        :label="t('sfxonitam', 'Beschreibung/Kommentare')"
-                        :class="fieldErrors.comment ? $style.fieldError : ''"
-                        @input="clearFieldError('comment')"
-                    />
-                    <span v-if="fieldErrors.comment" :class="$style.errorText">
-                        {{ fieldErrors.comment }}
-                    </span>
+                <SfxonSaveBadge
+                    :visible="saveVisible"
+                    :is-reflash="saveIsReflash"
+                    :flash-key="saveFlashKey"
+                />
+
+                <div :class="[SfxonEditorStyles.sfxonFormRow]">
+                    <div :class="[SfxonEditorStyles.sfxonFormSection, $style.formSection1]">
+                        <div :class="[SfxonEditorStyles.sfxonFormColumn]">
+                            <SfxonEditorFormInput
+                                field="name"
+                                id="name"
+                                v-model="name"
+                                :label="t('sfxonitam', 'Name') + ':'"
+                                type="text"
+                                :placeholder="t('sfxonitam', 'e.g. Your IT supplier')"
+                                @input="clearFieldError('name')"
+                                :fieldError="fieldErrors.name"
+                            />
+
+                            <SfxonEditorFormTextareaLabeled
+                                field="comment"
+                                id="comment"
+                                v-model="comment"
+                                :label="t('sfxonitam', 'Description/Comment') + ':'"
+                                @input="clearFieldError('comment')"
+                                :field-error="fieldErrors.comment"
+                                :class="$style.commentField"
+                            />
+
+                            <SfxonCustomFields
+                                ref="customFieldsRef"
+                                :customFields="customFields"
+                                :field-errors="fieldErrors"
+                                :initial-values="customFieldInitialValues"
+                                @update:values="onCustomFieldValuesUpdate"
+                                @input="(technicalName) => clearFieldError(`customFields.${technicalName}`)"
+                            />
+                        </div>
+                    </div>
                 </div>
 
+                <!-- Bottom Action Bar -->
+                <div :class="[SfxonEditorStyles.sfxonFormRow, SfxonEditorStyles.sfxonFormRowActionBar]">
+                    <div :class="[SfxonEditorStyles.sfxonFormSection, SfxonEditorStyles.sfxonFormSectionSave]">
+                        <div :class="SfxonEditorStyles.sfxonFormColumn">
+                            <div :class="SfxonEditorStyles.actions">
+                                <NcButton
+                                    :disabled="isSaving"
+                                    variant="secondary"
+                                    @click="saveAndBack"
+                                >
+                                    {{ t('sfxonitam', 'Save & Back') }}
+                                </NcButton>
 
-                <!-- Absenden -->
-                <div :class="$style.actions">
-                    <NcButton variant="primary" @click="submitForm">
-                        {{ t('sfxonitam', 'Speichern') }}
-                    </NcButton>
+                                <NcButton
+                                    :disabled="isSaving"
+                                    variant="secondary"
+                                    @click="saveAndNew"
+                                >
+                                    {{ t('sfxonitam', 'Save & New') }}
+                                </NcButton>
+                                
+                                <NcButton
+                                    :disabled="isSaving"
+                                    variant="primary"
+                                    @click="save">
+                                    {{ t('sfxonitam', 'Save') }}
+                                </NcButton>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </NcAppContent>
     </NcContent>
 </template>
 
-<style module>
-.content {
-    display: flex;
-    justify-content: center;
-    margin: 16px;
+<style module scoped>
+.formSection1 {
+    max-width: 600px;
 }
 
-.form {
-    width: 100%;
-    max-width: 480px;
-    display: flex;
-    flex-direction: column;
-    gap: 16px;
-}
-
-.field {
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-}
-
-.label {
-    font-weight: bold;
-    font-size: 0.875rem;
-    color: var(--color-text-maxcontrast);
-}
-
-.actions {
-    display: flex;
-    justify-content: flex-end;
-    margin-top: 8px;
-}
-
-.fieldError :deep(input),
-.fieldError :deep(.v-select) {
-    border-color: var(--color-error) !important;
-    box-shadow: 0 0 0 2px var(--color-error-hover) !important;
-}
-
-.errorText {
-    color: var(--color-element-error);
-    margin-top: 2px;
+.commentField :deep(textarea) {
+    min-height: 160px!important;
 }
 </style>

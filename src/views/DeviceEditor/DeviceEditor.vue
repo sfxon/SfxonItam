@@ -517,7 +517,7 @@ async function submitForm() {
             ? await DeviceService.updateDevice(deviceId.value!, payload)
             : await DeviceService.createDevice(payload)
 
-        // Backend returns status: 'error' with HTTP 200
+        // Backend returns status: 'error' with HTTP 200.
         if (data?.status === 'error') {
             handleApiError(data, t('sfxonitam', 'Please correct the highlighted fields.'))
             return false
@@ -527,7 +527,7 @@ async function submitForm() {
         isSaving.value = false
         return data.id
     } catch (error: any) {
-        // HTTP-Error (4xx/5xx), backend may despite return JSON .
+        // HTTP-Error (4xx/5xx), backend may despite return JSON.
         const data = error?.response?.data
 
         if (data?.status === 'error') {

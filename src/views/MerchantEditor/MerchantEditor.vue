@@ -11,8 +11,6 @@ import NcContent from '@nextcloud/vue/components/NcContent'
 import NcButton from '@nextcloud/vue/components/NcButton'
 import NcIconSvgWrapper from '@nextcloud/vue/components/NcIconSvgWrapper'
 import NcNoteCard from '@nextcloud/vue/components/NcNoteCard'
-import NcTextArea from '@nextcloud/vue/components/NcTextArea'
-import NcTextField from '@nextcloud/vue/components/NcTextField'
 import SfxonCustomFields from '@/components/SfxonCustomFields'
 import SfxonItamHeaderBc, { type BreadcrumbItem } from '@/components/SfxonItamHeaderBc'
 import SfxonSaveBadge from '@/components/SfxonSaveBadge'
@@ -24,7 +22,6 @@ import { translate as t } from '@nextcloud/l10n'
 import { useApiErrors } from '@/composables/useApiErrors'
 import { useSaveBadge } from '@/composables/useSaveBadge'
 
-// Formulardaten
 const name = ref('')
 const props = defineProps({
     customFields: {
@@ -56,7 +53,6 @@ const breadcrumbs = computed<BreadcrumbItem[]>(() => [
         disableDrop: true,
     },
 ])
-
 const customFieldsRef = ref<InstanceType<typeof SfxonCustomFields> | null>(null)
 const customFieldValues = ref<Record<string, unknown>>({})
 
@@ -70,7 +66,6 @@ function addItem() {
     window.location.href = generateUrl('/apps/sfxonitam/merchant/detail')
 }
 
-// Funktionen definieren.
 async function loadMerchant(id: number): Promise<void> {
     merchantLoading.value = true
 
@@ -136,7 +131,7 @@ async function submitForm() {
             ? await updateMerchant(merchantId.value!, payload)
             : await createMerchant(payload)
 
-        // Backend gibt status: 'error' mit HTTP 200 zurück
+        // Backend returns status: 'error' with HTTP 200.
         if (data?.status === 'error') {
             handleApiError(data, t('sfxonitam', 'Please correct the highlighted fields.'))
             return false
@@ -146,7 +141,7 @@ async function submitForm() {
         isSaving.value = false
         return data.id
     } catch (error: any) {
-        // HTTP-Fehler (4xx/5xx) – Backend gibt evtl. trotzdem JSON zurück
+        // HTTP-Error (4xx/5xx), backend may despite return JSON.
         const data = error?.response?.data
 
         if (data?.status === 'error') {

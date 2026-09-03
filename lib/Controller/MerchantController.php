@@ -153,7 +153,7 @@ class MerchantController extends Controller
         }
 
         $saved = $this->merchantMapper->insert($merchant);
-        $this->customFieldService->updateCustomFieldsForEntity('sfxon_device_status', $saved->getId(), $customFieldData);
+        $this->customFieldService->updateCustomFieldsForEntity('sfxon_merchant', $saved->getId(), $customFieldData);
 
         return new DataResponse([
             'status' => 'ok',

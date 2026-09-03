@@ -307,7 +307,7 @@ async function submitForm() {
             ? await updateDeviceType(deviceTypeId.value!, payload)
             : await createDeviceType(payload)
 
-        // Backend gibt status: 'error' mit HTTP 200 zurück
+        // Backend returns status: 'error' with HTTP 200.
         if (data?.status === 'error') {
             handleApiError(data, t('sfxonitam', 'Please correct the highlighted fields.'))
             return false
@@ -317,7 +317,7 @@ async function submitForm() {
         isSaving.value = false
         return data.id
     } catch (error: any) {
-        // HTTP-Fehler (4xx/5xx) – Backend gibt evtl. trotzdem JSON zurück
+        // HTTP-Error (4xx/5xx), backend may despite return JSON.
         const data = error?.response?.data
 
         if (data?.status === 'error') {

@@ -54,7 +54,7 @@ async function confirmDelete() {
         if(e.response && e.response.status == 422) {
             generalError.value = e.response.data.errors.join('<br>')
         } else {
-            generalError.value = 'Es ist ein Fehler beim Löschen aufgetreten.'
+            generalError.value = 'An error occured on delete.'
         }
         return;
     }
@@ -75,10 +75,10 @@ async function loadManufacturers() {
             page: listState.page,
             limit: listState.limit
         })
-        manufacturers.value = data.manufacturers
+        manufacturers.value = data.manufacturers.mainData
         listState.total = data.total
     } catch (e) {
-        error.value = t('sfxonitam', 'Fehler beim Laden der Gerätestati.')
+        error.value = t('sfxonitam', 'Error while loading Manufacturers.')
     } finally {
         loading.value = false
     }

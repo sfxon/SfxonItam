@@ -1,5 +1,12 @@
 import { createApp } from 'vue'
-import ManufacturerEditor from './ManufacturerEditor.vue'
+import App from './ManufacturerEditor.vue'
 
-const manufacturerEditor = createApp(ManufacturerEditor)
-manufacturerEditor.mount('#sfxonitammanufacturereditor')
+const el = document.getElementById('sfxonitammanufacturereditor')
+const entityDefinitions = JSON.parse(el.dataset.entityDefinitions || '{}')
+const customFields = JSON.parse(el.dataset.customFields || '[]')
+
+const app = createApp(App, {
+    entityDefinitions,
+    customFields,
+})
+app.mount('#sfxonitammanufacturereditor')

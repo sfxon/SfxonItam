@@ -10,7 +10,8 @@ use OCP\AppFramework\Db\Entity;
  * @method string|null getComment()
  * @method void setComment(string|null $comment)
  */
-class Merchant extends Entity implements \JsonSerializable {
+class Merchant extends Entity implements \JsonSerializable
+{
     use TEntityWithCustomFields;
 
     protected ?string $name = null;

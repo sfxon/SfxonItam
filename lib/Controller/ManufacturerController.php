@@ -16,12 +16,14 @@ use OCA\SfxonItam\AppInfo\Application;
 use OCA\SfxonItam\Db\DeviceTypeMapper;
 use OCA\SfxonItam\Db\Manufacturer;
 use OCA\SfxonItam\Db\ManufacturerMapper;
+use OCA\SfxonItam\Service\CustomFieldService;
 use OCA\SfxonItam\Service\ManufacturerService;
 
 /**
  * @psalm-suppress UnusedClass
  */
-class ManufacturerController extends Controller {
+class ManufacturerController extends Controller
+{
     private array $expectedFields = ['name', 'comment'];
 
     public function __construct(
@@ -29,7 +31,8 @@ class ManufacturerController extends Controller {
         IRequest $request,
         private DeviceTypeMapper $deviceTypeMapper,
         private ManufacturerMapper $manufacturerMapper,
-        private readonly ManufacturerService $manufacturerService,)
+        private readonly ManufacturerService $manufacturerService,
+        private CustomFieldService $customFieldService,)
     {
         parent::__construct($appName, $request);
     }
@@ -51,7 +54,7 @@ class ManufacturerController extends Controller {
         // Put this in a try-catch block, since findById will throw an error,
         // if it does not find an element with the given id.
         try {
-            $manufacturer = $this->manufacturerMapper->findById($id);
+            $manufacturer = $this->manufacturerMapper->findById($id)['mainData'];
             $this->manufacturerMapper->delete($manufacturer);
         } catch(\Error $error) {
         }
@@ -66,9 +69,14 @@ class ManufacturerController extends Controller {
     #[FrontpageRoute(verb: 'GET', url: '/manufacturer/detail')]
     public function manufacturerDetail(): TemplateResponse
     {
+        $customFields = $this->customFieldService->getCustomFieldsDefinitionByGroup('sfxon_manufacturer');
+
         return new TemplateResponse(
             Application::APP_ID,
             'manufacturer/editor',
+            [
+                'customFields' => $customFields,
+            ]
         );
     }
 
@@ -93,14 +101,17 @@ class ManufacturerController extends Controller {
         int $limit = 20,): JSONResponse
     {
         $offset = ($page - 1) * $limit;
-        $manufacturers = $this->manufacturerMapper->findAllPaged($orderBy, $direction, $limit, $offset);
+        $data = $this->manufacturerMapper->findAllPaged($orderBy, $direction, $limit, $offset);
         $total   = $this->manufacturerMapper->countAll();
 
+        $data['mainData'] = array_map(fn($d) => $d->jsonSerialize(/* $customFields */), $data['mainData']);
+        $data['relations'] = $data['relations'];
+
         return new JSONResponse([
-            'manufacturers' => array_map(fn($d) => $d->jsonSerialize(), $manufacturers),
-            'total'   => $total,
-            'page'    => $page,
-            'limit'   => $limit,
+            'manufacturers' => $data,
+            'total' => $total,
+            'page' => $page,
+            'limit' => $limit,
         ]);
     }
 
@@ -123,6 +134,16 @@ class ManufacturerController extends Controller {
     {
         $data = $this->manufacturerService->getDataFromRequest($this->request->getParams(), $this->expectedFields);
         $result = $this->manufacturerService->validateData($data);
+        $manufacturer = new Manufacturer();
+        $customFields = $this->customFieldService->getCustomFieldsDefinitionByGroup('sfxon_manufacturer');
+        $manufacturer = $this->setManufacturerDataFromRequest($manufacturer);
+        $customFieldData = $this->customFieldService->getCustomFieldDataFromRequest($customFields, $this->request->getParams());
+        $customFieldErrors = $this->customFieldService->validateCustomFieldData($customFields, $customFieldData);
+
+        if(count($customFieldErrors) > 0) {
+            $result['valid'] = false;
+            $result['errors'] = array_merge($result['errors'], $customFieldErrors);
+        }
 
         if($result['valid'] === false) {
             return new DataResponse([
@@ -131,10 +152,8 @@ class ManufacturerController extends Controller {
             ], Http::STATUS_UNPROCESSABLE_ENTITY); // Returns error 422
         }
 
-        $manufacturer = new Manufacturer();
-        $manufacturer->setName($this->request->getParam('name'));
-        $manufacturer->setComment($this->request->getParam('comment') ?? '');
         $saved = $this->manufacturerMapper->insert($manufacturer);
+        $this->customFieldService->updateCustomFieldsForEntity('sfxon_manufacturer', $saved->getId(), $customFieldData);
 
         return new DataResponse([
             'status' => 'ok',
@@ -148,7 +167,7 @@ class ManufacturerController extends Controller {
     public function show(int $id): JSONResponse
     {
         try {
-            $manufacturer = $this->manufacturerMapper->findById($id);
+            $data = $this->manufacturerMapper->findById($id);
         } catch (DoesNotExistException) {
             return new JSONResponse(
                 ['status' => 'error', 'message' => 'Manufacturer not found'],
@@ -156,7 +175,11 @@ class ManufacturerController extends Controller {
             );
         }
 
-        return new JSONResponse($manufacturer->jsonSerialize());
+        $customFields = $this->customFieldService->getCustomFieldsDefinitionByGroup('sfxon_manufacturer');
+        $data['mainData'] = $data['mainData']->jsonSerialize($customFields);
+        $data['relations'] = $data['relations'];
+
+        return new JSONResponse($data);
     }
 
     #[NoCSRFRequired]
@@ -175,9 +198,9 @@ class ManufacturerController extends Controller {
 
         return new JSONResponse([
             'mainData' => array_map(fn($d) => $d->jsonSerialize(), $result),
-            'total'   => $total,
-            'page'    => $page,
-            'limit'   => $limit,
+            'total' => $total,
+            'page' => $page,
+            'limit' => $limit,
         ]);
     }
 
@@ -187,7 +210,7 @@ class ManufacturerController extends Controller {
     {
         // Gerät laden – 404 wenn nicht vorhanden
         try {
-            $manufacturer = $this->manufacturerMapper->findById($id);
+            $manufacturer = $this->manufacturerMapper->findById($id)['mainData'];
         } catch (\OCP\AppFramework\Db\DoesNotExistException) {
             return new DataResponse(
                 ['status' => 'error', 'message' => 'Manufacturer not found'],
@@ -196,8 +219,15 @@ class ManufacturerController extends Controller {
         }
 
         $data = $this->manufacturerService->getDataFromRequest($this->request->getParams(), $this->expectedFields);
-
         $result = $this->manufacturerService->validateData($data, $id);
+        $customFields = $this->customFieldService->getCustomFieldsDefinitionByGroup('sfxon_manufacturer');
+        $customFieldData = $this->customFieldService->getCustomFieldDataFromRequest($customFields, $this->request->getParams());
+        $customFieldErrors = $this->customFieldService->validateCustomFieldData($customFields, $customFieldData);
+
+        if(count($customFieldErrors) > 0) {
+            $result['valid'] = false;
+            $result['errors'] = array_merge($result['errors'], $customFieldErrors);
+        }
 
         if ($result['valid'] === false) {
             return new DataResponse([
@@ -206,15 +236,21 @@ class ManufacturerController extends Controller {
             ], Http::STATUS_UNPROCESSABLE_ENTITY);
         }
 
-        // Felder aktualisieren
-        $manufacturer->setName($this->request->getParam('name'));
-        $manufacturer->setComment($this->request->getParam('comment') ?? '');
-
+        $manufacturer = $this->setManufacturerDataFromRequest($manufacturer);
         $updated = $this->manufacturerMapper->update($manufacturer);
+        $this->customFieldService->updateCustomFieldsForEntity('sfxon_manufacturer', $updated->getId(), $customFieldData);
 
         return new DataResponse([
             'status' => 'ok',
-            'id'     => $updated->getId(),
+            'id' => $updated->getId(),
         ]);
+    }
+
+    private function setManufacturerDataFromRequest($manufacturer)
+    {
+        $manufacturer->setName($this->request->getParam('name'));
+        $manufacturer->setComment($this->request->getParam('comment') ?? '');
+
+        return $manufacturer;
     }
 }
