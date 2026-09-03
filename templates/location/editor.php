@@ -9,4 +9,7 @@ Util::addStyle(OCA\SfxonItam\AppInfo\Application::APP_ID, OCA\SfxonItam\AppInfo\
 
 ?>
 
-<div id="sfxonitamlocationeditor"></div>
+<div
+    id="sfxonitamlocationeditor"
+    data-custom-fields="<?= htmlspecialchars(json_encode($_['customFields']), ENT_QUOTES, 'UTF-8') ?>"
+></div>

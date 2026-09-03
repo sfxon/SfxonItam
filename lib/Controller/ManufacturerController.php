@@ -208,7 +208,7 @@ class ManufacturerController extends Controller
     #[FrontpageRoute(verb: 'PUT', url: '/manufacturer/{id}')]
     public function update(int $id): DataResponse
     {
-        // Gerät laden – 404 wenn nicht vorhanden
+        // Return 404 if entry was not found.
         try {
             $manufacturer = $this->manufacturerMapper->findById($id)['mainData'];
         } catch (\OCP\AppFramework\Db\DoesNotExistException) {

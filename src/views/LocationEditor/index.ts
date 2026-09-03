@@ -1,5 +1,12 @@
 import { createApp } from 'vue'
-import LocationEditor from './LocationEditor.vue'
+import App from './LocationEditor.vue'
 
-const locationEditor = createApp(LocationEditor)
-locationEditor.mount('#sfxonitamlocationeditor')
+const el = document.getElementById('sfxonitamlocationeditor')
+const entityDefinitions = JSON.parse(el.dataset.entityDefinitions || '{}')
+const customFields = JSON.parse(el.dataset.customFields || '[]')
+
+const app = createApp(App, {
+    entityDefinitions,
+    customFields,
+})
+app.mount('#sfxonitamlocationeditor')

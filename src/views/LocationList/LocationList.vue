@@ -75,7 +75,7 @@ async function loadLocations() {
             page: listState.page,
             limit: listState.limit
         })
-        locations.value = data.locations
+        locations.value = data.locations.mainData
         listState.total = data.total
     } catch (e) {
         error.value = t('sfxonitam', 'Fehler beim Laden der Gerätestati.')
