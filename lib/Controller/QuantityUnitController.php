@@ -16,12 +16,14 @@ use OCA\SfxonItam\AppInfo\Application;
 use OCA\SfxonItam\Db\DeviceMapper;
 use OCA\SfxonItam\Db\QuantityUnit;
 use OCA\SfxonItam\Db\QuantityUnitMapper;
+use OCA\SfxonItam\Service\CustomFieldService;
 use OCA\SfxonItam\Service\QuantityUnitService;
 
 /**
  * @psalm-suppress UnusedClass
  */
-class QuantityUnitController extends Controller {
+class QuantityUnitController extends Controller
+{
     private array $expectedFields = ['name', 'comment'];
 
     public function __construct(
@@ -29,7 +31,8 @@ class QuantityUnitController extends Controller {
         IRequest $request,
         private DeviceMapper $deviceMapper,
         private QuantityUnitMapper $quantityUnitMapper,
-        private readonly QuantityUnitService $quantityUnitService,)
+        private readonly QuantityUnitService $quantityUnitService,
+        private CustomFieldService $customFieldService,)
     {
         parent::__construct($appName, $request);
     }
@@ -66,9 +69,14 @@ class QuantityUnitController extends Controller {
     #[FrontpageRoute(verb: 'GET', url: '/quantity-unit/detail')]
     public function quantityUnitDetail(): TemplateResponse
     {
+        $customFields = $this->customFieldService->getCustomFieldsDefinitionByGroup('sfxon_quantity_unit');
+
         return new TemplateResponse(
             Application::APP_ID,
             'quantity-unit/editor',
+            [
+                'customFields' => $customFields,
+            ]
         );
     }
 
@@ -93,14 +101,17 @@ class QuantityUnitController extends Controller {
         int $limit = 20,): JSONResponse
     {
         $offset = ($page - 1) * $limit;
-        $quantityUnits = $this->quantityUnitMapper->findAllPaged($orderBy, $direction, $limit, $offset);
+        $data = $this->quantityUnitMapper->findAllPaged($orderBy, $direction, $limit, $offset);
         $total   = $this->quantityUnitMapper->countAll();
 
+        $data['mainData'] = array_map(fn($d) => $d->jsonSerialize(/* $customFields */), $data['mainData']);
+        $data['relations'] = $data['relations'];
+
         return new JSONResponse([
-            'quantityUnits' => array_map(fn($d) => $d->jsonSerialize(), $quantityUnits),
-            'total'   => $total,
-            'page'    => $page,
-            'limit'   => $limit,
+            'quantityUnits' => $data,
+            'total' => $total,
+            'page' => $page,
+            'limit' => $limit,
         ]);
     }
 
@@ -123,6 +134,16 @@ class QuantityUnitController extends Controller {
     {
         $data = $this->quantityUnitService->getDataFromRequest($this->request->getParams(), $this->expectedFields);
         $result = $this->quantityUnitService->validateData($data);
+        $quantityUnit = new QuantityUnit();
+        $customFields = $this->customFieldService->getCustomFieldsDefinitionByGroup('sfxon_quantity_unit');
+        $quantityUnit = $this->setQuantityUnitDataFromRequest($quantityUnit);
+        $customFieldData = $this->customFieldService->getCustomFieldDataFromRequest($customFields, $this->request->getParams());
+        $customFieldErrors = $this->customFieldService->validateCustomFieldData($customFields, $customFieldData);
+
+        if(count($customFieldErrors) > 0) {
+            $result['valid'] = false;
+            $result['errors'] = array_merge($result['errors'], $customFieldErrors);
+        }
 
         if($result['valid'] === false) {
             return new DataResponse([
@@ -131,10 +152,8 @@ class QuantityUnitController extends Controller {
             ], Http::STATUS_UNPROCESSABLE_ENTITY); // Returns error 422
         }
 
-        $quantityUnit = new QuantityUnit();
-        $quantityUnit->setName($this->request->getParam('name'));
-        $quantityUnit->setComment($this->request->getParam('comment') ?? '');
         $saved = $this->quantityUnitMapper->insert($quantityUnit);
+        $this->customFieldService->updateCustomFieldsForEntity('sfxon_quantity_unit', $saved->getId(), $customFieldData);
 
         return new DataResponse([
             'status' => 'ok',
@@ -149,8 +168,7 @@ class QuantityUnitController extends Controller {
         string $orderBy = 'name',
         string $direction = 'ASC',
         int $page = 1,
-        int $limit = 20,
-    ): JSONResponse
+        int $limit = 20,): JSONResponse
     {
         $offset = ($page - 1) * $limit;
         $filters = $this->request->getParam('filters');
@@ -159,9 +177,9 @@ class QuantityUnitController extends Controller {
 
         return new JSONResponse([
             'mainData' => array_map(fn($d) => $d->jsonSerialize(), $result),
-            'total'   => $total,
-            'page'    => $page,
-            'limit'   => $limit,
+            'total' => $total,
+            'page' => $page,
+            'limit' => $limit,
         ]);
     }
 
@@ -171,7 +189,7 @@ class QuantityUnitController extends Controller {
     public function show(int $id): JSONResponse
     {
         try {
-            $quantityUnit = $this->quantityUnitMapper->findById($id);
+            $data = $this->quantityUnitMapper->findById($id);
         } catch (DoesNotExistException) {
             return new JSONResponse(
                 ['status' => 'error', 'message' => 'QuantityUnit not found'],
@@ -179,7 +197,11 @@ class QuantityUnitController extends Controller {
             );
         }
 
-        return new JSONResponse($quantityUnit->jsonSerialize());
+        $customFields = $this->customFieldService->getCustomFieldsDefinitionByGroup('sfxon_quantity_unit');
+        $data['mainData'] = $data['mainData']->jsonSerialize($customFields);
+        $data['relations'] = $data['relations'];
+
+        return new JSONResponse($data);
     }
 
     #[OpenAPI(OpenAPI::SCOPE_IGNORE)]
@@ -188,7 +210,7 @@ class QuantityUnitController extends Controller {
     {
         // Load Device – 404 if not found.
         try {
-            $quantityUnit = $this->quantityUnitMapper->findById($id);
+            $quantityUnit = $this->quantityUnitMapper->findById($id)['mainData'];
         } catch (\OCP\AppFramework\Db\DoesNotExistException) {
             return new DataResponse(
                 ['status' => 'error', 'message' => 'QuantityUnit not found'],
@@ -197,8 +219,15 @@ class QuantityUnitController extends Controller {
         }
 
         $data = $this->quantityUnitService->getDataFromRequest($this->request->getParams(), $this->expectedFields);
-
         $result = $this->quantityUnitService->validateData($data, $id);
+        $customFields = $this->customFieldService->getCustomFieldsDefinitionByGroup('sfxon_quantity_unit');
+        $customFieldData = $this->customFieldService->getCustomFieldDataFromRequest($customFields, $this->request->getParams());
+        $customFieldErrors = $this->customFieldService->validateCustomFieldData($customFields, $customFieldData);
+
+        if(count($customFieldErrors) > 0) {
+            $result['valid'] = false;
+            $result['errors'] = array_merge($result['errors'], $customFieldErrors);
+        }
 
         if ($result['valid'] === false) {
             return new DataResponse([
@@ -207,15 +236,21 @@ class QuantityUnitController extends Controller {
             ], Http::STATUS_UNPROCESSABLE_ENTITY);
         }
 
-        // Felder aktualisieren
-        $quantityUnit->setName($this->request->getParam('name'));
-        $quantityUnit->setComment($this->request->getParam('comment') ?? '');
-
+        $quantityUnit = $this->setQuantityUnitDataFromRequest($quantityUnit);
         $updated = $this->quantityUnitMapper->update($quantityUnit);
+        $this->customFieldService->updateCustomFieldsForEntity('sfxon_quantity_unit', $updated->getId(), $customFieldData);
 
         return new DataResponse([
             'status' => 'ok',
-            'id'     => $updated->getId(),
+            'id' => $updated->getId(),
         ]);
+    }
+
+    private function setQuantityUnitDataFromRequest($quantityUnit)
+    {
+        $quantityUnit->setName($this->request->getParam('name'));
+        $quantityUnit->setComment($this->request->getParam('comment') ?? '');
+
+        return $quantityUnit;
     }
 }

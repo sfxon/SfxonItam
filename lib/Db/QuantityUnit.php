@@ -1,6 +1,5 @@
 <?php declare(strict_types=1);
 
-// Create by Migration: Version010100Date20260511130000
 namespace OCA\SfxonItam\Db;
 
 use OCP\AppFramework\Db\Entity;
@@ -11,7 +10,10 @@ use OCP\AppFramework\Db\Entity;
  * @method string|null getComment()
  * @method void setComment(string|null $comment)
  */
-class QuantityUnit extends Entity implements \JsonSerializable {
+class QuantityUnit extends Entity implements \JsonSerializable
+{
+    use TEntityWithCustomFields;
+
     protected ?string $name = null;
     protected ?string $comment = null;
 
@@ -26,11 +28,13 @@ class QuantityUnit extends Entity implements \JsonSerializable {
         return [
             [
                 'defaultValue' => NULL,
+                'filterType' => 'none',
                 'foreignEntity' => false,
                 'index' => true,
                 'label' => 'Identifier',
                 'length' => 20,
                 'name' => 'id',
+                'propertyName' => 'id',
                 'type' => 'BIGINT',
                 'requiredOnCreate' => false,
                 'requiredOnUpdate' => true,
@@ -38,11 +42,13 @@ class QuantityUnit extends Entity implements \JsonSerializable {
             ],
             [
                 'defaultValue' => NULL,
+                'filterType' => 'like',
                 'foreignEntity' => false,
                 'index' => true,
                 'label' => 'Name',
                 'length' => 300,
                 'name' => 'name',
+                'propertyName' => 'name',
                 'type' => 'VARCHAR',
                 'requiredOnCreate' => true,
                 'requiredOnUpdate' => true,
@@ -50,11 +56,13 @@ class QuantityUnit extends Entity implements \JsonSerializable {
             ],
             [
                 'defaultValue' => NULL,
+                'filterType' => 'none',
                 'foreignEntity' => false,
                 'index' => false,
                 'label' => 'Comment',
                 'length' => null,
                 'name' => 'comment',
+                'propertyName' => 'comment',
                 'type' => 'TEXT',
                 'requiredOnCreate' => false,
                 'requiredOnUpdate' => false,
@@ -63,11 +71,11 @@ class QuantityUnit extends Entity implements \JsonSerializable {
         ];
     }
 
-    public function jsonSerialize(): array {
-        return [
-            'id' => $this->getId(),
-            'name' => $this->getName(),
-            'comment' => $this->getComment()
-        ];
+    /**
+     * @param mixed $customFields array<int, array{technicalName?: string}>|null
+     * @return array<string, mixed>
+     */
+    public function jsonSerialize(mixed $customFields = null): array {
+        return $this->jsonSerializeFields($customFields);
     }
 }

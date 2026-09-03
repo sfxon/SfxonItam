@@ -1,140 +1,27 @@
-<?php
-declare(strict_types=1);
+<?php declare(strict_types=1);
+
 namespace OCA\SfxonItam\Db;
 
 use OCP\AppFramework\Db\QBMapper;
-use OCP\DB\QueryBuilder\IQueryBuilder;
 use OCP\IDBConnection;
 
 /**
  * @template-extends QBMapper<QuantityUnit>
  */
-class QuantityUnitMapper extends QBMapper {
-    private string $tableNameAlias = 'qu';
+class QuantityUnitMapper extends QBMapper
+{
+    use TSfxonEntityMapper;
+    use TSfxonEntityMapperWithNameFilter;
+
+    private const TABLE_NAME = 'sfxon_quantity_unit';
+    private const TABLE_ALIAS = 'qu';
+    private array $allowedEntityIdFields = [];
+    private array $allowedSortColumns = [
+        'name',
+    ];
+    private const JOIN_FILTERS = [];
 
     public function __construct(IDBConnection $db) {
-        parent::__construct($db, 'sfxon_quantity_unit', QuantityUnit::class);
-    }
-
-    public function countAll(?array $filters = null): int {
-        $qb = $this->db->getQueryBuilder();
-        $qb->select($qb->func()->count('*', 'count'));
-        $qb->from($this->getTableName(), $this->tableNameAlias);
-
-        if ($filters !== null) {
-            $this->applyFilters($qb, $filters);
-        }
-
-        return (int) $qb->executeQuery()->fetchOne();
-    }
-
-    public function findById(int $id): QuantityUnit {
-        $qb = $this->db->getQueryBuilder();
-        $qb->select('*')
-            ->from($this->getTableName())
-            ->where($qb->expr()->eq('id', $qb->createNamedParameter($id, IQueryBuilder::PARAM_INT)));
-
-        return $this->findEntity($qb);
-    }
-
-    // TODO: Have to check, what happens with case sensitivity.
-    public function findByName(string $name): ?QuantityUnit {
-        $qb = $this->db->getQueryBuilder();
-        $qb->select('*')
-            ->from($this->getTableName())
-            ->where($qb->expr()->eq('name', $qb->createNamedParameter($name)))
-            ->setMaxResults(1);
-
-        try {
-            return $this->findEntity($qb);
-        } catch (\OCP\AppFramework\Db\DoesNotExistException) {
-            return null;
-        }
-    }
-
-    #[\Deprecated(message: "Will be removed.", since: "1.9")]
-    /** @return QuantityUnit[] */
-    public function findAll(): array {
-        $qb = $this->db->getQueryBuilder();
-        $qb->select('*')->from($this->getTableName());
-        return $this->findEntities($qb);
-    }
-
-    #[\Deprecated(message: "Will be replaced by searchPaged", since: "1.9")]
-    /** @return QuantityUnit[] */
-    public function findAllPaged(
-        string $orderBy = 'name',
-        string $direction = 'ASC',
-        int $limit = 20,
-        int $offset = 0
-    ): array {
-        $allowedColumns = [ 'name', ];
-        $col = in_array($orderBy, $allowedColumns, true) ? $orderBy : 'name';
-        $col = strtolower(preg_replace('/[A-Z]/', '_$0', $col)); // CamelCase to SnakeCase umwandeln.
-        $dir = strtoupper($direction) === 'DESC' ? 'DESC' : 'ASC';
-
-        $qb = $this->db->getQueryBuilder();
-        $qb->select('*')
-            ->from($this->getTableName())
-            ->orderBy($col, $dir)
-            ->setMaxResults($limit)
-            ->setFirstResult($offset);
-
-        return $this->findEntities($qb);
-    }
-
-    /** @return QuantityUnit[] */
-    public function searchPaged(
-        string $orderBy = 'name',
-        string $direction = 'ASC',
-        int $limit = 20,
-        int $offset = 0,
-        ?array $filters = null,
-    ): array {
-        $allowedColumns = [ 'name', ];
-        $col = in_array($orderBy, $allowedColumns, true) ? $orderBy : 'name';
-        $col = strtolower(preg_replace('/[A-Z]/', '_$0', $col)); // Convert camel case to snake case.
-        $dir = strtoupper($direction) === 'DESC' ? 'DESC' : 'ASC';
-
-        $qb = $this->db->getQueryBuilder();
-        $qb->select('*')
-            ->from($this->getTableName(), $this->tableNameAlias)
-            ->orderBy($col, $dir)
-            ->setMaxResults($limit)
-            ->setFirstResult($offset);
-
-        if($filters !== null) {
-            $this->applyFilters($qb, $filters);
-        }
-
-        return $this->findEntities($qb);
-    }
-
-    private function applyFilters(IQueryBuilder $qb, array $filters): void {
-        foreach ($filters as $key => $values) {
-            if (empty($values)) {
-                continue;
-            }
-
-            match ($key) {
-                'name' => $this->applyLikeFilter($qb, $this->tableNameAlias . '.name', $values),
-                default => null,
-            };
-        }
-    }
-
-    private function applyLikeFilter(IQueryBuilder $qb, string $column, array $values): void {
-        // For multiple values: OR combination
-        $orX = $qb->expr()->orX();
-
-        foreach ($values as $value) {
-            $param = $qb->createNamedParameter('%' . $this->db->escapeLikeParameter(strtolower($value)) . '%');
-            $orX->add($qb->expr()->like(
-                $qb->func()->lower($column), 
-                $param)
-            );
-        }
-
-        $qb->andWhere($orX);
+        parent::__construct($db, self::TABLE_NAME, QuantityUnit::class);
     }
 }

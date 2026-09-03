@@ -1,5 +1,12 @@
 import { createApp } from 'vue'
-import QuantityUnitEditor from './QuantityUnitEditor.vue'
+import App from './QuantityUnitEditor.vue'
 
-const quantityUnitEditor = createApp(QuantityUnitEditor)
-quantityUnitEditor.mount('#sfxonitamquantityuniteditor')
+const el = document.getElementById('sfxonitamquantityuniteditor')
+const entityDefinitions = JSON.parse(el.dataset.entityDefinitions || '{}')
+const customFields = JSON.parse(el.dataset.customFields || '[]')
+
+const app = createApp(App, {
+    entityDefinitions,
+    customFields,
+})
+app.mount('#sfxonitamquantityuniteditor')

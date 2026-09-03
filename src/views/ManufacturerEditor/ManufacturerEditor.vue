@@ -9,8 +9,6 @@ import NcAppNavigationList from '@nextcloud/vue/components/NcAppNavigationList'
 import NcAppNavigationNew from '@nextcloud/vue/components/NcAppNavigationNew'
 import NcContent from '@nextcloud/vue/components/NcContent'
 import NcButton from '@nextcloud/vue/components/NcButton'
-import NcTextArea from '@nextcloud/vue/components/NcTextArea'
-import NcTextField from '@nextcloud/vue/components/NcTextField'
 import NcIconSvgWrapper from '@nextcloud/vue/components/NcIconSvgWrapper'
 import NcNoteCard from '@nextcloud/vue/components/NcNoteCard'
 import SfxonCustomFields from '@/components/SfxonCustomFields'
@@ -31,7 +29,6 @@ const props = defineProps({
         default: () => [],
     },
 })
-
 const comment = ref('')
 const manufacturerLoading = ref(false)
 const isSaving = ref(false)
@@ -212,7 +209,7 @@ onMounted(async () => {
                                 v-model="name"
                                 :label="t('sfxonitam', 'Name') + ':'"
                                 type="text"
-                                :placeholder="t('sfxonitam', 'e.g. Your IT supplier')"
+                                :placeholder="t('sfxonitam', 'e.g. Oishii Desu')"
                                 @input="clearFieldError('name')"
                                 :fieldError="fieldErrors.name"
                             />

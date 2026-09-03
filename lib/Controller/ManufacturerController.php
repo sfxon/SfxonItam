@@ -163,27 +163,6 @@ class ManufacturerController extends Controller
 
     #[NoCSRFRequired]
     #[OpenAPI(OpenAPI::SCOPE_IGNORE)]
-    #[FrontpageRoute(verb: 'GET', url: '/manufacturer/{id}')]
-    public function show(int $id): JSONResponse
-    {
-        try {
-            $data = $this->manufacturerMapper->findById($id);
-        } catch (DoesNotExistException) {
-            return new JSONResponse(
-                ['status' => 'error', 'message' => 'Manufacturer not found'],
-                Http::STATUS_NOT_FOUND
-            );
-        }
-
-        $customFields = $this->customFieldService->getCustomFieldsDefinitionByGroup('sfxon_manufacturer');
-        $data['mainData'] = $data['mainData']->jsonSerialize($customFields);
-        $data['relations'] = $data['relations'];
-
-        return new JSONResponse($data);
-    }
-
-    #[NoCSRFRequired]
-    #[OpenAPI(OpenAPI::SCOPE_IGNORE)]
     #[FrontpageRoute(verb: 'POST', url: '/manufacturer/search')]
     public function search(
         string $orderBy = 'name',
@@ -202,6 +181,27 @@ class ManufacturerController extends Controller
             'page' => $page,
             'limit' => $limit,
         ]);
+    }
+
+    #[NoCSRFRequired]
+    #[OpenAPI(OpenAPI::SCOPE_IGNORE)]
+    #[FrontpageRoute(verb: 'GET', url: '/manufacturer/{id}')]
+    public function show(int $id): JSONResponse
+    {
+        try {
+            $data = $this->manufacturerMapper->findById($id);
+        } catch (DoesNotExistException) {
+            return new JSONResponse(
+                ['status' => 'error', 'message' => 'Manufacturer not found'],
+                Http::STATUS_NOT_FOUND
+            );
+        }
+
+        $customFields = $this->customFieldService->getCustomFieldsDefinitionByGroup('sfxon_manufacturer');
+        $data['mainData'] = $data['mainData']->jsonSerialize($customFields);
+        $data['relations'] = $data['relations'];
+
+        return new JSONResponse($data);
     }
 
     #[OpenAPI(OpenAPI::SCOPE_IGNORE)]
