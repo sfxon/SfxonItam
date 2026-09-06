@@ -78,7 +78,7 @@ async function loadMerchants() {
         merchants.value = data.merchants.mainData
         listState.total = data.total
     } catch (e) {
-        error.value = t('sfxonitam', 'Error while loading Merchants')
+        error.value = t('sfxonitam', 'Error while loading Merchants.')
     } finally {
         loading.value = false
     }

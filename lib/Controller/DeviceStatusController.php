@@ -172,11 +172,15 @@ class DeviceStatusController extends Controller
     {
         $offset = ($page - 1) * $limit;
         $filters = $this->request->getParam('filters');
-        $result = $this->deviceStatusMapper->searchPaged($orderBy, $direction, $limit, $offset, $filters);
-        $total   = $this->deviceStatusMapper->countAll($filters);
+
+        $data = $this->deviceStatusMapper->findAllPaged($orderBy, $direction, $limit, $offset, $filters);
+        $total = $this->deviceStatusMapper->countAll($filters);
+
+        $data['mainData'] = array_map(fn($d) => $d->jsonSerialize(), $data['mainData']);
 
         return new JSONResponse([
-            'mainData' => array_map(fn($d) => $d->jsonSerialize(), $result),
+            'mainData' => $data['mainData'],
+            'relations' => $data['relations'],
             'total' => $total,
             'page' => $page,
             'limit' => $limit,
@@ -189,7 +193,8 @@ class DeviceStatusController extends Controller
     public function show(int $id): JSONResponse
     {
         try {
-            $data = $this->deviceStatusMapper->findById($id);
+            $include = [];
+            $data = $this->deviceStatusMapper->findById($id, $include);
         } catch (DoesNotExistException) {
             return new JSONResponse(
                 ['status' => 'error', 'message' => 'Device not found'],
@@ -200,6 +205,7 @@ class DeviceStatusController extends Controller
         $customFields = $this->customFieldService->getCustomFieldsDefinitionByGroup('sfxon_device_status');
         $data['mainData'] = $data['mainData']->jsonSerialize($customFields);
         $data['relations'] = $data['relations'];
+
         return new JSONResponse($data);
     }
 

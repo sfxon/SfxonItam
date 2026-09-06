@@ -14,7 +14,6 @@ const props = defineProps<{
     relatedEntityData: T[],
 }>()
 
-
 </script>
 <template>
     <tbody>

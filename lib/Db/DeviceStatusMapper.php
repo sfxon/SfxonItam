@@ -14,13 +14,10 @@ class DeviceStatusMapper extends QBMapper {
 
     private const TABLE_NAME = 'sfxon_device_status';
     private const TABLE_ALIAS = 'ds';
-
-    private array $allowedEntityIdFields = [];
-
+    private array $allowedEntityIdFields = ['manufacturer_id',];
     private array $allowedSortColumns = [
         'name',
     ];
-
     private const JOIN_FILTERS = [];
 
     public function __construct(IDBConnection $db) {

@@ -1,5 +1,12 @@
 import { createApp } from 'vue'
-import PositionEditor from './PositionEditor.vue'
+import App from './PositionEditor.vue'
 
-const positionEditor = createApp(PositionEditor)
-positionEditor.mount('#sfxonitampositioneditor')
+const el = document.getElementById('sfxonitampositioneditor')
+const entityDefinitions = JSON.parse(el.dataset.entityDefinitions || '{}')
+const customFields = JSON.parse(el.dataset.customFields || '[]')
+
+const app = createApp(App, {
+    entityDefinitions,
+    customFields,
+})
+app.mount('#sfxonitampositioneditor')

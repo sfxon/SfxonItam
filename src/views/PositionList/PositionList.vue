@@ -21,11 +21,11 @@ import NcButton from '@nextcloud/vue/components/NcButton'
 import NcNoteCard from '@nextcloud/vue/components/NcNoteCard'
 import { fetchAllLocations } from '@/services/LocationService'
 
-const loading   = ref(false)
+const loading = ref(false)
 const locationsLoading = ref(false)
-const error     = ref<string | null>(null)
-const positions   = ref<Position[]>([])
-const relatedEntityData = reactive({ 'location': {}, });
+const error = ref<string | null>(null)
+const positions = ref<Position[]>([])
+const relatedEntityData = reactive({ location: [] as { id: number; label: string }[] });
 const listState = useListState()
 const positionToDelete = ref<Position | null>(null)
 const generalError = ref<string>('')
@@ -58,7 +58,7 @@ async function confirmDelete() {
         if(e.response && e.response.status == 422) {
             generalError.value = e.response.data.errors.join('<br>')
         } else {
-            generalError.value = 'Es ist ein Fehler beim Löschen aufgetreten.'
+            generalError.value = 'An error occured on delete.'
         }
         return;
     }
@@ -79,10 +79,10 @@ async function loadPositions() {
             page: listState.page,
             limit: listState.limit
         })
-        positions.value = data.positions
+        positions.value = data.positions.mainData
         listState.total = data.total
     } catch (e) {
-        error.value = t('sfxonitam', 'Fehler beim Laden der Positionen.')
+        error.value = t('sfxonitam', 'Error while loading positions.')
     } finally {
         loading.value = false
     }
@@ -99,7 +99,7 @@ async function loadLocations() {
             label: deviceStatus.name
         }))
     } catch(e) {
-        console.error('Fehler beim Laden der Device-Stati', e)
+        console.error('Error while loading locations:', e)
     } finally {
         locationsLoading.value = false
     }
@@ -117,7 +117,7 @@ async function onDeletePosition(position: Position) {
 watch(() => listState, loadPositions, { deep: true })
 
 onMounted(async () => {
-    await loadLocations()
+    // await loadLocations()
     await loadPositions()
 })
 </script>

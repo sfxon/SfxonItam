@@ -57,10 +57,8 @@ const props = defineProps({
         default: () => [],
     },
 })
-
 const selectedManufacturer = ref<{ id: string; label: string } | null>(null)
 const comment = ref('')
-const savedSuccessfully = ref(false);
 const manufacturersLoading = ref(false)
 const deviceTypeLoading = ref(false)
 const isSaving = ref(false)
@@ -85,7 +83,6 @@ const breadcrumbs = computed<BreadcrumbItem[]>(() => [
         disableDrop: true,
     },
 ])
-
 const manufacturers = ref<{ id: string; label: string}[]>([])
 const customFieldsRef = ref<InstanceType<typeof SfxonCustomFields> | null>(null)
 const customFieldValues = ref<Record<string, unknown>>({})
@@ -115,6 +112,33 @@ const entityConfig = {
     },
 }
 const relations = reactive(buildRelations(props.entityDefinitions, entityConfig))
+
+function addEntityData(entity, dataObject, identifierField, valueFields = null) {
+    if (dataObject == null) {
+        return
+    }
+
+    let id = dataObject[identifierField];
+    let label = '';
+    
+    if(null !== valueFields) {
+        if(valueFields.technique === 'concat') {
+            for(let fieldName of valueFields.fields) {
+                if(label.length > 0) {
+                    label += valueFields.separator;
+                }
+
+                label += dataObject[fieldName];
+            }
+        } else {
+            label = dataObject.name
+        } 
+    } else {
+        label = dataObject.name
+    }
+
+    entity.value.push({id: id, label: label})
+}
 
 function addItem() {
     window.location.href = generateUrl('/apps/sfxonitam/device-type/detail')
@@ -170,6 +194,11 @@ async function loadDeviceType(id: number): Promise<void> {
     try {
         deviceTypeLoading.value = true
         const data = await fetchDeviceType(id)
+
+        // Helper for checking, if object is set. If there was no relation set and so no relation loaded, this prevents a faulty access on the object.
+        const firstOf = (obj: any) => obj ? Object.values(obj)[0] ?? null : null 
+        addEntityData(manufacturers, firstOf(data.relations.manufacturer), 'id')
+
         const d = data.mainData
         name.value = d.name ?? ''
         selectedManufacturer.value = manufacturers.value.find(s => s.id == d.manufacturerId) ?? null
@@ -184,9 +213,8 @@ async function loadDeviceType(id: number): Promise<void> {
 }
 
 async function loadManufacturers() {
-    manufacturersLoading.value = true;
-
     try {
+        manufacturersLoading.value = true
         const data = await fetchAllManufacturers({})
 
         manufacturers.value = Object.values(data.manufacturers).map((manufacturer: any) => ({
@@ -194,7 +222,7 @@ async function loadManufacturers() {
             label: manufacturer.name
         }))
     } catch(e) {
-        console.error('Fehler beim Laden der Manufacturers', e)
+        console.error('Error on loading manufacturers:', e)
     } finally {
         manufacturersLoading.value = false
     }
@@ -283,7 +311,6 @@ async function searchManufacturers(query: string, signal: AbortSignal): Promise<
 
 async function submitForm() {
     clearErrors()
-    savedSuccessfully.value = false;
     isSaving.value = true
 
     try {
@@ -333,8 +360,6 @@ async function submitForm() {
 }
 
 onMounted(async () => {
-    await loadManufacturers()
-
     if (deviceTypeId.value) {
         await loadDeviceType(deviceTypeId.value)
     }
@@ -346,7 +371,7 @@ onMounted(async () => {
         <NcAppNavigation>
             <NcAppNavigationList>
                 <NcAppNavigationNew
-                :text="t('sfxonitam', 'Neuer Geräte-Typ')"
+                :text="t('sfxonitam', 'Add device type')"
                 @click="addItem"
                 >
                     <template #icon>

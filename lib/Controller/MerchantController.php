@@ -172,11 +172,15 @@ class MerchantController extends Controller
     {
         $offset = ($page - 1) * $limit;
         $filters = $this->request->getParam('filters');
-        $result = $this->merchantMapper->searchPaged($orderBy, $direction, $limit, $offset, $filters);
-        $total   = $this->merchantMapper->countAll($filters);
+
+        $data = $this->merchantMapper->findAllPaged($orderBy, $direction, $limit, $offset, $filters);
+        $total = $this->merchantMapper->countAll($filters);
+
+        $data['mainData'] = array_map(fn($d) => $d->jsonSerialize(), $data['mainData']);
 
         return new JSONResponse([
-            'mainData' => array_map(fn($d) => $d->jsonSerialize(), $result),
+            'mainData' => $data['mainData'],
+            'relations' => $data['relations'],
             'total' => $total,
             'page' => $page,
             'limit' => $limit,

@@ -274,9 +274,8 @@ async function loadDevice(id: number): Promise<void> {
         deviceLoading.value = true
         const data = await DeviceService.fetchDevice(id)
 
-        /* Setup dropdowns */
         // Helper for checking, if object is set. If there was no relation set and so no relation loaded, this prevents a faulty access on the object.
-       const firstOf = (obj: any) => obj ? Object.values(obj)[0] ?? null : null 
+        const firstOf = (obj: any) => obj ? Object.values(obj)[0] ?? null : null 
 
         addEntityData(deviceStatis, firstOf(data.relations.deviceStatus), 'id')
         addEntityData(deviceTypes, firstOf(data.relations.deviceType), 'id')
@@ -444,12 +443,12 @@ async function searchPositions(query: string, signal: AbortSignal): Promise<void
         }, signal
     )
 
-    if(data === null || data.result === null || data.result.mainData === null) {
+    if (data === null || data.mainData === null) {
         return;
     }
 
-    positions.value = Object.values(data.result.mainData).map((position: any) => {
-        const location = data.result.relations?.location?.[position.locationId];
+    positions.value = Object.values(data.mainData).map((position: any) => {
+        const location = data.relations?.location?.[position.locationId];
         const label = location ? `${location.name} - ${position.name}` : position.name;
         return {
             id: position.id,

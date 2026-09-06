@@ -109,9 +109,9 @@ class LocationController extends Controller
 
         return new JSONResponse([
             'locations' => $data,
-            'total'   => $total,
-            'page'    => $page,
-            'limit'   => $limit,
+            'total' => $total,
+            'page' => $page,
+            'limit' => $limit,
         ]);
     }
 
@@ -172,11 +172,15 @@ class LocationController extends Controller
     {
         $offset = ($page - 1) * $limit;
         $filters = $this->request->getParam('filters');
-        $result = $this->locationMapper->searchPaged($orderBy, $direction, $limit, $offset, $filters);
-        $total   = $this->locationMapper->countAll($filters);
+
+        $data = $this->locationMapper->findAllPaged($orderBy, $direction, $limit, $offset, $filters);
+        $total = $this->locationMapper->countAll($filters);
+
+        $data['mainData'] = array_map(fn($d) => $d->jsonSerialize(), $data['mainData']);
 
         return new JSONResponse([
-            'mainData' => array_map(fn($d) => $d->jsonSerialize(), $result),
+            'mainData' => $data['mainData'],
+            'relations' => $data['relations'],
             'total' => $total,
             'page' => $page,
             'limit' => $limit,
@@ -236,7 +240,6 @@ class LocationController extends Controller
             ], Http::STATUS_UNPROCESSABLE_ENTITY);
         }
 
-        // Felder aktualisieren
         $location = $this->setLocationDataFromRequest($location);
         $updated = $this->locationMapper->update($location);
         $this->customFieldService->updateCustomFieldsForEntity('sfxon_location', $updated->getId(), $customFieldData);

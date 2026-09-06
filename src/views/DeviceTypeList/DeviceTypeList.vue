@@ -21,11 +21,11 @@ import NcButton from '@nextcloud/vue/components/NcButton'
 import NcNoteCard from '@nextcloud/vue/components/NcNoteCard'
 import { fetchAllManufacturers } from '@/services/ManufacturerService'
 
-const loading   = ref(false)
+const loading = ref(false)
 const manufacturersLoading = ref(false)
-const error     = ref<string | null>(null)
-const deviceTypes   = ref<DeviceType[]>([])
-const relatedEntityData = reactive({ 'manufacturer': {}, });
+const error = ref<string | null>(null)
+const deviceTypes = ref<DeviceType[]>([])
+const relatedEntityData = reactive({ manufacturer: [] as { id: number; label: string }[] });
 const listState = useListState()
 const deviceTypeToDelete = ref<DeviceType | null>(null)
 const generalError = ref<string>('')
@@ -117,7 +117,7 @@ async function onDeleteDeviceType(deviceType: DeviceType) {
 watch(() => listState, loadDeviceTypes, { deep: true })
 
 onMounted(async () => {
-    await loadManufacturers()
+    // await loadManufacturers()
     await loadDeviceTypes()
 })
 </script>

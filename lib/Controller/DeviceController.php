@@ -177,7 +177,6 @@ class DeviceController extends Controller
     {
         try {
             $include = $this->request->getParam('include');
-
             $data = $this->deviceMapper->findById($id, $include);
         } catch (DoesNotExistException) {
             return new JSONResponse(

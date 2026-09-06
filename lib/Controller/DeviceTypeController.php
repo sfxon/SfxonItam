@@ -171,12 +171,6 @@ class DeviceTypeController extends Controller
             ], Http::STATUS_UNPROCESSABLE_ENTITY); // Returns error 422
         }
 
-        $manufacturerId = (int)$this->request->getParam('manufacturerId');
-        
-        if($manufacturerId === 0) {
-            $manufacturerId = null;
-        }
-
         $saved = $this->deviceTypeMapper->insert($deviceType);
         $this->customFieldService->updateCustomFieldsForEntity('sfxon_device_type', $saved->getId(), $customFieldData);
 
@@ -197,11 +191,15 @@ class DeviceTypeController extends Controller
     {
         $offset = ($page - 1) * $limit;
         $filters = $this->request->getParam('filters');
-        $result = $this->deviceTypeMapper->searchPaged($orderBy, $direction, $limit, $offset, $filters);
-        $total   = $this->deviceTypeMapper->countAll($filters);
+
+        $data = $this->deviceTypeMapper->findAllPaged($orderBy, $direction, $limit, $offset, $filters);
+        $total = $this->deviceTypeMapper->countAll($filters);
+
+        $data['mainData'] = array_map(fn($d) => $d->jsonSerialize(), $data['mainData']);
 
         return new JSONResponse([
-            'mainData' => array_map(fn($d) => $d->jsonSerialize(), $result),
+            'mainData' => $data['mainData'],
+            'relations' => $data['relations'],
             'total' => $total,
             'page' => $page,
             'limit' => $limit,
@@ -214,7 +212,8 @@ class DeviceTypeController extends Controller
     public function show(int $id): JSONResponse
     {
         try {
-            $data = $this->deviceTypeMapper->findById($id);
+            $include = ['manufacturer' => []];
+            $data = $this->deviceTypeMapper->findById($id, $include);
         } catch (DoesNotExistException) {
             return new JSONResponse(
                 ['status' => 'error', 'message' => 'DeviceType not found'],
