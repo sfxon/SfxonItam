@@ -129,14 +129,14 @@ function getRelatedEntityData(col: any) {
         </span>
         <span v-else-if="col.type === 'qrCode'">
             <SfxonQrCodeView
-                :deviceId="dataRow[col.key]"
+                :deviceId="dataRow[col.valueKey ?? col.key]"
                 customStyle="width: 24px; height: 24px;"
             />
         </span>
         <span v-else-if="col.type == 'barcode'">
             <SfxonTableRowBarcode
                 customStyle="max-width: 36px!important; height: 24px!important;"
-                :name="dataRow[col.key]"
+                :name="dataRow[col.valueKey ?? col.key]"
                 :prefix="col.prefix"
             />
         </span>

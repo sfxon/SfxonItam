@@ -1,11 +1,12 @@
 <script setup lang="ts">
 
+import { computed, onMounted, onUnmounted, reactive, ref } from 'vue'
 import { deleteDevice } from '@/services/DeviceService'
 import type { Device } from '@/services/DeviceService'
 import { fetchDevices } from '@/services/DeviceService'
+import { emit as emitEventBus, subscribe as subscribeEventBus, unsubscribe as unsubscribeEventBus } from '@nextcloud/event-bus'
 import { generateUrl } from '@nextcloud/router'
-import { reactive } from 'vue'
-import { ref } from 'vue'
+import { loadState } from '@nextcloud/initial-state'
 import { mdiPlus } from '@mdi/js'
 import NcAppContent from '@nextcloud/vue/components/NcAppContent'
 import NcAppNavigation from '@nextcloud/vue/components/NcAppNavigation'
@@ -16,10 +17,11 @@ import NcContent from '@nextcloud/vue/components/NcContent'
 import NcDialog from '@nextcloud/vue/components/NcDialog'
 import NcIconSvgWrapper from '@nextcloud/vue/components/NcIconSvgWrapper'
 import NcLoadingIcon from '@nextcloud/vue/components/NcLoadingIcon'
-import { onMounted } from 'vue'
 import { translate as t } from '@nextcloud/l10n'
 import SfxonBarcode from '@/components/SfxonBarcode'
+import SfxonColumnOrderModal from '@/components/SfxonColumnOrderModal'
 import SfxonFilterBar from '@/components/SfxonFilterBar'
+import SfxonItamHeaderBc from '@/components/SfxonItamHeaderBc'
 import SfxonMainNavigation from '@/components/SfxonMainNavigation'
 import SfxonPagination from '@/components/SfxonPagination'
 import SfxonQrCodeView from '@/components/SfxonQrCodeView'
@@ -39,9 +41,41 @@ import * as PositionService from '@/services/PositionService'
 import { getPositionDetailLink } from '@/services/PositionService'
 import * as QuantityUnitService from '@/services/QuantityUnitService'
 import { getQuantityUnitDetailLink } from '@/services/QuantityUnitService'
+import { useColumnOrder } from '@/composables/useColumnOrder'
+import { saveUiState } from '@/services/ListViewSettings'
 import { watch } from 'vue'
 
-const filterSidebarOpen = ref(true)
+const breadcrumbs = computed<BreadcrumbItem[]>(() => [
+    {
+        label: t('sfxonitam', 'Device Management'),
+        link: generateUrl('/apps/sfxonitam/'),
+        forceIconText: true,
+        disableDrop: true,
+    },
+])
+
+const VIEW_ID = 'device-list'
+
+const initialUiState = loadState<{ filterSidebarOpen?: boolean; navigationOpen?: boolean }>(
+    'sfxonitam',
+    'listViewUiState-' + VIEW_ID,
+    { filterSidebarOpen: true, navigationOpen: true }
+)
+
+const filterSidebarOpen = ref(initialUiState.filterSidebarOpen ?? true)
+const navigationOpen = ref(initialUiState.navigationOpen ?? true)
+
+watch([filterSidebarOpen, navigationOpen], () => {
+    saveUiState(VIEW_ID, {
+        filterSidebarOpen: filterSidebarOpen.value,
+        navigationOpen: navigationOpen.value,
+    }).catch((e) => console.warn('Konnte UI-Zustand nicht speichern:', e))
+})
+
+
+function onNavigationToggled({ open }: { open: boolean }) {
+    navigationOpen.value = open
+}
 const loading = ref(false)
 const error = ref<string | null>(null)
 const listState = useListState()
@@ -72,6 +106,21 @@ const previewState = reactive<{
     dataRow: null,
     type: 'image',
 })
+const props = defineProps({
+    entityDefinitions: {
+        type: Object,
+        required: true,
+    },
+    customFields: {
+        type: Array,
+        default: () => [],
+    },
+})
+const CUSTOM_FIELD_COLUMN_PREFIX = 'custom.'
+
+function customFieldColumnKey(technicalName: string): string {
+    return `${CUSTOM_FIELD_COLUMN_PREFIX}${technicalName}`
+}
 
 function addItem() {
     window.location.href = generateUrl('/apps/sfxonitam/device/detail')
@@ -187,7 +236,15 @@ async function loadDevices() {
             filters
         })
 
-        devices.value = data.devices.mainData
+        devices.value = data.devices.mainData.map((device: any) => {
+            const row = { ...device }
+
+            for (const cf of props.customFields as any[]) {
+                row[customFieldColumnKey(cf.technicalName)] = device.customFields?.[cf.technicalName] ?? ''
+            }
+
+            return row
+        })
         listState.total = data.total
         applyRelations(data.devices.relations)
     } catch (e) {
@@ -389,10 +446,10 @@ async function reloadDevices() {
 
 // Must be defined after the eventHandlers (previewQrCode, previewImage, rowLeave),
 // because const with ref/reactive depend on the order of the declaration.
-const columns = [
+const staticColumns = [
     { type: 'image', label: t('sfxonitam', 'Image'), key: 'imageFileId', cellMounted: imageCellMounted, },
-    { type: 'qrCode', label: t('sfxonitam', 'QR-Code'), key: 'id', cellMounted: qrCodeCellMounted, },
-    { type: 'barcode', label: t('sfxonitam', 'Barcode'), key: 'name', prefix: 'DEV', cellMounted: barcodeMounted, },
+    { type: 'qrCode', label: t('sfxonitam', 'QR-Code'), key: '#qrcode', valueKey: 'id', cellMounted: qrCodeCellMounted, },
+    { type: 'barcode', label: t('sfxonitam', 'Barcode'), key: '#barcode', valueKey: 'name', prefix: 'DEV', cellMounted: barcodeMounted, },
     { key: 'name', label: t('sfxonitam', 'Name'), sortable: true, cellMounted: defaultCellMounted, colLinkCallback: onGetDeviceUrl, },
     { type: 'quantityWithUnit', relatedEntityName: 'quantityUnit', key: 'quantity', relatedEntityKey: 'quantityUnitId', entityDetailUrlCallback: getQuantityUnitDetailLink, label: t('sfxonitam', 'Quantity'), sortable: true, cellMounted: defaultCellMounted, colLinkCallback: onGetDeviceUrl, },
     { type: 'relatedEntity', relatedEntityName: 'deviceStatus', key: 'deviceStatusId', entityDetailUrlCallback: getDeviceStatusDetailLink, label: t('sfxonitam', 'DeviceStatus'), sortable: false, cellMounted: defaultCellMounted, colLinkCallback: onGetDeviceUrl, },
@@ -405,8 +462,19 @@ const columns = [
     { type: 'relatedEntity', relatedEntityName: 'merchant', key: 'merchantId', entityDetailUrlCallback: getMerchantDetailLink, label: t('sfxonitam', 'Händler'), sortable: false, cellMounted: defaultCellMounted, colLinkCallback: onGetDeviceUrl, },
     { key: 'invoiceNumber', label: t('sfxonitam', 'Rechnungs-Nummer'), sortable: true, cellMounted: defaultCellMounted, colLinkCallback: onGetDeviceUrl, },
     { type: 'date', key: 'purchaseDate', label: t('sfxonitam', 'Purchase Date'), sortable: true, cellMounted: defaultCellMounted, colLinkCallback: onGetDeviceUrl, },
-    { type: 'actions', label: t('sfxonitam', 'Aktion'), sortable: false, cellMounted: defaultCellMounted, },
+    { type: 'actions', key: '#actions', label: t('sfxonitam', 'Aktion'), sortable: false, cellMounted: defaultCellMounted, },
 ]
+const customFieldColumns = computed(() => (props.customFields as any[]).map(cf => ({
+    key: customFieldColumnKey(cf.technicalName),
+    label: cf.name,
+    sortable: false,
+    cellMounted: defaultCellMounted,
+    colLinkCallback: onGetDeviceUrl,
+})))
+
+const columns = computed(() => [...staticColumns, ...customFieldColumns.value])
+const defaultColumns = ['imageFileId', '#qrcode', '#barcode', 'name', '#actions']
+const { orderedColumns, showModal, onSaved } = useColumnOrder('device-list', columns.value, defaultColumns)
 
 const filterFields = [
     { key: 'name', label: t('sfxonitam', 'Name'), },
@@ -432,7 +500,14 @@ watch(
 )
 
 onMounted(async () => {
+    subscribeEventBus('navigation-toggled', onNavigationToggled)
+    emitEventBus('toggle-navigation', { open: navigationOpen.value })
+
     await reloadDevices()
+})
+
+onUnmounted(() => {
+    unsubscribeEventBus('navigation-toggled', onNavigationToggled)
 })
 </script>
 
@@ -441,7 +516,7 @@ onMounted(async () => {
         <NcAppNavigation>
             <NcAppNavigationList :class="$style.sfxonNavList">
                 <NcAppNavigationNew
-                :text="t('sfxonitam', 'Neues Gerät')"
+                :text="t('sfxonitam', 'Add device')"
                 @click="addItem"
                 >
                     <template #icon>
@@ -496,26 +571,29 @@ onMounted(async () => {
             </template>
         </NcAppNavigation>
 
-        <!-- Main App Content -->
         <NcAppContent>
-            <div :class="$style.sfxonItamHeader">
-                <div class="content-title">Geräte-Verwaltung</div>
-                <div :class="$style.sfxonItamHeaderSidebarToggleBtn">
+            <SfxonItamHeaderBc
+                :titleLabel="''"
+                :breadcrumbs="breadcrumbs">
+                <template #actionButtonsRight>
+                    <NcButton @click="showModal = true">
+                        {{ t('sfxonitam', 'Edit columns') }}
+                    </NcButton>
                     <NcButton @click.prevent="filterSidebarOpen = !filterSidebarOpen">
                         {{ t('sfxonitam', 'Search/Filter') }}
                     </NcButton>
-                </div>
-            </div>
+                </template>
+            </SfxonItamHeaderBc>
+
             <div :class="$style.sfxonItamContent">
                 <div v-if="error" class="device-list__error">{{ error }}</div>
 
-                <!-- Loading spinner -->
                 <div v-else-if="loading" class="device-list__loading">
                     <NcLoadingIcon :size="32" />
                 </div>
 
                 <SfxonTable
-                    :columns="columns"
+                    :columns="orderedColumns"
                     :dataArray="devices"
                     :dataArrayKey="'id'"
                     :deleteCallback="onDeleteDevice"
@@ -608,6 +686,15 @@ onMounted(async () => {
             </template>
         </div>
     </NcDialog>
+    <SfxonColumnOrderModal
+        :active-columns="orderedColumns"
+        :all-columns="columns"
+        @close="showModal = false"
+        :default-columns="defaultColumns"
+        list-id="device-list"
+        @saved="onSaved"
+        :show="showModal"
+     />
 </template>
 
 <style module>

@@ -220,7 +220,7 @@ Editor:
 
     - ✅ Add a results per page dropdown/input, so we can also show 100 results or 1000 results on one page.
 
-    - Take over breadcrumb to device list: https://nextcloud-vue-components.netlify.app/#/Components/NcBreadcrumbs?id=ncbreadcrumb. It is used for example for Custom Fields. In that next step, I will automatically take it over for the other list views.
+    - ✅ Take over breadcrumb to device list: https://nextcloud-vue-components.netlify.app/#/Components/NcBreadcrumbs?id=ncbreadcrumb. It is used for example for Custom Fields. In that next step, I will automatically take it over for the other list views.
 
     - Take over new functionality for detail page to all other editor pages..
         - ✅ Build an editor.module.css and import it on every editor page. That way, I can use general stylings for that pages.
@@ -228,10 +228,9 @@ Editor:
         - ✅ Create SfxonEditorFormEntitySelect component.
         - ✅ Create SfxonEditorFormTextarea component.
         - ✅ Create SfxonEditorFormDate component.
-        - Implement style, new fields and functionality on all the other editor views.
+        - ✅ Implement style, new fields and functionality on all the other editor views.
 
-    
-    - Menü zu Geräteliste hinzufügen, mit dem die Reihenfolge der Spalten geändert werden kann, sowie eingestellt werden kann, in welcher Reihenfolge gefiltert werden kann und welche Spalten überhaupt angezeigt werden sollen.
+    - Add a menu to the device list that allows users to change the column order, and select which columns are displayed.
     - Geräteliste auch nach Entitäten sortierbar machen.
 
     * Take over device loading optimization from device list view to other entities.

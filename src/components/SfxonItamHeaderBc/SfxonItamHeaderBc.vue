@@ -49,6 +49,7 @@ const props = withDefaults(defineProps<{
     background-color: var(--color-background-assistant);
     display: flex;
     flex: 0 0;
+    flex-wrap: wrap;
     font-weight: bold;
     gap: var(--default-grid-baseline);
     max-width: 100%;
@@ -59,7 +60,11 @@ const props = withDefaults(defineProps<{
 }
 
 .sfxonItamHeaderSidebarToggleBtn {
-    margin-left: auto;
-    margin-right: 0;
+    display: flex;
+    flex: 1 1 auto;
+    flex-wrap: wrap;
+    gap: var(--default-grid-baseline);
+    justify-content: flex-end;
+    min-width: 0;
 }
 </style>

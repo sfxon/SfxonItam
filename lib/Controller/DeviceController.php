@@ -2,16 +2,6 @@
 
 namespace OCA\SfxonItam\Controller;
 
-use OCP\AppFramework\Controller;
-use OCP\AppFramework\Db\DoesNotExistException;
-use OCP\AppFramework\Http;
-use OCP\AppFramework\Http\Attribute\FrontpageRoute;
-use OCP\AppFramework\Http\Attribute\NoCSRFRequired;
-use OCP\AppFramework\Http\Attribute\OpenAPI;
-use OCP\AppFramework\Http\DataResponse;
-use OCP\AppFramework\Http\TemplateResponse;
-use OCP\AppFramework\Http\JSONResponse;
-use OCP\IRequest;
 use OCA\SfxonItam\AppInfo\Application;
 use OCA\SfxonItam\Db\Device;
 use OCA\SfxonItam\Db\DeviceMapper;
@@ -25,6 +15,18 @@ use OCA\SfxonItam\Db\Position;
 use OCA\SfxonItam\Db\QuantityUnit;
 use OCA\SfxonItam\Service\CustomFieldService;
 use OCA\SfxonItam\Service\DeviceService;
+use OCA\SfxonItam\Service\ListViewSettingsService;
+use OCP\AppFramework\Controller;
+use OCP\AppFramework\Db\DoesNotExistException;
+use OCP\AppFramework\Http;
+use OCP\AppFramework\Http\Attribute\FrontpageRoute;
+use OCP\AppFramework\Http\Attribute\NoCSRFRequired;
+use OCP\AppFramework\Http\Attribute\OpenAPI;
+use OCP\AppFramework\Http\DataResponse;
+use OCP\AppFramework\Http\TemplateResponse;
+use OCP\AppFramework\Http\JSONResponse;
+use OCP\AppFramework\Services\IInitialState;
+use OCP\IRequest;
 
 /**
  * @psalm-suppress UnusedClass
@@ -54,7 +56,9 @@ class DeviceController extends Controller
         IRequest $request,
         private DeviceMapper $deviceMapper,
         private readonly DeviceService $deviceService,
-        private CustomFieldService $customFieldService,)
+        private CustomFieldService $customFieldService,
+        private ListViewSettingsService $listViewSettingsService,
+        private IInitialState $initialState,)
     {
         parent::__construct($appName, $request);
     }
@@ -109,9 +113,38 @@ class DeviceController extends Controller
     #[FrontpageRoute(verb: 'GET', url: '/')]
     public function index(): TemplateResponse
     {
+        $listId = 'device-list';
+
+        $this->initialState->provideInitialState(
+            'listViewColumnOrder-' . $listId,
+            $this->listViewSettingsService->getColumnOrder($listId)
+        );
+
+        $this->initialState->provideInitialState(
+            'listViewUiState-' . $listId,
+            $this->listViewSettingsService->getUiState($listId)
+        );
+
+        $entityDefinitions = [
+            'deviceStatus' => DeviceStatus::getFieldDefinition(),
+            'deviceType' => DeviceType::getFieldDefinition(),
+            'itamUser' => ItamUser::getFieldDefinition(),
+            'location' => Location::getFieldDefinition(),
+            'manufacturer' => Manufacturer::getFieldDefinition(),
+            'merchant' => Merchant::getFieldDefinition(),
+            'position' => Position::getFieldDefinition(),
+            'quantityUnit' => QuantityUnit::getFieldDefinition(),
+        ];
+
+        $customFields = $this->customFieldService->getCustomFieldsDefinitionByGroup('sfxon_device');
+
         return new TemplateResponse(
             Application::APP_ID,
             'device/list',
+            [
+                'entityDefinitions' => $entityDefinitions,
+                'customFields' => $customFields,
+            ]
         );
     }
 
@@ -133,8 +166,9 @@ class DeviceController extends Controller
         $include = $this->getDefaultIncludes();
         $data = $this->deviceMapper->findAllPaged($orderBy, $direction, $limit, $offset, $filters, $include);
         $total   = $this->deviceMapper->countAll($filters);
+        $customFields = $this->customFieldService->getCustomFieldsDefinitionByGroup('sfxon_device');
 
-        $data['mainData'] = array_map(fn($d) => $d->jsonSerialize(/* $customFields */), $data['mainData']);
+        $data['mainData'] = array_map(fn($d) => $d->jsonSerialize($customFields), $data['mainData']);
         $data['relations'] = $data['relations'];
 
         return new JSONResponse([
