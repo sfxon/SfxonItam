@@ -54,4 +54,14 @@ class DeviceMapper extends QBMapper {
     public function __construct(IDBConnection $db) {
         parent::__construct($db, self::TABLE_NAME, Device::class);
     }
+
+    protected function getRelationSorts(): array {
+        return [
+            'deviceStatusId' => ['entity' => DeviceStatus::class, 'localKey' => 'device_status_id'],
+            'deviceTypeId' => ['entity' => DeviceType::class, 'localKey' => 'device_type_id'],
+            'itamUserId' => ['entity' => ItamUser::class, 'localKey' => 'itam_user_id'],
+            'merchantId' => ['entity' => Merchant::class, 'localKey' => 'merchant_id'],
+            'positionId' => ['entity' => Position::class, 'localKey' => 'position_id'],
+        ];
+    }
 }

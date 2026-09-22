@@ -2,6 +2,7 @@
 declare(strict_types=1);
 namespace OCA\SfxonItam\Db;
 
+use OCA\SfxonItam\Db\ISortableEntity;
 use OCP\AppFramework\Db\Entity;
 
 /**
@@ -12,7 +13,7 @@ use OCP\AppFramework\Db\Entity;
  * @method string|null getComment()
  * @method void setComment(string|null $comment)
  */
-class DeviceType extends Entity implements \JsonSerializable {
+class DeviceType extends Entity implements \JsonSerializable, ISortableEntity {
     use TEntityWithCustomFields;
 
     protected ?string $name = null;
@@ -85,6 +86,10 @@ class DeviceType extends Entity implements \JsonSerializable {
                 'unique' => false,
             ],
         ];
+    }
+
+    public static function getSortDefinition(): array {
+        return ['table' => 'sfxon_device_type', 'columns' => ['name']];
     }
 
     /**

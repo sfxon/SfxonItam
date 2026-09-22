@@ -1,18 +1,19 @@
-<?php
-declare(strict_types=1);
+<?php declare(strict_types=1);
 
 namespace OCA\SfxonItam\Db;
 
 use OCP\DB\QueryBuilder\IQueryBuilder;
 
-trait TSfxonEntityMapper {
+trait TSfxonEntityMapper
+{
     /** @var string[] Track applied joins to avoid duplicates per query */
     private array $appliedJoinAliases = [];
 
     /** @var array<string, array>|null Static cache for filter field map */
     protected static ?array $filterFieldMap = null;
 
-    private function applyFilters(IQueryBuilder $qb, array $filters): void {
+    private function applyFilters(IQueryBuilder $qb, array $filters): void
+    {
         $this->appliedJoinAliases = [];
         $fieldMap = $this->getFilterFieldMap();
 
@@ -48,7 +49,8 @@ trait TSfxonEntityMapper {
         }
     }
 
-    private function applyJoinFilter(IQueryBuilder $qb, array $config, mixed $values): void {
+    private function applyJoinFilter(IQueryBuilder $qb, array $config, mixed $values): void
+    {
         if (!in_array($config['alias'], $this->appliedJoinAliases, true)) {
             $qb->leftJoin(self::TABLE_ALIAS, $config['table'], $config['alias'], $config['condition']);
             $this->appliedJoinAliases[] = $config['alias'];
@@ -65,11 +67,13 @@ trait TSfxonEntityMapper {
      * Default sort field, used when no orderBy is given or the given one is invalid.
      * Override in the concrete Mapper class if the entity has no 'name' field.
      */
-    protected function getDefaultSortField(): string {
+    protected function getDefaultSortField(): string
+    {
         return 'name';
     }
 
-    private function getFilterFieldMap(): array {
+    private function getFilterFieldMap(): array
+    {
         if (static::$filterFieldMap === null) {
             static::$filterFieldMap = [];
             foreach ($this->entityClass::getFieldDefinition() as $field) {
@@ -80,7 +84,8 @@ trait TSfxonEntityMapper {
         return static::$filterFieldMap;
     }
 
-    public function countAll(?array $filters = null): int {
+    public function countAll(?array $filters = null): int
+    {
         $qb = $this->db->getQueryBuilder();
         $qb->select($qb->func()->count('*', 'count'));
         $qb->from($this->getTableName(), self::TABLE_ALIAS);
@@ -98,27 +103,36 @@ trait TSfxonEntityMapper {
         int $limit = 20,
         int $offset = 0,
         ?array $filters = null,
-        ?array $include = null
-    ): array {
-        $fieldMap = $this->getFilterFieldMap();
-        
-        if (isset($fieldMap[$orderBy])) {
-            $col = self::TABLE_ALIAS . '.' . $fieldMap[$orderBy]['name'];
-        } else {
-            $col = self::TABLE_ALIAS . '.' . $this->getDefaultSortField();
-        }
-
+        ?array $include = null ): array
+    {
         $dir = strtoupper($direction) === 'DESC' ? 'DESC' : 'ASC';
 
         $qb = $this->db->getQueryBuilder();
-        $qb->select('*')
+        $qb->select(self::TABLE_ALIAS . '.*')
             ->from($this->getTableName(), self::TABLE_ALIAS)
-            ->orderBy($col, $dir)
             ->setMaxResults($limit)
             ->setFirstResult($offset);
 
         if ($filters !== null) {
             $this->applyFilters($qb, $filters);
+        }
+
+        if (!$this->applyRelationSort($qb, $orderBy, $dir)) {
+            $fieldMap = $this->getFilterFieldMap();
+            $fieldDef = $fieldMap[$orderBy] ?? null;
+            $field = $fieldDef['name'] ?? $this->getDefaultSortField();
+            $column = self::TABLE_ALIAS . '.' . $field;
+
+            // Nextcloud natively uses binary tables, which means all sortings are case sensitive.
+            // I think it is, because they need to sort filenames like this.
+            // @TODO:
+            // We do not want that, so we do a lower right now. It's not the nicest way and I should add some option later, maybe, to disable this,
+            // because it can become inperformant.
+            $filterType = $fieldDef['filterType'] ?? $this->resolveFilterType($fieldDef['type'] ?? '');
+            $orderExpr = $filterType === 'like' ? $qb->func()->lower($column) : $column;
+
+            $qb->orderBy($orderExpr, $dir)
+                ->addOrderBy(self::TABLE_ALIAS . '.id', 'ASC');
         }
 
         $result = $this->findEntities($qb);
@@ -134,7 +148,8 @@ trait TSfxonEntityMapper {
         ];
     }
 
-    public function findById(int $id, ?array $include = null): array {
+    public function findById(int $id, ?array $include = null): array
+    {
         $qb = $this->db->getQueryBuilder();
         $qb->select('*')
             ->from($this->getTableName())
@@ -261,6 +276,94 @@ trait TSfxonEntityMapper {
         }
     }
 
+    /**
+     * @return bool true if $orderBy was a relation sort and has been applied.
+     */
+    private function applyRelationSort(IQueryBuilder $qb, string $orderBy, string $direction): bool {
+        // Whitelist lookup: user input is only ever used as an array key here.
+        $relation = $this->getRelationSorts()[$orderBy] ?? null;
+        if ($relation === null) {
+            return false;
+        }
+
+        $entityClass = $relation['entity'];
+        if (!is_subclass_of($entityClass, ISortableEntity::class)) {
+            throw new \LogicException($entityClass . ' must implement ISortableEntity');
+        }
+
+        // Doctrine appends the direction unvalidated, so it must be normalised explicitly.
+        $direction = strtoupper($direction) === 'DESC' ? 'DESC' : 'ASC';
+
+        $definition = $entityClass::getSortDefinition();
+        // Use 'srt_' prefix avoids collisions with the aliases of JOIN_FILTERS (p, dt, ...).
+        $alias = 'srt_' . preg_replace('/[^a-z0-9]/i', '', $orderBy);
+
+        $this->assertSqlIdentifier($alias);
+        $this->assertSqlIdentifier($relation['localKey']);
+        $this->assertSqlIdentifier($definition['table']);
+
+        // LEFT JOIN, so rows without a relation stay in the list.
+        $qb->leftJoin(
+            self::TABLE_ALIAS,
+            $definition['table'],
+            $alias,
+            $qb->expr()->eq(self::TABLE_ALIAS . '.' . $relation['localKey'], $alias . '.id')
+        );
+
+        $joinAliases = [];
+        foreach ($definition['joins'] ?? [] as $name => $join) {
+            $joinAlias = $alias . '_' . $name;
+            $this->assertSqlIdentifier($joinAlias);
+            $this->assertSqlIdentifier($join['table']);
+            $this->assertSqlIdentifier($join['localKey']);
+
+            $qb->leftJoin(
+                $alias,
+                $join['table'],
+                $joinAlias,
+                $qb->expr()->eq($alias . '.' . $join['localKey'], $joinAlias . '.id')
+            );
+            $joinAliases[$name] = $joinAlias;
+        }
+
+        $first = true;
+
+        foreach ($definition['columns'] as $column) {
+            if (is_array($column)) {
+                if (!isset($joinAliases[$column['join']])) {
+                    throw new \LogicException('Unknown join in sort definition');
+                }
+                
+                $tableAlias = $joinAliases[$column['join']];
+                $columnName = $column['column'];
+                $isText = $column['text'] ?? true;
+            } else {
+                $tableAlias = $alias;
+                $columnName = $column;
+                $isText = true;
+            }
+            $this->assertSqlIdentifier($columnName);
+
+            $expression = $tableAlias . '.' . $columnName;
+            if ($isText) {
+                $expression = $qb->func()->lower($expression);
+            }
+
+            $first ? $qb->orderBy($expression, $direction) : $qb->addOrderBy($expression, $direction);
+            $first = false;
+        }
+
+        $qb->addOrderBy(self::TABLE_ALIAS . '.id', 'ASC');
+
+        return true;
+    }
+
+    private function assertSqlIdentifier(string $identifier): void {
+        if (preg_match('/^[A-Za-z_][A-Za-z0-9_]*$/', $identifier) !== 1) {
+            throw new \LogicException('Invalid SQL identifier');
+        }
+    }
+
     private function camelToSnake(string $input): string {
         return strtolower(preg_replace('/[A-Z]/', '_$0', $input));
     }
@@ -376,5 +479,15 @@ trait TSfxonEntityMapper {
             'DATE', 'DATETIME', 'TIMESTAMP' => 'dateFromTo',
             default => 'in',
         };
+    }
+
+    /**
+     * Sort key (as sent by the frontend) => ['entity' => class-string<ISortableEntity>, 'localKey' => fk column].
+     * Override in the concrete Mapper.
+     *
+     * @return array<string, array{entity: class-string<ISortableEntity>, localKey: string}>
+     */
+    protected function getRelationSorts(): array {
+        return [];
     }
 }

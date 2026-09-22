@@ -230,8 +230,8 @@ Editor:
         - ✅ Create SfxonEditorFormDate component.
         - ✅ Implement style, new fields and functionality on all the other editor views.
 
-    - Add a menu to the device list that allows users to change the column order, and select which columns are displayed.
-    - Geräteliste auch nach Entitäten sortierbar machen.
+    - ✅ Add a menu to the device list that allows users to change the column order, and select which columns are displayed.
+    - ✅ Make the device list sortable by entity name.
 
     * Take over device loading optimization from device list view to other entities.
 

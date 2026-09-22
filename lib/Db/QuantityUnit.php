@@ -2,6 +2,7 @@
 
 namespace OCA\SfxonItam\Db;
 
+use OCA\SfxonItam\Db\ISortableEntity;
 use OCP\AppFramework\Db\Entity;
 
 /**
@@ -10,7 +11,7 @@ use OCP\AppFramework\Db\Entity;
  * @method string|null getComment()
  * @method void setComment(string|null $comment)
  */
-class QuantityUnit extends Entity implements \JsonSerializable
+class QuantityUnit extends Entity implements \JsonSerializable, ISortableEntity
 {
     use TEntityWithCustomFields;
 
@@ -69,6 +70,10 @@ class QuantityUnit extends Entity implements \JsonSerializable
                 'unique' => false,
             ],
         ];
+    }
+
+    public static function getSortDefinition(): array {
+        return ['table' => 'sfxon_quantity_unit', 'columns' => ['name']];
     }
 
     /**

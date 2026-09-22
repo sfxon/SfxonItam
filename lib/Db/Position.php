@@ -2,6 +2,7 @@
 
 namespace OCA\SfxonItam\Db;
 
+use OCA\SfxonItam\Db\ISortableEntity;
 use OCP\AppFramework\Db\Entity;
 
 /**
@@ -12,7 +13,7 @@ use OCP\AppFramework\Db\Entity;
  * @method string|null getComment()
  * @method void setComment(string|null $comment)
  */
-class Position extends Entity implements \JsonSerializable
+class Position extends Entity implements \JsonSerializable, ISortableEntity
 {
     use TEntityWithCustomFields;
 
@@ -85,6 +86,14 @@ class Position extends Entity implements \JsonSerializable
                 'requiredOnUpdate' => false,
                 'unique' => false,
             ],
+        ];
+    }
+
+    public static function getSortDefinition(): array {
+        return [
+            'table' => 'sfxon_position',
+            'joins' => ['location' => ['table' => 'sfxon_location', 'localKey' => 'location_id']],
+            'columns' => [['join' => 'location', 'column' => 'name'], 'name'],
         ];
     }
 
