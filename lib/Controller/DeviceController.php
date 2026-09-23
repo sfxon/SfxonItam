@@ -69,6 +69,8 @@ class DeviceController extends Controller
     {
         // Put this in a try-catch block, since findById will throw an error,
         // if it does not find an element with the given id.
+        // @TODO:
+        // Change this. Not showing an error, could lead to a user not seeing, that there was a problem and the data still exists.
         try {
             $device = $this->deviceMapper->findById($id);
             $this->deviceMapper->delete($device['mainData']);
@@ -186,6 +188,9 @@ class DeviceController extends Controller
         $data = $this->deviceService->getDataFromRequest($this->request->getParams(), $this->expectedFields);
         $result = $this->deviceService->validateData($data);
 
+        // @TODO:
+        // Validation for custom fields is missing here.
+        // Check and repair this with a look at DeviceStatusController.
         if($result['valid'] === false) {
             return new DataResponse([
                 'status' => 'error',
@@ -259,7 +264,6 @@ class DeviceController extends Controller
             ], Http::STATUS_UNPROCESSABLE_ENTITY);
         }
 
-        // Update.
         $device = $this->setDeviceDataFromRequest($device);
         $updated = $this->deviceMapper->update($device);
         $this->customFieldService->updateCustomFieldsForEntity('sfxon_device', $updated->getId(), $customFieldData);

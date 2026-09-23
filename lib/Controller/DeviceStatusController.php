@@ -2,6 +2,20 @@
 
 namespace OCA\SfxonItam\Controller;
 
+use OCA\SfxonItam\AppInfo\Application;
+use OCA\SfxonItam\Db\DeviceMapper;
+use OCA\SfxonItam\Db\DeviceStatus;
+use OCA\SfxonItam\Db\DeviceStatusMapper;
+use OCA\SfxonItam\Db\DeviceType;
+use OCA\SfxonItam\Db\ItamUser;
+use OCA\SfxonItam\Db\Location;
+use OCA\SfxonItam\Db\Manufacturer;
+use OCA\SfxonItam\Db\Merchant;
+use OCA\SfxonItam\Db\Position;
+use OCA\SfxonItam\Db\QuantityUnit;
+use OCA\SfxonItam\Service\CustomFieldService;
+use OCA\SfxonItam\Service\DeviceStatusService;
+use OCA\SfxonItam\Service\ListViewSettingsService;
 use OCP\AppFramework\Controller;
 use OCP\AppFramework\Db\DoesNotExistException;
 use OCP\AppFramework\Http;
@@ -11,13 +25,9 @@ use OCP\AppFramework\Http\Attribute\OpenAPI;
 use OCP\AppFramework\Http\DataResponse;
 use OCP\AppFramework\Http\TemplateResponse;
 use OCP\AppFramework\Http\JSONResponse;
+use OCP\AppFramework\Services\IInitialState;
 use OCP\IRequest;
-use OCA\SfxonItam\AppInfo\Application;
-use OCA\SfxonItam\Db\DeviceMapper;
-use OCA\SfxonItam\Db\DeviceStatus;
-use OCA\SfxonItam\Db\DeviceStatusMapper;
-use OCA\SfxonItam\Service\CustomFieldService;
-use OCA\SfxonItam\Service\DeviceStatusService;
+
 
 /**
  * @psalm-suppress UnusedClass
@@ -32,7 +42,9 @@ class DeviceStatusController extends Controller
         private DeviceMapper $deviceMapper,
         private DeviceStatusMapper $deviceStatusMapper,
         private readonly DeviceStatusService $deviceStatusService,
-        private CustomFieldService $customFieldService,)
+        private CustomFieldService $customFieldService,
+        private ListViewSettingsService $listViewSettingsService,
+        private IInitialState $initialState,)
     {
         parent::__construct($appName, $request);
     }
@@ -53,9 +65,11 @@ class DeviceStatusController extends Controller
 
         // Put this in a try-catch block, since findById will throw an error,
         // if it does not find an element with the given id.
+        // @TODO:
+        // Change this. Not showing an error, could lead to a user not seeing, that there was a problem and the data still exists.
         try {
-            $deviceStatus = $this->deviceStatusMapper->findById($id)['mainData'];
-            $this->deviceStatusMapper->delete($deviceStatus);
+            $deviceStatus = $this->deviceStatusMapper->findById($id);
+            $this->deviceStatusMapper->delete($deviceStatus['mainData']);
         } catch(\Error $error) {
         }
 
@@ -69,12 +83,23 @@ class DeviceStatusController extends Controller
     #[FrontpageRoute(verb: 'GET', url: '/device-status/detail')]
     public function deviceStatusDetail(): TemplateResponse
     {
+        $entityDefinitions = [
+            'deviceStatus' => DeviceStatus::getFieldDefinition(),
+            'deviceType' => DeviceType::getFieldDefinition(),
+            'itamUser' => ItamUser::getFieldDefinition(),
+            'location' => Location::getFieldDefinition(),
+            'manufacturer' => Manufacturer::getFieldDefinition(),
+            'merchant' => Merchant::getFieldDefinition(),
+            'position' => Position::getFieldDefinition(),
+            'quantityUnit' => QuantityUnit::getFieldDefinition(),
+        ];
         $customFields = $this->customFieldService->getCustomFieldsDefinitionByGroup('sfxon_device_status');
 
         return new TemplateResponse(
             Application::APP_ID,
             'device-status/editor',
             [
+                'entityDefinitions' => $entityDefinitions,
                 'customFields' => $customFields,
             ]
         );
@@ -85,9 +110,38 @@ class DeviceStatusController extends Controller
     #[FrontpageRoute(verb: 'GET', url: '/device-status/')]
     public function index(): TemplateResponse
     {
+        $listId = 'device-status-list';
+
+        $this->initialState->provideInitialState(
+            'listViewColumnOrder-' . $listId,
+            $this->listViewSettingsService->getColumnOrder($listId)
+        );
+
+        $this->initialState->provideInitialState(
+            'listViewUiState-' . $listId,
+            $this->listViewSettingsService->getUiState($listId)
+        );
+
+        $entityDefinitions = [
+            'deviceStatus' => DeviceStatus::getFieldDefinition(),
+            'deviceType' => DeviceType::getFieldDefinition(),
+            'itamUser' => ItamUser::getFieldDefinition(),
+            'location' => Location::getFieldDefinition(),
+            'manufacturer' => Manufacturer::getFieldDefinition(),
+            'merchant' => Merchant::getFieldDefinition(),
+            'position' => Position::getFieldDefinition(),
+            'quantityUnit' => QuantityUnit::getFieldDefinition(),
+        ];
+
+        $customFields = $this->customFieldService->getCustomFieldsDefinitionByGroup('sfxon_device');
+
         return new TemplateResponse(
             Application::APP_ID,
             'device-status/list',
+            [
+                'entityDefinitions' => $entityDefinitions,
+                'customFields' => $customFields,
+            ]
         );
     }
 
@@ -98,13 +152,20 @@ class DeviceStatusController extends Controller
         string $orderBy = 'name',
         string $direction = 'ASC',
         int $page = 1,
-        int $limit = 20,): JSONResponse
+        int $limit = 25,
+        ?array $filters = null,): JSONResponse
     {
-        $offset = ($page - 1) * $limit;
-        $data = $this->deviceStatusMapper->findAllPaged($orderBy, $direction, $limit, $offset);
-        $total   = $this->deviceStatusMapper->countAll();
+        if($limit != 10 && $limit != 25 && $limit != 50 && $limit != 100 && $limit != 500 && $limit != 1000) {
+            $limit = 25;
+        }
 
-        $data['mainData'] = array_map(fn($d) => $d->jsonSerialize(/* $customFields */), $data['mainData']);
+        $offset = ($page - 1) * $limit;
+        $include = $this->getDefaultIncludes();
+        $data = $this->deviceStatusMapper->findAllPaged($orderBy, $direction, $limit, $offset, $filters, $include);
+        $total   = $this->deviceStatusMapper->countAll($filters);
+        $customFields = $this->customFieldService->getCustomFieldsDefinitionByGroup('sfxon_device_status');
+
+        $data['mainData'] = array_map(fn($d) => $d->jsonSerialize($customFields), $data['mainData']);
         $data['relations'] = $data['relations'];
 
         return new JSONResponse([
@@ -112,19 +173,6 @@ class DeviceStatusController extends Controller
             'total' => $total,
             'page' => $page,
             'limit' => $limit,
-        ]);
-    }
-
-    #[\Deprecated(message: "Will be removed.", since: "1.9")]
-    #[NoCSRFRequired]
-    #[OpenAPI(OpenAPI::SCOPE_IGNORE)]
-    #[FrontpageRoute(verb: 'GET', url: '/device-status/listall')]
-    public function listall(): JSONResponse
-    {
-        $deviceStatis = $this->deviceStatusMapper->findAll();
-
-        return new JSONResponse([
-            'deviceStatis' => array_map(fn($d) => $d->jsonSerialize(), $deviceStatis),
         ]);
     }
 
@@ -163,37 +211,11 @@ class DeviceStatusController extends Controller
 
     #[NoCSRFRequired]
     #[OpenAPI(OpenAPI::SCOPE_IGNORE)]
-    #[FrontpageRoute(verb: 'POST', url: '/device-status/search')]
-    public function search(
-        string $orderBy = 'name',
-        string $direction = 'ASC',
-        int $page = 1,
-        int $limit = 20,): JSONResponse
-    {
-        $offset = ($page - 1) * $limit;
-        $filters = $this->request->getParam('filters');
-
-        $data = $this->deviceStatusMapper->findAllPaged($orderBy, $direction, $limit, $offset, $filters);
-        $total = $this->deviceStatusMapper->countAll($filters);
-
-        $data['mainData'] = array_map(fn($d) => $d->jsonSerialize(), $data['mainData']);
-
-        return new JSONResponse([
-            'mainData' => $data['mainData'],
-            'relations' => $data['relations'],
-            'total' => $total,
-            'page' => $page,
-            'limit' => $limit,
-        ]);
-    }
-
-    #[NoCSRFRequired]
-    #[OpenAPI(OpenAPI::SCOPE_IGNORE)]
-    #[FrontpageRoute(verb: 'GET', url: '/device-status/{id}')]
+    #[FrontpageRoute(verb: 'POST', url: '/device-status/{id}')]
     public function show(int $id): JSONResponse
     {
         try {
-            $include = [];
+            $include = $this->request->getParam('include');
             $data = $this->deviceStatusMapper->findById($id, $include);
         } catch (DoesNotExistException) {
             return new JSONResponse(
@@ -251,6 +273,32 @@ class DeviceStatusController extends Controller
         ]);
     }
 
+	private function getDefaultIncludes(): array {
+        return [
+            'deviceStatus' => [],
+            'deviceType' => [],
+            'itamUser' => ['fields' => ['id', 'firstname', 'lastname']],
+            'merchant' => [],
+            'position' => [
+                'fields' => ['id', 'name', 'location_id'],
+                'with' => [
+                    'location' => [
+                        'table' => 'sfxon_location',
+                        'localKey' => 'location_id',
+                        'fields' => ['id', 'name'],
+                    ],
+                ],
+            ],
+            'quantityUnit' => [],
+        ];
+    }
+    
+    private function sanitizeForeignKey($foreignKeyValue)
+    {
+        $foreignKeyValue = intval($foreignKeyValue);
+
+        return ($foreignKeyValue === 0) ? null : $foreignKeyValue;
+    }
     private function setDeviceStatusDataFromRequest($deviceStatus)
     {
         $deviceStatus->setName($this->request->getParam('name'));

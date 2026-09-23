@@ -43,7 +43,7 @@ export async function fetchAllDeviceStatis(params: ListParams): Promise<DeviceSt
 }
 
 export async function fetchDeviceStatus(id: number): Promise<DeviceStatus> {
-    const { data } = await axios.get(generateUrl(`/apps/sfxonitam/device-status/${id}`))
+    const { data } = await axios.post(generateUrl(`/apps/sfxonitam/device-status/${id}`))
     return data
 }
 

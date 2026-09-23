@@ -69,7 +69,7 @@ watch([filterSidebarOpen, navigationOpen], () => {
     saveUiState(VIEW_ID, {
         filterSidebarOpen: filterSidebarOpen.value,
         navigationOpen: navigationOpen.value,
-    }).catch((e) => console.warn('Konnte UI-Zustand nicht speichern:', e))
+    }).catch((e) => console.warn('Could not save UI state:', e))
 })
 
 
@@ -152,7 +152,9 @@ function closeModal() {
 }
 
 async function confirmDelete() {
-    if (!deviceToDelete.value) return
+    if (!deviceToDelete.value) {
+    	return
+    }
     await deleteDevice(deviceToDelete.value.id)
     deviceToDelete.value = null
     await loadDevices()
@@ -248,7 +250,7 @@ async function loadDevices() {
         listState.total = data.total
         applyRelations(data.devices.relations)
     } catch (e) {
-        error.value = t('sfxonitam', 'Fehler beim Laden der Geräte.')
+        error.value = t('sfxonitam', 'Error on loading devices.')
         console.log(e)
     }
 }
@@ -622,7 +624,6 @@ onUnmounted(() => {
         />
     </NcContent>
 
-    <!-- Confirm Delete Dialog. -->
     <NcDialog
         v-if="deviceToDelete"
         :name="t('sfxonitam', 'Gerät löschen')"
@@ -630,7 +631,7 @@ onUnmounted(() => {
         @closing="cancelDelete"
     >
         <p>
-            {{ t('sfxonitam', `Gerät „${deviceToDelete.name}" wirklich löschen?`) }}
+            {{ t('sfxonitam', `Delete entry „${deviceToDelete.name}"?`) }}
         </p>
 
         <template #actions>

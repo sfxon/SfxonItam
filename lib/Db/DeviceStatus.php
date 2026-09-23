@@ -76,7 +76,7 @@ class DeviceStatus extends Entity implements \JsonSerializable, ISortableEntity 
     }
 
     /**
-     * @param mixed $customFields array<int, array{technicalName?: string}>|null
+     * @param array<int, array{technicalName?: string}>|null $customFields
      * @return array<string, mixed>
      */
     public function jsonSerialize(mixed $customFields = null): array {
