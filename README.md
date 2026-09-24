@@ -234,11 +234,11 @@ Editor:
     - ✅ Make the device list sortable by entity name.
 
     * Take over device loading optimization from device list view to other entities.
-        - Entity: DeviceStatus
-        - In the save method of the Controller for Device, the validation part for the custom fields is missing. Take a deeper look at it and fix this.
+        - ✅ Entity: DeviceStatus
         - Entity: ItamUser
         - Entity: Position
         - After doing DeviceStatus, ItamUser and Position, take a comparison of these three and Device. Build an Abstract, that takes out the overlapping functionality, to reduce code duplication.
+        - In the save method of the Controller for Device, the validation part for the custom fields is missing. Take a deeper look at it and fix this.
 
 * Einkauf/Verkauf hinzufügen
     - Einzelne Geräte oder Lizenzen können über einen Einkauf/Verkauf gekauft oder verkauft werden.
@@ -415,6 +415,10 @@ Es werden 2 Export-Formate unterstützt: druckbare HTML-Seiten und CSV-Dateien.
 * ✅ Bilder der Assets hinterlegen (Chlorophylllius - Twitch)
 
 * ✅ Mengen-Angaben (bspw. bei Kabeln und Displays) (Chlorophylllius - Twitch)
+
+* When opening an entry in a list, while being for example on page 2, after going back from the entry, you land on page 1.
+  A user asks if it is possible, to come back to the original page one where on before, to not having to go to page 2 again.
+  (Middle mouse button, or maybe some other improvement?)
 
 * Wizards
     Wizards could be used, to add complexer functionality, that saves time for users.

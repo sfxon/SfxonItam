@@ -43,7 +43,7 @@ export async function fetchAllItamUsers(params: ListParams): Promise<ItamUserLis
 }
 
 export async function fetchItamUser(id: number): Promise<ItamUser> {
-    const { data } = await axios.get(generateUrl(`/apps/sfxonitam/itam-user/${id}`))
+    const { data } = await axios.post(generateUrl(`/apps/sfxonitam/itam-user/${id}`))
     return data
 }
 
@@ -52,20 +52,26 @@ export async function fetchItamUsers(params: ListParams): Promise<ItamUserListRe
     return data
 }
 
-export async function findItamUsers(params: ListParams, signal: AbortSignal) {
+export async function findItamUsers(
+    params: { filters?: object; include?: object; limit?: number },
+    signal?: AbortSignal,
+) {
     try {
-        const { data } = await axios.post(
-            generateUrl('/apps/sfxonitam/itam-user/search'),
-            params,
-            { signal },
+        const { data } = await axios.get(
+            generateUrl('/apps/sfxonitam/itam-user/list'),
+            {
+                params: { limit: 25, ...params },
+                signal,
+            },
         )
-        return data
+        // Controller answers with { itamUsers: { mainData, relations }, total, page, limit }
+        return data.itamUsers
     } catch (error) {
         if (axios.isCancel(error)) {
-            // Veraltete Anfrage – einfach ignorieren
+            // Ignore old requests.
             return null
         }
-        console.error('Suche fehlgeschlagen:', error)
+        console.error('Search failed', error)
     }
 
     return null

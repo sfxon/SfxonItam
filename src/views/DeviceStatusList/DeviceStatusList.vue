@@ -209,6 +209,7 @@ function applyRelations(relations?: Record<string, Record<string, any>>) {
         }))
     }
 }
+
 async function loadDeviceStatis() {
     error.value = null
 

@@ -10,6 +10,7 @@ use OCP\IDBConnection;
  */
 class ItamUserMapper extends QBMapper {
     use TSfxonEntityMapper;
+    use TSfxonEntityMapperWithNameFilter;
 
     private const TABLE_NAME = 'sfxon_itam_user';
     private const TABLE_ALIAS = 'iu';
