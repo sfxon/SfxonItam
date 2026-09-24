@@ -55,7 +55,7 @@ class QuantityUnitController extends Controller
         // if it does not find an element with the given id.
         try {
             $quantityUnit = $this->quantityUnitMapper->findById($id);
-            $this->quantityUnitMapper->delete($quantityUnit);
+            $this->quantityUnitMapper->delete($quantityUnit['mainData']);
         } catch(\Error $error) {
         }
 

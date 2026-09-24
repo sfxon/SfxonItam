@@ -100,10 +100,15 @@ class CustomFieldService {
     // This method filters out all fields, that are not expected, and only returns the one that we really want.
     public function getCustomFieldDataFromRequest($customFieldDefinitions, $requestArray)
     {
-        // Enumerate all available technicalNames for the customFields.
-        $postedCustomFields = $requestArray['customFields'];
+        $postedCustomFields = $requestArray['customFields'] ?? [];
+
+        if (!is_array($postedCustomFields)) {
+            $postedCustomFields = [];
+        }
+
         $validCustomFields = [];
 
+        // Enumerate all available technicalNames for the customFields.
         foreach($customFieldDefinitions as $customFieldDefinition) {
             // Cannot use isset here, because isset would return false, even if the array key exists, but the value of the field index is null.
             // The array_key_exists function instead returns true, when the array key exists, even if its value is null.

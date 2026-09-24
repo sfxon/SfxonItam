@@ -52,20 +52,26 @@ export async function fetchDeviceStatis(params: ListParams): Promise<DeviceStatu
     return data
 }
 
-export async function findDeviceStatis(params: ListParams, signal: AbortSignal) {
+export async function findDeviceStatis(
+    params: { filters?: object; include?: object; limit?: number },
+    signal?: AbortSignal,
+) {
     try {
-        const { data } = await axios.post(
-            generateUrl('/apps/sfxonitam/device-status/search'),
-            params,
-            { signal },
+        const { data } = await axios.get(
+            generateUrl('/apps/sfxonitam/device-status/list'),
+            {
+                params: { limit: 25, ...params },
+                signal,
+            },
         )
-        return data
+        // Controller answers with { deviceStatis: { mainData, relations }, total, page, limit }
+        return data.deviceStatis
     } catch (error) {
         if (axios.isCancel(error)) {
-            // Veraltete Anfrage – einfach ignorieren
+            // Ignore old requests.
             return null
         }
-        console.error('Suche fehlgeschlagen:', error)
+        console.error('Search failed:', error)
     }
 
     return null

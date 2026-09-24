@@ -62,7 +62,7 @@ class PositionController extends Controller
         // if it does not find an element with the given id.
         try {
             $position = $this->positionMapper->findById($id);
-            $this->positionMapper->delete($position);
+            $this->positionMapper->delete($position['mainData']);
         } catch(\Error $error) {
         }
 

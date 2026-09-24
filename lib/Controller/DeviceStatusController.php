@@ -273,7 +273,7 @@ class DeviceStatusController extends Controller
         ]);
     }
 
-	private function getDefaultIncludes(): array {
+    private function getDefaultIncludes(): array {
         return [
             'deviceStatus' => [],
             'deviceType' => [],
@@ -299,6 +299,7 @@ class DeviceStatusController extends Controller
 
         return ($foreignKeyValue === 0) ? null : $foreignKeyValue;
     }
+
     private function setDeviceStatusDataFromRequest($deviceStatus)
     {
         $deviceStatus->setName($this->request->getParam('name'));
