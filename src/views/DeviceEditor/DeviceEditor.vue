@@ -105,6 +105,7 @@ const breadcrumbs = computed<BreadcrumbItem[]>(() => [
 const itamUsers = ref<{ id: string; label: string }[]>([])
 const deviceStatis = ref<{ id: string; label: string}[]>([])
 const deviceTypes = ref<{ id: string; label: string}[]>([])
+const locations = ref<{ id: string; label: string }[]>([])
 const merchants = ref<{ id: string; label: string }[]>([])
 const positions = ref<{ id: string; label: string}[]>([])
 const quantityUnits = ref<{ id: string; label: string}[]>([])
@@ -174,6 +175,14 @@ const entityConfig = {
 const relations = reactive(buildRelations(props.entityDefinitions, entityConfig))
 /* End: relation definition */
 
+const foreignEntitySearchConfig = reactive({
+    location: {
+        searchFn: searchLocations,
+        optionsTarget: locations,
+        labelFields: { fields: ['name'] },
+    },
+})
+
 function addItem() {
     window.location.href = generateUrl('/apps/sfxonitam/device/detail')
 }
@@ -212,16 +221,17 @@ function buildRelations(entityDefinitions, dropdownBindings = {}) {
         const fields = []
 
         for(const fieldDefinition of entityDefinition) {
-            if(!fieldDefinition.requiredOnCreate) {
+            if(!fieldDefinition.requiredOnCreate && !fieldDefinition.foreignEntity) {
                 continue;
             }
 
             const field = {
-                fieldName: fieldDefinition.name,
+                fieldName: fieldDefinition.propertyName,
                 label: t('sfxonitam', fieldDefinition.label) + ':',
-                sfxonType: mapFrontendBackendFieldType(fieldDefinition.type),
-                type: mapFrontendBackendFieldSubtype(fieldDefinition.type),
-                value: ''
+                sfxonType: mapFrontendBackendFieldType(fieldDefinition),
+                type: fieldDefinition.foreignEntity ? null : mapFrontendBackendFieldSubtype(fieldDefinition.type),
+                value: fieldDefinition.foreignEntity ? null : '',
+                foreignEntity: fieldDefinition.foreignEntity || null,
             }
 
             fields.push(field);
@@ -251,13 +261,16 @@ function buildRelations(entityDefinitions, dropdownBindings = {}) {
     return retval;
 }
 
-function mapFrontendBackendFieldType(backendType) {
-    switch(backendType) {
+function mapFrontendBackendFieldType(fieldDefinition) {
+    if (fieldDefinition.foreignEntity) {
+        return 'SfxonEditorFormEntitySelect';
+    }
+
+    switch(fieldDefinition.type) {
         case 'VARCHAR':
             return 'SfxonEditorFormInput';
     }
-
-    throw new Error('Unknown field type ' + backendType);
+    throw new Error('Unknown field type ' + fieldDefinition.type);
 }
 
 function mapFrontendBackendFieldSubtype(backendType) {
@@ -407,6 +420,23 @@ async function searchItamUsers(query: string, signal: AbortSignal): Promise<void
     itamUsers.value = Object.values(data.mainData).map((itamUser: any) => ({
         id: itamUser.id,
         label: itamUser.firstname + ' ' + itamUser.lastname
+    }))
+}
+
+async function searchLocations(query: string, signal: AbortSignal): Promise<void> {
+    let filters = {
+        name: [query]
+    };
+
+    const data = await LocationService.findLocation({ filters: filters }, signal)
+
+    if (data === null || data.mainData === null) {
+        return;
+    }
+
+    locations.value = Object.values(data.mainData).map((location: any) => ({
+        id: location.id,
+        label: location.name
     }))
 }
 
@@ -848,6 +878,7 @@ onMounted(async () => {
     <SfxonEntityDialog
         :relations="relations"
         :entity-name="addEntityEntryDialogEntityName"
+        :foreign-entity-config="foreignEntitySearchConfig"
         @close="addEntityEntryDialogEntityName = ''"
         @saved="onEntitySaved"
     />

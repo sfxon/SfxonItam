@@ -22,11 +22,16 @@ class PositionValidator {
         } elseif (mb_strlen(trim($data['name'])) < 1) {
             $errors['name'] = $this->l->t('The name must be at least 1 character long.');
         } else {
-            // b) name: must be unique.
-            $existing = $this->mapper->findByName(trim($data['name']));
+            // b) name: must be unique per location.
+            $locationIdRaw = $data['location_id'] ?? $data['locationId'] ?? null;
+            $locationId = ($locationIdRaw !== null && $locationIdRaw !== '' && (int)$locationIdRaw !== 0)
+                ? (int)$locationIdRaw
+                : null;
+
+            $existing = $this->mapper->findByNameAndLocationId(trim($data['name']), $locationId);
 
             if ($existing !== null && $existing->getId() !== $excludeId) {
-                $errors['name'] = $this->l->t('A position with this name already exists.');
+                $errors['name'] = $this->l->t('A position with this name already exists at this location.');
             }
         }
 

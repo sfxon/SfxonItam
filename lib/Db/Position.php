@@ -46,7 +46,7 @@ class Position extends Entity implements \JsonSerializable, ISortableEntity
             ],
             [
                 'defaultValue' => NULL,
-                'filterType' => 'name',
+                'filterType' => 'like',
                 'foreignEntity' => false,
                 'index' => true,
                 'label' => 'Name',

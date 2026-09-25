@@ -6,11 +6,13 @@ import NcDialog from '@nextcloud/vue/components/NcDialog'
 import NcNoteCard from '@nextcloud/vue/components/NcNoteCard'
 import { NcLoadingIcon } from '@nextcloud/vue'
 import SfxonEditorFormInput from '@/components/SfxonEditorFormInput'
+import SfxonEditorFormEntitySelect from '@/components/SfxonEditorFormEntitySelect'
 import { translate as t } from '@nextcloud/l10n'
 
 const props = defineProps<{
     relations: Record<string, any>
     entityName: string
+    foreignEntityConfig?: Record<string, { searchFn: Function; optionsTarget: any; labelFields?: any }>
 }>()
 const emit = defineEmits<{
     (e: 'close'): void
@@ -56,10 +58,12 @@ async function onSave() {
     isSaving.value = true
     resetErrors()
 
-    const payload: Record<string, string> = {}
+    const payload: Record<string, unknown> = {}
 
     for (const field of addRecordModal.fields) {
-        payload[field.fieldName] = field.value
+        payload[field.fieldName] = field.sfxonType === 'SfxonEditorFormEntitySelect'
+            ? (field.value?.id ?? null)
+            : field.value
     }
 
     try {
@@ -74,9 +78,8 @@ async function onSave() {
 
         const newOption = { id: String(result.id), label }
 
-        // Clear form fields after successful save.
         for (const field of addRecordModal.fields) {
-            field.value = ''
+            field.value = field.sfxonType === 'SfxonEditorFormEntitySelect' ? null : ''
         }
 
         emit('saved', { entityName, newOption })
@@ -134,6 +137,18 @@ async function onSave() {
                             v-model="field.value"
                             :label="field.label"
                             :type="field.type"
+                        />
+                    </template>
+                    <template v-else-if="field.sfxonType === 'SfxonEditorFormEntitySelect'">
+                        <SfxonEditorFormEntitySelect
+                            :field="'addRecordModal' + field.fieldName"
+                            :fieldError="fieldErrors[relEntityName]?.[field.fieldName] ?? ''"
+                            :id="'addRecordModal' + field.fieldName"
+                            v-model="field.value"
+                            :label="field.label"
+                            :options="foreignEntityConfig?.[field.foreignEntity]?.optionsTarget ?? []"
+                            :searchFn="foreignEntityConfig?.[field.foreignEntity]?.searchFn"
+                            trackBy="id"
                         />
                     </template>
                 </template>
