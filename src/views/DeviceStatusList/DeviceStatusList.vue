@@ -78,7 +78,7 @@ function onNavigationToggled({ open }: { open: boolean }) {
 const loading = ref(false)
 const error = ref<string | null>(null)
 const listState = useListState()
-const deviceStatis = ref<DeviceSatus[]>([])
+const deviceStatis = ref<DeviceStatus[]>([])
 const deviceStatusToDelete = ref<DeviceStatus | null>(null)
 const filterValues = reactive<Record<string, { value: any }[]>>({})
 const modalState = reactive<{
@@ -231,7 +231,7 @@ async function loadDeviceStatis() {
             const row = { ...deviceStatus }
 
             for (const cf of props.customFields as any[]) {
-                row[customFieldColumnKey(cf.technicalName)] = device.customFields?.[cf.technicalName] ?? ''
+                row[customFieldColumnKey(cf.technicalName)] = deviceStatus.customFields?.[cf.technicalName] ?? ''
             }
 
             return row

@@ -512,7 +512,7 @@ onUnmounted(() => {
                 </div>
 
                 <SfxonTable
-                    :columns="columns"
+                    :columns="orderedColumns"
                     :dataArray="itamUsers"
                     :dataArrayKey="'id'"
                     :deleteCallback="onDeleteItamUser"
