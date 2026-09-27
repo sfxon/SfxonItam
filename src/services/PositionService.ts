@@ -52,20 +52,26 @@ export async function fetchPositions(params: ListParams): Promise<PositionListRe
     return data
 }
 
-export async function findPositions(params: ListParams, signal: AbortSignal) {
+export async function findPositions(
+    params: { filters?: object; include?: object; limit?: number },
+    signal?: AbortSignal,
+) {
     try {
-        const { data } = await axios.post(
-            generateUrl('/apps/sfxonitam/position/search'),
-            params,
-            { signal },
+        const { data } = await axios.get(
+            generateUrl('/apps/sfxonitam/position/list'),
+            {
+                params: { limit: 25, ...params },
+                signal,
+            },
         )
-        return data
+        // Controller answers with { positions: { mainData, relations }, total, page, limit }
+        return data.positions
     } catch (error) {
         if (axios.isCancel(error)) {
-            // Veraltete Anfrage – einfach ignorieren
+            // Ignore old requests.
             return null
         }
-        console.error('Suche fehlgeschlagen:', error)
+        console.error('Search failed', error)
     }
 
     return null

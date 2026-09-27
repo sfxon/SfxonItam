@@ -87,8 +87,7 @@ const modalState = reactive<{
     dataRow: null,
     type: 'image',
 })
-const relatedEntityData = reactive<Record<string, { id: any; label: string }[]>>({
-})
+const relatedEntityData = reactive<Record<string, { id: any; label: string }[]>>({})
 const previewState = reactive<{
     dataRow: any | null,
     type: 'barcode' | 'image' | 'qrCode'
@@ -128,6 +127,7 @@ function barcodeMounted(el: HTMLElement, dataRow: any) {
         el.removeEventListener('click', onClick)
     }
 }
+
 function cancelDelete() {
     itamUserToDelete.value = null
 }
@@ -139,6 +139,7 @@ function clearData() {
 function closeModal() {
     modalState.dataRow = null
 }
+
 async function confirmDelete() {
     if (!itamUserToDelete.value) {
         return
@@ -158,6 +159,7 @@ function defaultCellMounted(el: HTMLElement, dataRow: any) {
         el.removeEventListener('mouseenter', onEnter)
     }
 }
+
 function generateItamUserUrl(itamUser: ItamUser) {
     return generateUrl(`/apps/sfxonitam/itam-user/detail?itamUserId=${itamUser.id}`)
 }
@@ -187,6 +189,7 @@ const relationLabelBuilders: Record<string, (row: any) => string> = {
     position: (row) => row.location ? `${row.location.name} - ${row.name}` : row.name,
     quantityUnit: (row) => row.name,
 }
+
 function applyRelations(relations?: Record<string, Record<string, any>>) {
     if (!relations) {
         return
@@ -205,6 +208,7 @@ function applyRelations(relations?: Record<string, Record<string, any>>) {
         }))
     }
 }
+
 async function loadItamUsers() {
     error.value = null
 
@@ -360,7 +364,6 @@ async function searchLocations(_query: string, _signal: AbortSignal): Promise<vo
     }))
 }
 
-
 const relatedEntitySearchFns = {
     deviceStatus: searchDeviceStatis,
     deviceType: searchDeviceTypes,
@@ -429,7 +432,6 @@ function previewClear(_dataRow: any) {
 async function reloadItamUsers() {
     loading.value = true
     await loadItamUsers()
-
     loading.value = false
 }
 

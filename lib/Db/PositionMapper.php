@@ -20,20 +20,13 @@ class PositionMapper extends QBMapper
     private array $allowedSortColumns = [
         'name',
     ];
-    private const JOIN_FILTERS = [
-        'locationId' => [
-            'table' => 'sfxon_position',
-            'alias' => 'p',
-            'condition' => 'd.position_id = p.id',
-            'column' => 'p.location_id',
-            'handler' => 'in',
-        ],
-    ];
+    private const JOIN_FILTERS = [];
 
     public function __construct(IDBConnection $db) {
         parent::__construct($db, self::TABLE_NAME, Position::class);
     }
 
+    // TODO: Have to check, what happens with case sensitivity.
     public function findByNameAndLocationId(string $name, ?int $locationId): ?Position
     {
         $qb = $this->db->getQueryBuilder();

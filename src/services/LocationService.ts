@@ -71,6 +71,10 @@ export async function findLocation(params: ListParams, signal: AbortSignal) {
     return null
 }
 
+export function getLocationDetailLink(locationId: string) {
+    return generateUrl(`/apps/sfxonitam/location/detail?locationId=${locationId}`)
+}
+
 export async function updateLocation(id: number, payload: LocationPayload) {
     const { data } = await axios.put(generateUrl(`/apps/sfxonitam/location/${id}`), payload)
     return data

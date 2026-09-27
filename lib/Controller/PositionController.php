@@ -2,16 +2,6 @@
 
 namespace OCA\SfxonItam\Controller;
 
-use OCP\AppFramework\Controller;
-use OCP\AppFramework\Db\DoesNotExistException;
-use OCP\AppFramework\Http;
-use OCP\AppFramework\Http\Attribute\FrontpageRoute;
-use OCP\AppFramework\Http\Attribute\NoCSRFRequired;
-use OCP\AppFramework\Http\Attribute\OpenAPI;
-use OCP\AppFramework\Http\DataResponse;
-use OCP\AppFramework\Http\TemplateResponse;
-use OCP\AppFramework\Http\JSONResponse;
-use OCP\IRequest;
 use OCA\SfxonItam\AppInfo\Application;
 use OCA\SfxonItam\Db\DeviceMapper;
 use OCA\SfxonItam\Db\DeviceStatus;
@@ -25,6 +15,19 @@ use OCA\SfxonItam\Db\PositionMapper;
 use OCA\SfxonItam\Db\QuantityUnit;
 use OCA\SfxonItam\Service\CustomFieldService;
 use OCA\SfxonItam\Service\PositionService;
+use OCA\SfxonItam\Service\ListViewSettingsService;
+use OCP\AppFramework\Controller;
+use OCP\AppFramework\Db\DoesNotExistException;
+use OCP\AppFramework\Http;
+use OCP\AppFramework\Http\Attribute\FrontpageRoute;
+use OCP\AppFramework\Http\Attribute\NoCSRFRequired;
+use OCP\AppFramework\Http\Attribute\OpenAPI;
+use OCP\AppFramework\Http\DataResponse;
+use OCP\AppFramework\Http\TemplateResponse;
+use OCP\AppFramework\Http\JSONResponse;
+use OCP\AppFramework\Services\IInitialState;
+use OCP\IRequest;
+
 
 /**
  * @psalm-suppress UnusedClass
@@ -39,7 +42,9 @@ class PositionController extends Controller
         private DeviceMapper $deviceMapper,
         private PositionMapper $positionMapper,
         private readonly PositionService $positionService,
-        private CustomFieldService $customFieldService,)
+        private CustomFieldService $customFieldService,
+        private ListViewSettingsService $listViewSettingsService,
+        private IInitialState $initialState,)
     {
         parent::__construct($appName, $request);
     }
@@ -60,6 +65,8 @@ class PositionController extends Controller
 
         // Put this in a try-catch block, since findById will throw an error,
         // if it does not find an element with the given id.
+        // @TODO:
+        // Change this. Not showing an error, could lead to a user not seeing, that there was a problem and the data still exists.
         try {
             $position = $this->positionMapper->findById($id);
             $this->positionMapper->delete($position['mainData']);
@@ -104,9 +111,37 @@ class PositionController extends Controller
     #[FrontpageRoute(verb: 'GET', url: '/position/')]
     public function index(): TemplateResponse
     {
+        $listId = 'position-list';
+
+        $this->initialState->provideInitialState(
+            'listViewColumnOrder-' . $listId,
+            $this->listViewSettingsService->getColumnOrder($listId)
+        );
+
+        $this->initialState->provideInitialState(
+            'listViewUiState-' . $listId,
+            $this->listViewSettingsService->getUiState($listId)
+        );
+
+        $entityDefinitions = [
+            'deviceStatus' => DeviceStatus::getFieldDefinition(),
+            'deviceType' => DeviceType::getFieldDefinition(),
+            'itamUser' => ItamUser::getFieldDefinition(),
+            'location' => Location::getFieldDefinition(),
+            'manufacturer' => Manufacturer::getFieldDefinition(),
+            'merchant' => Merchant::getFieldDefinition(),
+            'position' => Position::getFieldDefinition(),
+            'quantityUnit' => QuantityUnit::getFieldDefinition(),
+        ];
+
+        $customFields = $this->customFieldService->getCustomFieldsDefinitionByGroup('sfxon_device');
         return new TemplateResponse(
             Application::APP_ID,
             'position/list',
+            [
+                'entityDefinitions' => $entityDefinitions,
+                'customFields' => $customFields,
+            ]
         );
     }
 
@@ -117,13 +152,20 @@ class PositionController extends Controller
         string $orderBy = 'name',
         string $direction = 'ASC',
         int $page = 1,
-        int $limit = 20): JSONResponse
+        int $limit = 25,
+        ?array $filters = null,): JSONResponse
     {
-        $offset = ($page - 1) * $limit;
-        $data = $this->positionMapper->findAllPaged($orderBy, $direction, $limit, $offset);
-        $total   = $this->positionMapper->countAll();
+        if($limit != 10 && $limit != 25 && $limit != 50 && $limit != 100 && $limit != 500 && $limit != 1000) {
+            $limit = 25;
+        }
 
-        $data['mainData'] = array_map(fn($d) => $d->jsonSerialize(/* $customFields */), $data['mainData']);
+        $offset = ($page - 1) * $limit;
+        $include = $this->getDefaultIncludes();
+        $data = $this->positionMapper->findAllPaged($orderBy, $direction, $limit, $offset, $filters, $include);
+        $total   = $this->positionMapper->countAll($filters);
+        $customFields = $this->customFieldService->getCustomFieldsDefinitionByGroup('sfxon_itam_user');
+
+        $data['mainData'] = array_map(fn($d) => $d->jsonSerialize($customFields), $data['mainData']);
         $data['relations'] = $data['relations'];
 
         return new JSONResponse([
@@ -133,20 +175,7 @@ class PositionController extends Controller
             'limit' => $limit,
         ]);
     }
-
-    #[\Deprecated(message: "Will be removed.", since: "1.9")]
-    #[NoCSRFRequired]
-    #[OpenAPI(OpenAPI::SCOPE_IGNORE)]
-    #[FrontpageRoute(verb: 'GET', url: '/position/listall')]
-    public function listall(): JSONResponse
-    {
-        $positions = $this->positionMapper->findAll();
-
-        return new JSONResponse([
-            'positions' => array_map(fn($d) => $d->jsonSerialize(), $positions),
-        ]);
-    }
-
+    
     #[OpenAPI(OpenAPI::SCOPE_IGNORE)]
     #[FrontpageRoute(verb: 'POST', url: '/position/save')]
     public function save(): DataResponse
@@ -179,40 +208,23 @@ class PositionController extends Controller
             'id' => $saved->getId(),
         ]);
     }
-
-    #[NoCSRFRequired]
-    #[OpenAPI(OpenAPI::SCOPE_IGNORE)]
-    #[FrontpageRoute(verb: 'POST', url: '/position/search')]
-    public function search(
-        string $orderBy = 'name',
-        string $direction = 'ASC',
-        int $page = 1,
-        int $limit = 20,): JSONResponse
-    {
-        $offset = ($page - 1) * $limit;
-        $filters = $this->request->getParam('filters');
-        $include = $this->request->getParam('include');
-
-        $data = $this->positionMapper->findAllPaged($orderBy, $direction, $limit, $offset, $filters, $include);
-        $total = $this->positionMapper->countAll($filters);
-
-        $data['mainData'] = array_map(fn($d) => $d->jsonSerialize(), $data['mainData']);
-
-        return new JSONResponse([
-            'mainData' => $data['mainData'],
-            'relations' => $data['relations'],
-            'total' => $total,
-            'page' => $page,
-            'limit' => $limit,
-        ]);
-    }
-
+    
     #[NoCSRFRequired]
     #[OpenAPI(OpenAPI::SCOPE_IGNORE)]
     #[FrontpageRoute(verb: 'GET', url: '/position/{id}')]
-    public function show(int $id): JSONResponse {
+    public function show(int $id): JSONResponse
+    {
         try {
-            $include = ['location' => []];
+            $include = $this->request->getParam('include');
+        
+        if(!is_array($include)) {
+            $include = [];
+        }
+
+        if(!isset($include['location'])) {
+                $include['location'] = [];
+        }
+
             $data = $this->positionMapper->findById($id, $include);
         } catch (DoesNotExistException) {
             return new JSONResponse(
@@ -268,6 +280,34 @@ class PositionController extends Controller
             'status' => 'ok',
             'id' => $updated->getId(),
         ]);
+    }
+
+    private function getDefaultIncludes(): array {
+        return [
+            'deviceStatus' => [],
+            'deviceType' => [],
+            'itamUser' => ['fields' => ['id', 'firstname', 'lastname']],
+            'location' => [],
+            'merchant' => [],
+            'position' => [
+                'fields' => ['id', 'name', 'location_id'],
+                'with' => [
+                    'location' => [
+                        'table' => 'sfxon_location',
+                        'localKey' => 'location_id',
+                        'fields' => ['id', 'name'],
+                    ],
+                ],
+            ],
+            'quantityUnit' => [],
+        ];
+    }
+
+    private function sanitizeForeignKey($foreignKeyValue)
+    {
+        $foreignKeyValue = intval($foreignKeyValue);
+
+        return ($foreignKeyValue === 0) ? null : $foreignKeyValue;
     }
 
     private function setPositionDataFromRequest($position)
