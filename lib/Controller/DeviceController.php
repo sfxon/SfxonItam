@@ -187,10 +187,17 @@ class DeviceController extends Controller
     {
         $data = $this->deviceService->getDataFromRequest($this->request->getParams(), $this->expectedFields);
         $result = $this->deviceService->validateData($data);
+        $device = new Device();
+        $customFields = $this->customFieldService->getCustomFieldsDefinitionByGroup('sfxon_device');
+        $device = $this->setDeviceDataFromRequest($device);
+        $customFieldData = $this->customFieldService->getCustomFieldDataFromRequest($customFields, $this->request->getParams());
+        $customFieldErrors = $this->customFieldService->validateCustomFieldData($customFields, $customFieldData);
 
-        // @TODO:
-        // Validation for custom fields is missing here.
-        // Check and repair this with a look at DeviceStatusController.
+        if(count($customFieldErrors) > 0) {
+            $result['valid'] = false;
+            $result['errors'] = array_merge($result['errors'], $customFieldErrors);
+        }
+
         if($result['valid'] === false) {
             return new DataResponse([
                 'status' => 'error',
@@ -198,10 +205,8 @@ class DeviceController extends Controller
             ], Http::STATUS_UNPROCESSABLE_ENTITY); // Returns error 422
         }
 
-        $device = new Device();
-        $device = $this->setDeviceDataFromRequest($device);
-
         $saved = $this->deviceMapper->insert($device);
+        $this->customFieldService->updateCustomFieldsForEntity('sfxon_device', $saved->getId(), $customFieldData);
 
         return new DataResponse([
             'status' => 'ok',

@@ -133,7 +133,7 @@ class DeviceStatusController extends Controller
             'quantityUnit' => QuantityUnit::getFieldDefinition(),
         ];
 
-        $customFields = $this->customFieldService->getCustomFieldsDefinitionByGroup('sfxon_device');
+        $customFields = $this->customFieldService->getCustomFieldsDefinitionByGroup('sfxon_device_status');
 
         return new TemplateResponse(
             Application::APP_ID,

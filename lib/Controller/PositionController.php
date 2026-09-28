@@ -34,7 +34,7 @@ use OCP\IRequest;
  */
 class PositionController extends Controller
 {
-    private array $expectedFields = ['name', 'location_id', 'comment'];
+    private array $expectedFields = ['name', 'locationId', 'comment'];
 
     public function __construct(
         string $appName,
@@ -134,7 +134,7 @@ class PositionController extends Controller
             'quantityUnit' => QuantityUnit::getFieldDefinition(),
         ];
 
-        $customFields = $this->customFieldService->getCustomFieldsDefinitionByGroup('sfxon_device');
+        $customFields = $this->customFieldService->getCustomFieldsDefinitionByGroup('sfxon_position');
         return new TemplateResponse(
             Application::APP_ID,
             'position/list',
@@ -163,7 +163,7 @@ class PositionController extends Controller
         $include = $this->getDefaultIncludes();
         $data = $this->positionMapper->findAllPaged($orderBy, $direction, $limit, $offset, $filters, $include);
         $total   = $this->positionMapper->countAll($filters);
-        $customFields = $this->customFieldService->getCustomFieldsDefinitionByGroup('sfxon_itam_user');
+        $customFields = $this->customFieldService->getCustomFieldsDefinitionByGroup('sfxon_position');
 
         $data['mainData'] = array_map(fn($d) => $d->jsonSerialize($customFields), $data['mainData']);
         $data['relations'] = $data['relations'];

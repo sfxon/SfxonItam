@@ -133,7 +133,7 @@ class ItamUserController extends Controller
             'quantityUnit' => QuantityUnit::getFieldDefinition(),
         ];
 
-        $customFields = $this->customFieldService->getCustomFieldsDefinitionByGroup('sfxon_device');
+        $customFields = $this->customFieldService->getCustomFieldsDefinitionByGroup('sfxon_itam_user');
 
         return new TemplateResponse(
             Application::APP_ID,
