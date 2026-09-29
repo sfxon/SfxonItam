@@ -211,19 +211,19 @@ class PositionController extends Controller
     
     #[NoCSRFRequired]
     #[OpenAPI(OpenAPI::SCOPE_IGNORE)]
-    #[FrontpageRoute(verb: 'GET', url: '/position/{id}')]
+    #[FrontpageRoute(verb: 'POST', url: '/position/{id}')]
     public function show(int $id): JSONResponse
     {
         try {
             $include = $this->request->getParam('include');
         
-        if(!is_array($include)) {
-            $include = [];
-        }
+            if(!is_array($include)) {
+                $include = [];
+            }
 
-        if(!isset($include['location'])) {
-                $include['location'] = [];
-        }
+            if(!isset($include['location'])) {
+                    $include['location'] = [];
+            }
 
             $data = $this->positionMapper->findById($id, $include);
         } catch (DoesNotExistException) {

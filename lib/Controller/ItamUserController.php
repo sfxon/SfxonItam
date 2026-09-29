@@ -211,7 +211,7 @@ class ItamUserController extends Controller
 
     #[NoCSRFRequired]
     #[OpenAPI(OpenAPI::SCOPE_IGNORE)]
-    #[FrontpageRoute(verb: 'GET', url: '/itam-user/{id}')]
+    #[FrontpageRoute(verb: 'POST', url: '/itam-user/{id}')]
     public function show(int $id): JSONResponse
     {
         try {

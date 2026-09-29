@@ -43,7 +43,7 @@ export async function fetchAllPositions(params: ListParams): Promise<PositionLis
 }
 
 export async function fetchPosition(id: number): Promise<Position> {
-    const { data } = await axios.get(generateUrl(`/apps/sfxonitam/position/${id}`))
+    const { data } = await axios.post(generateUrl(`/apps/sfxonitam/position/${id}`))
     return data
 }
 
