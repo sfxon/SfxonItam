@@ -63,14 +63,14 @@ class PositionController extends Controller
             ], Http::STATUS_UNPROCESSABLE_ENTITY); // Returns error 422
         }
 
-        // Put this in a try-catch block, since findById will throw an error,
-        // if it does not find an element with the given id.
-        // @TODO:
-        // Change this. Not showing an error, could lead to a user not seeing, that there was a problem and the data still exists.
         try {
             $position = $this->positionMapper->findById($id);
             $this->positionMapper->delete($position['mainData']);
-        } catch(\Error $error) {
+        } catch(DoesNotExistException) {
+            return new JSONResponse(
+                ['status' => 'error', 'message' => 'Position not found'],
+                Http::STATUS_NOT_FOUND
+            );
         }
 
         return new JSONResponse([
