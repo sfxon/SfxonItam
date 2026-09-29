@@ -171,7 +171,6 @@ class DeviceController extends Controller
         $customFields = $this->customFieldService->getCustomFieldsDefinitionByGroup('sfxon_device');
 
         $data['mainData'] = array_map(fn($d) => $d->jsonSerialize($customFields), $data['mainData']);
-        $data['relations'] = $data['relations'];
 
         return new JSONResponse([
             'devices' => $data,
@@ -231,7 +230,6 @@ class DeviceController extends Controller
 
         $customFields = $this->customFieldService->getCustomFieldsDefinitionByGroup('sfxon_device');
         $data['mainData'] = $data['mainData']->jsonSerialize($customFields);
-        $data['relations'] = $data['relations'];
 
         return new JSONResponse($data);
     }

@@ -166,7 +166,6 @@ class ItamUserController extends Controller
 	$customFields = $this->customFieldService->getCustomFieldsDefinitionByGroup('sfxon_itam_user');
 
         $data['mainData'] = array_map(fn($d) => $d->jsonSerialize($customFields), $data['mainData']);
-        $data['relations'] = $data['relations'];
 
         return new JSONResponse([
             'itamUsers' => $data,
@@ -226,7 +225,6 @@ class ItamUserController extends Controller
 
         $customFields = $this->customFieldService->getCustomFieldsDefinitionByGroup('sfxon_itam_user');
         $data['mainData'] = $data['mainData']->jsonSerialize($customFields);
-        $data['relations'] = $data['relations'];
 
         return new JSONResponse($data);
     }

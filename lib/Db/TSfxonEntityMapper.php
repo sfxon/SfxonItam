@@ -69,6 +69,10 @@ trait TSfxonEntityMapper
      */
     protected function getDefaultSortField(): string
     {
+        if (method_exists($this->entityClass, 'getDefaultSortField')) {
+            return $this->entityClass::getDefaultSortField();
+        }
+
         return 'name';
     }
 

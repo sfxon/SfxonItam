@@ -166,7 +166,6 @@ class DeviceStatusController extends Controller
         $customFields = $this->customFieldService->getCustomFieldsDefinitionByGroup('sfxon_device_status');
 
         $data['mainData'] = array_map(fn($d) => $d->jsonSerialize($customFields), $data['mainData']);
-        $data['relations'] = $data['relations'];
 
         return new JSONResponse([
             'deviceStatis' => $data,
@@ -226,7 +225,6 @@ class DeviceStatusController extends Controller
 
         $customFields = $this->customFieldService->getCustomFieldsDefinitionByGroup('sfxon_device_status');
         $data['mainData'] = $data['mainData']->jsonSerialize($customFields);
-        $data['relations'] = $data['relations'];
 
         return new JSONResponse($data);
     }
@@ -240,7 +238,7 @@ class DeviceStatusController extends Controller
             $deviceStatus = $this->deviceStatusMapper->findById($id)['mainData'];
         } catch (\OCP\AppFramework\Db\DoesNotExistException) {
             return new DataResponse(
-                ['status' => 'error', 'message' => 'Device not found'],
+                ['status' => 'error', 'message' => 'Device Status not found'],
                 Http::STATUS_NOT_FOUND
             );
         }

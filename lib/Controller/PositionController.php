@@ -166,7 +166,6 @@ class PositionController extends Controller
         $customFields = $this->customFieldService->getCustomFieldsDefinitionByGroup('sfxon_position');
 
         $data['mainData'] = array_map(fn($d) => $d->jsonSerialize($customFields), $data['mainData']);
-        $data['relations'] = $data['relations'];
 
         return new JSONResponse([
             'positions' => $data,
@@ -235,7 +234,6 @@ class PositionController extends Controller
 
         $customFields = $this->customFieldService->getCustomFieldsDefinitionByGroup('sfxon_position');
         $data['mainData'] = $data['mainData']->jsonSerialize($customFields);
-        $data['relations'] = $data['relations'];
 
         return new JSONResponse($data);
     }
