@@ -3,17 +3,12 @@
 namespace OCA\SfxonItam\Controller;
 
 use OCA\SfxonItam\AppInfo\Application;
-use OCA\SfxonItam\Db\DeviceMapper;
 use OCA\SfxonItam\Db\DeviceStatus;
 use OCA\SfxonItam\Db\DeviceStatusMapper;
-use OCA\SfxonItam\Db\DeviceType;
-use OCA\SfxonItam\Db\ItamUser;
-use OCA\SfxonItam\Db\Location;
-use OCA\SfxonItam\Db\Manufacturer;
-use OCA\SfxonItam\Db\Merchant;
-use OCA\SfxonItam\Db\Position;
-use OCA\SfxonItam\Db\QuantityUnit;
+use OCA\SfxonItam\Definition\EntityRegistry;
+use OCA\SfxonItam\Definition\DeviceStatusDefinition;
 use OCA\SfxonItam\Service\CustomFieldService;
+use OCA\SfxonItam\Service\DeleteGuardService;
 use OCA\SfxonItam\Service\DeviceStatusService;
 use OCA\SfxonItam\Service\ListViewSettingsService;
 use OCP\AppFramework\Controller;
@@ -23,8 +18,8 @@ use OCP\AppFramework\Http\Attribute\FrontpageRoute;
 use OCP\AppFramework\Http\Attribute\NoCSRFRequired;
 use OCP\AppFramework\Http\Attribute\OpenAPI;
 use OCP\AppFramework\Http\DataResponse;
-use OCP\AppFramework\Http\TemplateResponse;
 use OCP\AppFramework\Http\JSONResponse;
+use OCP\AppFramework\Http\TemplateResponse;
 use OCP\AppFramework\Services\IInitialState;
 use OCP\IRequest;
 
@@ -34,17 +29,17 @@ use OCP\IRequest;
  */
 class DeviceStatusController extends Controller
 {
-    private array $expectedFields = ['name', 'comment'];
-
     public function __construct(
         string $appName,
         IRequest $request,
-        private DeviceMapper $deviceMapper,
         private DeviceStatusMapper $deviceStatusMapper,
         private readonly DeviceStatusService $deviceStatusService,
         private CustomFieldService $customFieldService,
         private ListViewSettingsService $listViewSettingsService,
-        private IInitialState $initialState,)
+        private IInitialState $initialState,
+	private readonly DeviceStatusDefinition $definition,
+        private EntityRegistry $entityRegistry,
+        private DeleteGuardService $deleteGuardService,)
     {
         parent::__construct($appName, $request);
     }
@@ -53,24 +48,23 @@ class DeviceStatusController extends Controller
     #[FrontpageRoute(verb: 'DELETE', url: '/device-status/{id}')]
     public function delete(int $id): JsonResponse
     {
-        // Only allow delete, if the deviceStatus is still used by another entity.
-        $hasEntries = $this->deviceMapper->isEntityValueInUse('device_status_id', $id);
+        $violation = $this->deleteGuardService->findViolation($this->definition, $id);
 
-        if($hasEntries) {
-            return new JsonResponse([
+        if($violation !== null) {
+            return new JSONResponse([
                 'status' => 'error',
-                'errors' => ['Cannot delete. There are still devices assigned to this status.']
+                'errors' => [$violation]
             ], Http::STATUS_UNPROCESSABLE_ENTITY); // Returns error 422
         }
 
-        // Put this in a try-catch block, since findById will throw an error,
-        // if it does not find an element with the given id.
-        // @TODO:
-        // Change this. Not showing an error, could lead to a user not seeing, that there was a problem and the data still exists.
         try {
-            $deviceStatus = $this->deviceStatusMapper->findById($id);
-            $this->deviceStatusMapper->delete($deviceStatus['mainData']);
-        } catch(\Error $error) {
+            $position = $this->positionMapper->findById($id);
+            $this->positionMapper->delete($position['mainData']);
+        } catch(DoesNotExistException) {
+            return new JSONResponse(
+                ['status' => 'error', 'message' => $this->definition->label . ' not found'],
+                Http::STATUS_NOT_FOUND
+            );
         }
 
         return new JSONResponse([
@@ -83,18 +77,6 @@ class DeviceStatusController extends Controller
     #[FrontpageRoute(verb: 'GET', url: '/device-status/detail')]
     public function deviceStatusDetail(): TemplateResponse
     {
-        $entityDefinitions = [
-            'deviceStatus' => DeviceStatus::getFieldDefinition(),
-            'deviceType' => DeviceType::getFieldDefinition(),
-            'itamUser' => ItamUser::getFieldDefinition(),
-            'location' => Location::getFieldDefinition(),
-            'manufacturer' => Manufacturer::getFieldDefinition(),
-            'merchant' => Merchant::getFieldDefinition(),
-            'position' => Position::getFieldDefinition(),
-            'quantityUnit' => QuantityUnit::getFieldDefinition(),
-        ];
-        $customFields = $this->customFieldService->getCustomFieldsDefinitionByGroup('sfxon_device_status');
-
         return new TemplateResponse(
             Application::APP_ID,
             'device-status/editor',
@@ -110,7 +92,7 @@ class DeviceStatusController extends Controller
     #[FrontpageRoute(verb: 'GET', url: '/device-status/')]
     public function index(): TemplateResponse
     {
-        $listId = 'device-status-list';
+        $listId = $this->definition->listId();
 
         $this->initialState->provideInitialState(
             'listViewColumnOrder-' . $listId,
@@ -122,26 +104,10 @@ class DeviceStatusController extends Controller
             $this->listViewSettingsService->getUiState($listId)
         );
 
-        $entityDefinitions = [
-            'deviceStatus' => DeviceStatus::getFieldDefinition(),
-            'deviceType' => DeviceType::getFieldDefinition(),
-            'itamUser' => ItamUser::getFieldDefinition(),
-            'location' => Location::getFieldDefinition(),
-            'manufacturer' => Manufacturer::getFieldDefinition(),
-            'merchant' => Merchant::getFieldDefinition(),
-            'position' => Position::getFieldDefinition(),
-            'quantityUnit' => QuantityUnit::getFieldDefinition(),
-        ];
-
-        $customFields = $this->customFieldService->getCustomFieldsDefinitionByGroup('sfxon_device_status');
-
         return new TemplateResponse(
             Application::APP_ID,
-            'device-status/list',
-            [
-                'entityDefinitions' => $entityDefinitions,
-                'customFields' => $customFields,
-            ]
+            $this->definition->templateDir() . '/list',
+            $this->getTemplateParameters()
         );
     }
 
@@ -149,7 +115,7 @@ class DeviceStatusController extends Controller
     #[OpenAPI(OpenAPI::SCOPE_IGNORE)]
     #[FrontpageRoute(verb: 'GET', url: '/device-status/list')]
     public function list(
-        string $orderBy = 'name',
+        ?string $orderBy = null,
         string $direction = 'ASC',
         int $page = 1,
         int $limit = 25,
@@ -160,10 +126,16 @@ class DeviceStatusController extends Controller
         }
 
         $offset = ($page - 1) * $limit;
-        $include = $this->getDefaultIncludes();
-        $data = $this->deviceStatusMapper->findAllPaged($orderBy, $direction, $limit, $offset, $filters, $include);
+        $data = $this->deviceStatusMapper->findAllPaged(
+        $orderBy,
+        $direction,
+        $limit,
+        $offset,
+        $filters,
+        $this->definition->listIncludes
+    );
         $total   = $this->deviceStatusMapper->countAll($filters);
-        $customFields = $this->customFieldService->getCustomFieldsDefinitionByGroup('sfxon_device_status');
+        $customFields = $this->getCustomFields();
 
         $data['mainData'] = array_map(fn($d) => $d->jsonSerialize($customFields), $data['mainData']);
 
@@ -179,10 +151,10 @@ class DeviceStatusController extends Controller
     #[FrontpageRoute(verb: 'POST', url: '/device-status/save')]
     public function save(): DataResponse
     {
-        $data = $this->deviceStatusService->getDataFromRequest($this->request->getParams(), $this->expectedFields);
+        $data = $this->deviceStatusService->getDataFromRequest($this->request->getParams(), $this->definition->expectedFields);
         $result = $this->deviceStatusService->validateData($data);
         $deviceStatus = new DeviceStatus();
-        $customFields = $this->customFieldService->getCustomFieldsDefinitionByGroup('sfxon_device_status');
+        $customFields = $this->getCustomFields();
         $deviceStatus = $this->setDeviceStatusDataFromRequest($deviceStatus);
         $customFieldData = $this->customFieldService->getCustomFieldDataFromRequest($customFields, $this->request->getParams());
         $customFieldErrors = $this->customFieldService->validateCustomFieldData($customFields, $customFieldData);
@@ -200,7 +172,7 @@ class DeviceStatusController extends Controller
         }
 
         $saved = $this->deviceStatusMapper->insert($deviceStatus);
-        $this->customFieldService->updateCustomFieldsForEntity('sfxon_device_status', $saved->getId(), $customFieldData);
+        $this->customFieldService->updateCustomFieldsForEntity($this->definition->customFieldGroup, $saved->getId(), $customFieldData);
 
         return new DataResponse([
             'status' => 'ok',
@@ -218,13 +190,12 @@ class DeviceStatusController extends Controller
             $data = $this->deviceStatusMapper->findById($id, $include);
         } catch (DoesNotExistException) {
             return new JSONResponse(
-                ['status' => 'error', 'message' => 'Device not found'],
+                ['status' => 'error', 'message' => $this->definition->label . ' not found'],
                 Http::STATUS_NOT_FOUND
             );
         }
 
-        $customFields = $this->customFieldService->getCustomFieldsDefinitionByGroup('sfxon_device_status');
-        $data['mainData'] = $data['mainData']->jsonSerialize($customFields);
+        $data['mainData'] = $data['mainData']->jsonSerialize($this->getCustomFields());
 
         return new JSONResponse($data);
     }
@@ -236,16 +207,16 @@ class DeviceStatusController extends Controller
         // Return 404 if entry was not found.
         try {
             $deviceStatus = $this->deviceStatusMapper->findById($id)['mainData'];
-        } catch (\OCP\AppFramework\Db\DoesNotExistException) {
+        } catch (DoesNotExistException) {
             return new DataResponse(
-                ['status' => 'error', 'message' => 'Device Status not found'],
+                ['status' => 'error', 'message' => $this->definition->label . ' not found'],
                 Http::STATUS_NOT_FOUND
             );
         }
 
-        $data = $this->deviceStatusService->getDataFromRequest($this->request->getParams(), $this->expectedFields);
+        $data = $this->deviceStatusService->getDataFromRequest($this->request->getParams(), $this->definition->expectedFields);
         $result = $this->deviceStatusService->validateData($data, $id);
-        $customFields = $this->customFieldService->getCustomFieldsDefinitionByGroup('sfxon_device_status');
+        $customFields = $this->getCustomFields();
         $customFieldData = $this->customFieldService->getCustomFieldDataFromRequest($customFields, $this->request->getParams());
         $customFieldErrors = $this->customFieldService->validateCustomFieldData($customFields, $customFieldData);
 
@@ -263,7 +234,7 @@ class DeviceStatusController extends Controller
 
         $deviceStatus = $this->setDeviceStatusDataFromRequest($deviceStatus);
         $updated = $this->deviceStatusMapper->update($deviceStatus);
-        $this->customFieldService->updateCustomFieldsForEntity('sfxon_device_status', $updated->getId(), $customFieldData);
+        $this->customFieldService->updateCustomFieldsForEntity($this->definition->customFieldGroup, $updated->getId(), $customFieldData);
 
         return new DataResponse([
             'status' => 'ok',
@@ -271,31 +242,17 @@ class DeviceStatusController extends Controller
         ]);
     }
 
-    private function getDefaultIncludes(): array {
-        return [
-            'deviceStatus' => [],
-            'deviceType' => [],
-            'itamUser' => ['fields' => ['id', 'firstname', 'lastname']],
-            'merchant' => [],
-            'position' => [
-                'fields' => ['id', 'name', 'location_id'],
-                'with' => [
-                    'location' => [
-                        'table' => 'sfxon_location',
-                        'localKey' => 'location_id',
-                        'fields' => ['id', 'name'],
-                    ],
-                ],
-            ],
-            'quantityUnit' => [],
-        ];
-    }
-    
-    private function sanitizeForeignKey($foreignKeyValue)
+    private function getCustomFields()
     {
-        $foreignKeyValue = intval($foreignKeyValue);
+        return $this->customFieldService->getCustomFieldsDefinitionByGroup($this->definition->customFieldGroup);
+    }
 
-        return ($foreignKeyValue === 0) ? null : $foreignKeyValue;
+    private function getTemplateParameters(): array
+    {
+        return [
+            'entityDefinitions' => $this->entityRegistry->fieldDefinitions(),
+            'customFields' => $this->getCustomFields(),
+        ];
     }
 
     private function setDeviceStatusDataFromRequest($deviceStatus)
