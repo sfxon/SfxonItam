@@ -43,7 +43,7 @@ export async function fetchAllDeviceTypes(params: ListParams): Promise<DeviceTyp
 }
 
 export async function fetchDeviceType(id: number): Promise<DeviceType> {
-    const { data } = await axios.get(generateUrl(`/apps/sfxonitam/device-type/${id}`))
+    const { data } = await axios.post(generateUrl(`/apps/sfxonitam/device-type/${id}`))
     return data
 }
 

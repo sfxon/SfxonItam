@@ -37,13 +37,14 @@ class DeviceStatusController extends Controller
         private CustomFieldService $customFieldService,
         private ListViewSettingsService $listViewSettingsService,
         private IInitialState $initialState,
-	private readonly DeviceStatusDefinition $definition,
+        private readonly DeviceStatusDefinition $definition,
         private EntityRegistry $entityRegistry,
         private DeleteGuardService $deleteGuardService,)
     {
         parent::__construct($appName, $request);
     }
 
+    #[NoCSRFRequired]
     #[OpenAPI(OpenAPI::SCOPE_IGNORE)]
     #[FrontpageRoute(verb: 'DELETE', url: '/device-status/{id}')]
     public function delete(int $id): JsonResponse
@@ -58,8 +59,8 @@ class DeviceStatusController extends Controller
         }
 
         try {
-            $position = $this->positionMapper->findById($id);
-            $this->positionMapper->delete($position['mainData']);
+            $deviceStatus = $this->deviceStatusMapper->findById($id);
+            $this->deviceStatusMapper->delete($deviceStatus['mainData']);
         } catch(DoesNotExistException) {
             return new JSONResponse(
                 ['status' => 'error', 'message' => $this->definition->label . ' not found'],
@@ -79,11 +80,8 @@ class DeviceStatusController extends Controller
     {
         return new TemplateResponse(
             Application::APP_ID,
-            'device-status/editor',
-            [
-                'entityDefinitions' => $entityDefinitions,
-                'customFields' => $customFields,
-            ]
+            $this->definition->templateDir() . '/editor',
+            $this->getTemplateParameters()
         );
     }
 
@@ -121,19 +119,21 @@ class DeviceStatusController extends Controller
         int $limit = 25,
         ?array $filters = null,): JSONResponse
     {
+        $orderBy ??= $this->definition->defaultOrderBy;
+
         if($limit != 10 && $limit != 25 && $limit != 50 && $limit != 100 && $limit != 500 && $limit != 1000) {
             $limit = 25;
         }
 
         $offset = ($page - 1) * $limit;
         $data = $this->deviceStatusMapper->findAllPaged(
-        $orderBy,
-        $direction,
-        $limit,
-        $offset,
-        $filters,
-        $this->definition->listIncludes
-    );
+            $orderBy,
+            $direction,
+            $limit,
+            $offset,
+            $filters,
+            $this->definition->listIncludes
+        );
         $total   = $this->deviceStatusMapper->countAll($filters);
         $customFields = $this->getCustomFields();
 

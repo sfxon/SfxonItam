@@ -126,13 +126,13 @@ class PositionController extends Controller
 
         $offset = ($page - 1) * $limit;
         $data = $this->positionMapper->findAllPaged(
-        $orderBy,
-        $direction,
-        $limit,
-        $offset,
-        $filters,
-        $this->definition->listIncludes
-    );
+            $orderBy,
+            $direction,
+            $limit,
+            $offset,
+            $filters,
+            $this->definition->listIncludes
+        );
         $total = $this->positionMapper->countAll($filters);
         $customFields = $this->getCustomFields();
 
