@@ -3,17 +3,12 @@
 namespace OCA\SfxonItam\Controller;
 
 use OCA\SfxonItam\AppInfo\Application;
-use OCA\SfxonItam\Db\DeviceMapper;
-use OCA\SfxonItam\Db\DeviceStatus;
-use OCA\SfxonItam\Db\DeviceType;
 use OCA\SfxonItam\Db\ItamUser;
 use OCA\SfxonItam\Db\ItamUserMapper;
-use OCA\SfxonItam\Db\Location;
-use OCA\SfxonItam\Db\Manufacturer;
-use OCA\SfxonItam\Db\Merchant;
-use OCA\SfxonItam\Db\Position;
-use OCA\SfxonItam\Db\QuantityUnit;
+use OCA\SfxonItam\Definition\EntityRegistry;
+use OCA\SfxonItam\Definition\ItamUserDefinition;
 use OCA\SfxonItam\Service\CustomFieldService;
+use OCA\SfxonItam\Service\DeleteGuardService;
 use OCA\SfxonItam\Service\ItamUserService;
 use OCA\SfxonItam\Service\ListViewSettingsService;
 use OCP\AppFramework\Controller;
@@ -23,8 +18,8 @@ use OCP\AppFramework\Http\Attribute\FrontpageRoute;
 use OCP\AppFramework\Http\Attribute\NoCSRFRequired;
 use OCP\AppFramework\Http\Attribute\OpenAPI;
 use OCP\AppFramework\Http\DataResponse;
-use OCP\AppFramework\Http\TemplateResponse;
 use OCP\AppFramework\Http\JSONResponse;
+use OCP\AppFramework\Http\TemplateResponse;
 use OCP\AppFramework\Services\IInitialState;
 use OCP\IRequest;
 
@@ -34,17 +29,17 @@ use OCP\IRequest;
  */
 class ItamUserController extends Controller
 {
-    private array $expectedFields = ['firstname', 'lastname', 'email', 'comment'];
-
     public function __construct(
         string $appName,
         IRequest $request,
-        private DeviceMapper $deviceMapper,
         private ItamUserMapper $itamUserMapper,
         private readonly ItamUserService $itamUserService,
         private CustomFieldService $customFieldService,
         private ListViewSettingsService $listViewSettingsService,
-        private IInitialState $initialState,)
+        private IInitialState $initialState,
+	private readonly ItamUserDefinition $definition,
+        private EntityRegistry $entityRegistry,
+        private DeleteGuardService $deleteGuardService,)
     {
         parent::__construct($appName, $request);
     }
@@ -53,13 +48,12 @@ class ItamUserController extends Controller
     #[FrontpageRoute(verb: 'DELETE', url: '/itam-user/{id}')]
     public function delete(int $id): JsonResponse
     {
-        // Only allow delete, if the deviceStatus is still used by another entity.
-        $hasEntries = $this->deviceMapper->isEntityValueInUse('itam_user_id', $id);
+        $violation = $this->deleteGuardService->findViolation($this->definition, $id);
 
-        if($hasEntries) {
-            return new JsonResponse([
+        if($violation !== null) {
+            return new JSONResponse([
                 'status' => 'error',
-                'errors' => ['Cannot delete. There are still devices assigned to this itamUser.']
+                'errors' => [$violation]
             ], Http::STATUS_UNPROCESSABLE_ENTITY); // Returns error 422
         }
 
@@ -68,7 +62,7 @@ class ItamUserController extends Controller
             $this->itamUserMapper->delete($itamUser['mainData']);
         } catch(DoesNotExistException) {
             return new JSONResponse(
-                ['status' => 'error', 'message' => 'User not found'],
+                ['status' => 'error', 'message' => $this->definition->label . ' not found'],
                 Http::STATUS_NOT_FOUND
             );
         }
@@ -83,25 +77,10 @@ class ItamUserController extends Controller
     #[FrontpageRoute(verb: 'GET', url: '/itam-user/detail')]
     public function itamUserDetail(): TemplateResponse
     {
-        $entityDefinitions = [
-            'deviceStatus' => DeviceStatus::getFieldDefinition(),
-            'deviceType' => DeviceType::getFieldDefinition(),
-            'itamUser' => ItamUser::getFieldDefinition(),
-            'location' => Location::getFieldDefinition(),
-            'manufacturer' => Manufacturer::getFieldDefinition(),
-            'merchant' => Merchant::getFieldDefinition(),
-            'position' => Position::getFieldDefinition(),
-            'quantityUnit' => QuantityUnit::getFieldDefinition(),
-        ];
-        $customFields = $this->customFieldService->getCustomFieldsDefinitionByGroup('sfxon_itam_user');
-
         return new TemplateResponse(
             Application::APP_ID,
-            'itam-user/editor',
-            [
-                'entityDefinitions' => $entityDefinitions,
-                'customFields' => $customFields,
-            ]
+            $this->definition->templateDir() . '/editor',
+            $this->getTemplateParameters()
         );
     }
 
@@ -110,7 +89,7 @@ class ItamUserController extends Controller
     #[FrontpageRoute(verb: 'GET', url: '/itam-user/')]
     public function index(): TemplateResponse
     {
-        $listId = 'itam-user-list';
+        $listId = $this->definition->listId();
 
         $this->initialState->provideInitialState(
             'listViewColumnOrder-' . $listId,
@@ -122,26 +101,10 @@ class ItamUserController extends Controller
             $this->listViewSettingsService->getUiState($listId)
         );
 
-        $entityDefinitions = [
-            'deviceStatus' => DeviceStatus::getFieldDefinition(),
-            'deviceType' => DeviceType::getFieldDefinition(),
-            'itamUser' => ItamUser::getFieldDefinition(),
-            'location' => Location::getFieldDefinition(),
-            'manufacturer' => Manufacturer::getFieldDefinition(),
-            'merchant' => Merchant::getFieldDefinition(),
-            'position' => Position::getFieldDefinition(),
-            'quantityUnit' => QuantityUnit::getFieldDefinition(),
-        ];
-
-        $customFields = $this->customFieldService->getCustomFieldsDefinitionByGroup('sfxon_itam_user');
-
         return new TemplateResponse(
             Application::APP_ID,
-            'itam-user/list',
-            [
-                'entityDefinitions' => $entityDefinitions,
-                'customFields' => $customFields,
-            ]
+            $this->definition->templateDir() . '/list',
+            $this->getTemplateParameters()
         );
     }
 
@@ -149,21 +112,29 @@ class ItamUserController extends Controller
     #[OpenAPI(OpenAPI::SCOPE_IGNORE)]
     #[FrontpageRoute(verb: 'GET', url: '/itam-user/list')]
     public function list(
-        string $orderBy = 'email',
+        ?string $orderBy = null,
         string $direction = 'ASC',
         int $page = 1,
         int $limit = 25,
         ?array $filters = null,): JSONResponse
     {
+        $orderBy ??= $this->definition->defaultOrderBy;
+
         if($limit != 10 && $limit != 25 && $limit != 50 && $limit != 100 && $limit != 500 && $limit != 1000) {
             $limit = 25;
         }
 
         $offset = ($page - 1) * $limit;
-	$include = $this->getDefaultIncludes();
-        $data = $this->itamUserMapper->findAllPaged($orderBy, $direction, $limit, $offset, $filters, $include);
-        $total   = $this->itamUserMapper->countAll($filters);
-	$customFields = $this->customFieldService->getCustomFieldsDefinitionByGroup('sfxon_itam_user');
+        $data = $this->itamUserMapper->findAllPaged(
+            $orderBy,
+            $direction,
+            $limit,
+            $offset,
+            $filters,
+            $this->definition->listIncludes
+        );
+        $total = $this->itamUserMapper->countAll($filters);
+        $customFields = $this->getCustomFields();
 
         $data['mainData'] = array_map(fn($d) => $d->jsonSerialize($customFields), $data['mainData']);
 
@@ -179,10 +150,10 @@ class ItamUserController extends Controller
     #[FrontpageRoute(verb: 'POST', url: '/itam-user/save')]
     public function save(): DataResponse
     {
-        $data = $this->itamUserService->getDataFromRequest($this->request->getParams(), $this->expectedFields);
+        $data = $this->itamUserService->getDataFromRequest($this->request->getParams(), $this->definition->expectedFields);
         $result = $this->itamUserService->validateData($data);
         $itamUser = new ItamUser();
-        $customFields = $this->customFieldService->getCustomFieldsDefinitionByGroup('sfxon_itam_user');
+        $customFields = $this->getCustomFields();
         $itamUser = $this->setItamUserDataFromRequest($itamUser);
         $customFieldData = $this->customFieldService->getCustomFieldDataFromRequest($customFields, $this->request->getParams());
         $customFieldErrors = $this->customFieldService->validateCustomFieldData($customFields, $customFieldData);
@@ -200,7 +171,7 @@ class ItamUserController extends Controller
         }
 
         $saved = $this->itamUserMapper->insert($itamUser);
-        $this->customFieldService->updateCustomFieldsForEntity('sfxon_itam_user', $saved->getId(), $customFieldData);
+        $this->customFieldService->updateCustomFieldsForEntity($this->definition->customFieldGroup, $saved->getId(), $customFieldData);
 
         return new DataResponse([
             'status' => 'ok',
@@ -218,13 +189,12 @@ class ItamUserController extends Controller
             $data = $this->itamUserMapper->findById($id, $include);
         } catch (DoesNotExistException) {
             return new JSONResponse(
-                ['status' => 'error', 'message' => 'ItamUser not found'],
+                ['status' => 'error', 'message' => $this->definition->label . ' not found'],
                 Http::STATUS_NOT_FOUND
             );
         }
 
-        $customFields = $this->customFieldService->getCustomFieldsDefinitionByGroup('sfxon_itam_user');
-        $data['mainData'] = $data['mainData']->jsonSerialize($customFields);
+        $data['mainData'] = $data['mainData']->jsonSerialize($this->getCustomFields());
 
         return new JSONResponse($data);
     }
@@ -233,19 +203,19 @@ class ItamUserController extends Controller
     #[FrontpageRoute(verb: 'PUT', url: '/itam-user/{id}')]
     public function update(int $id): DataResponse
     {
-        // Return 404 if entity is not found.
+        // Return 404 if entry was not found.
         try {
             $itamUser = $this->itamUserMapper->findById($id)['mainData'];
-        } catch (\OCP\AppFramework\Db\DoesNotExistException) {
+        } catch (DoesNotExistException) {
             return new DataResponse(
-                ['status' => 'error', 'message' => 'ItamUser not found'],
+                ['status' => 'error', 'message' => $this->definition->label . ' not found'],
                 Http::STATUS_NOT_FOUND
             );
         }
 
-        $data = $this->itamUserService->getDataFromRequest($this->request->getParams(), $this->expectedFields);
+        $data = $this->itamUserService->getDataFromRequest($this->request->getParams(), $this->definition->expectedFields);
         $result = $this->itamUserService->validateData($data, $id);
-        $customFields = $this->customFieldService->getCustomFieldsDefinitionByGroup('sfxon_itam_user');
+        $customFields = $this->getCustomFields();
         $customFieldData = $this->customFieldService->getCustomFieldDataFromRequest($customFields, $this->request->getParams());
         $customFieldErrors = $this->customFieldService->validateCustomFieldData($customFields, $customFieldData);
 
@@ -263,39 +233,25 @@ class ItamUserController extends Controller
 
         $itamUser = $this->setItamUserDataFromRequest($itamUser);
         $updated = $this->itamUserMapper->update($itamUser);
-        $this->customFieldService->updateCustomFieldsForEntity('sfxon_itam_user', $updated->getId(), $customFieldData);
+        $this->customFieldService->updateCustomFieldsForEntity($this->definition->customFieldGroup, $updated->getId(), $customFieldData);
 
         return new DataResponse([
             'status' => 'ok',
-            'id'     => $updated->getId(),
+            'id' => $updated->getId(),
         ]);
     }
-    
-    private function getDefaultIncludes(): array {
-        return [
-            'deviceStatus' => [],
-            'deviceType' => [],
-            'itamUser' => ['fields' => ['id', 'firstname', 'lastname']],
-            'merchant' => [],
-            'position' => [
-                'fields' => ['id', 'name', 'location_id'],
-                'with' => [
-                    'location' => [
-                        'table' => 'sfxon_location',
-                        'localKey' => 'location_id',
-                        'fields' => ['id', 'name'],
-                    ],
-                ],
-            ],
-            'quantityUnit' => [],
-        ];
-    }
-    
-    private function sanitizeForeignKey($foreignKeyValue)
-    {
-        $foreignKeyValue = intval($foreignKeyValue);
 
-        return ($foreignKeyValue === 0) ? null : $foreignKeyValue;
+    private function getCustomFields()
+    {
+        return $this->customFieldService->getCustomFieldsDefinitionByGroup($this->definition->customFieldGroup);
+    }
+
+    private function getTemplateParameters(): array
+    {
+        return [
+            'entityDefinitions' => $this->entityRegistry->fieldDefinitions(),
+            'customFields' => $this->getCustomFields(),
+        ];
     }
 
     private function setItamUserDataFromRequest($itamUser) {
