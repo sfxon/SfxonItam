@@ -4,7 +4,8 @@ namespace OCA\SfxonItam\Service;
 
 use OCA\SfxonItam\Validator\PositionValidator;
 
-class PositionService {
+class PositionService extends ItamServiceAbstract
+{
     public function __construct(
         private readonly PositionValidator $positionValidator,)
         {

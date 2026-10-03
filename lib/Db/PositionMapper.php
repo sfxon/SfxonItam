@@ -9,7 +9,7 @@ use OCP\IDBConnection;
 /**
  * @template-extends QBMapper<Position>
  */
-class PositionMapper extends QBMapper
+class PositionMapper extends EntityMapperAbstract
 {
     use TSfxonEntityMapper;
     use TSfxonEntityMapperWithNameFilter;
