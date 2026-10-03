@@ -62,7 +62,7 @@ export async function findQuantityUnits(params: ListParams, signal: AbortSignal)
 }
 
 export async function fetchQuantityUnit(id: number): Promise<QuantityUnit> {
-    const { data } = await axios.get(generateUrl(`/apps/sfxonitam/quantity-unit/${id}`))
+    const { data } = await axios.post(generateUrl(`/apps/sfxonitam/quantity-unit/${id}`))
     return data
 }
 
