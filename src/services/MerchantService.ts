@@ -43,7 +43,7 @@ export async function fetchAllMerchants(params: ListParams): Promise<MerchantLis
 }
 
 export async function fetchMerchant(id: number): Promise<Merchant> {
-    const { data } = await axios.get(generateUrl(`/apps/sfxonitam/merchant/${id}`))
+    const { data } = await axios.post(generateUrl(`/apps/sfxonitam/merchant/${id}`))
     return data
 }
 

@@ -209,7 +209,8 @@ class DeviceTypeController extends Controller
 
     #[OpenAPI(OpenAPI::SCOPE_IGNORE)]
     #[FrontpageRoute(verb: 'PUT', url: '/device-type/{id}')]
-    public function update(int $id): DataResponse {
+    public function update(int $id): DataResponse
+    {
         // Return 404 if entry was not found.
         try {
             $deviceType = $this->deviceTypeMapper->findById($id)['mainData'];
@@ -247,7 +248,7 @@ class DeviceTypeController extends Controller
             'id' => $updated->getId(),
         ]);
     }
-    
+
     private function getCustomFields()
     {
         return $this->customFieldService->getCustomFieldsDefinitionByGroup($this->definition->customFieldGroup);
