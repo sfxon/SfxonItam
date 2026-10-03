@@ -43,7 +43,7 @@ export async function fetchAllLocations(params: ListParams): Promise<LocationLis
 }
 
 export async function fetchLocation(id: number): Promise<Location> {
-    const { data } = await axios.get(generateUrl(`/apps/sfxonitam/location/${id}`))
+    const { data } = await axios.post(generateUrl(`/apps/sfxonitam/location/${id}`))
     return data
 }
 

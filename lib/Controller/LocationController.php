@@ -2,6 +2,15 @@
 
 namespace OCA\SfxonItam\Controller;
 
+use OCA\SfxonItam\AppInfo\Application;
+use OCA\SfxonItam\Db\Location;
+use OCA\SfxonItam\Db\LocationMapper;
+use OCA\SfxonItam\Definition\EntityRegistry;
+use OCA\SfxonItam\Definition\LocationDefinition;
+use OCA\SfxonItam\Service\CustomFieldService;
+use OCA\SfxonItam\Service\DeleteGuardService;
+use OCA\SfxonItam\Service\LocationService;
+use OCA\SfxonItam\Service\ListViewSettingsService;
 use OCP\AppFramework\Controller;
 use OCP\AppFramework\Db\DoesNotExistException;
 use OCP\AppFramework\Http;
@@ -9,30 +18,28 @@ use OCP\AppFramework\Http\Attribute\FrontpageRoute;
 use OCP\AppFramework\Http\Attribute\NoCSRFRequired;
 use OCP\AppFramework\Http\Attribute\OpenAPI;
 use OCP\AppFramework\Http\DataResponse;
-use OCP\AppFramework\Http\TemplateResponse;
 use OCP\AppFramework\Http\JSONResponse;
+use OCP\AppFramework\Http\TemplateResponse;
+use OCP\AppFramework\Services\IInitialState;
 use OCP\IRequest;
-use OCA\SfxonItam\AppInfo\Application;
-use OCA\SfxonItam\Db\PositionMapper;
-use OCA\SfxonItam\Db\Location;
-use OCA\SfxonItam\Db\LocationMapper;
-use OCA\SfxonItam\Service\CustomFieldService;
-use OCA\SfxonItam\Service\LocationService;
+
 
 /**
  * @psalm-suppress UnusedClass
  */
 class LocationController extends Controller
 {
-    private array $expectedFields = ['name', 'comment'];
-
     public function __construct(
         string $appName,
         IRequest $request,
-        private PositionMapper $positionMapper,
         private LocationMapper $locationMapper,
         private readonly LocationService $locationService,
-        private CustomFieldService $customFieldService,)
+        private CustomFieldService $customFieldService,
+        private ListViewSettingsService $listViewSettingsService,
+        private IInitialState $initialState,
+        private readonly LocationDefinition $definition,
+        private EntityRegistry $entityRegistry,
+        private DeleteGuardService $deleteGuardService,)
     {
         parent::__construct($appName, $request);
     }
@@ -41,22 +48,23 @@ class LocationController extends Controller
     #[FrontpageRoute(verb: 'DELETE', url: '/location/{id}')]
     public function delete(int $id): JsonResponse
     {
-        // Only allow delete, if the deviceStatus is still used by another entity.
-        $hasEntries = $this->positionMapper->isEntityValueInUse('location_id', $id);
+        $violation = $this->deleteGuardService->findViolation($this->definition, $id);
 
-        if($hasEntries) {
-            return new JsonResponse([
+        if($violation !== null) {
+            return new JSONResponse([
                 'status' => 'error',
-                'errors' => ['Cannot delete. There are still positions assigned to this location.']
+                'errors' => [$violation]
             ], Http::STATUS_UNPROCESSABLE_ENTITY); // Returns error 422
         }
 
-        // Put this in a try-catch block, since findById will throw an error,
-        // if it does not find an element with the given id.
         try {
-            $location = $this->locationMapper->findById($id)['mainData'];
-            $this->locationMapper->delete($location);
-        } catch(\Error $error) {
+            $location = $this->locationMapper->findById($id);
+            $this->locationMapper->delete($location['mainData']);
+        } catch(DoesNotExistException) {
+            return new JSONResponse(
+                ['status' => 'error', 'message' => $this->definition->label . ' not found'],
+                Http::STATUS_NOT_FOUND
+            );
         }
 
         return new JSONResponse([
@@ -69,14 +77,10 @@ class LocationController extends Controller
     #[FrontpageRoute(verb: 'GET', url: '/location/detail')]
     public function locationDetail(): TemplateResponse
     {
-        $customFields = $this->customFieldService->getCustomFieldsDefinitionByGroup('sfxon_location');
-
         return new TemplateResponse(
             Application::APP_ID,
-            'location/editor',
-            [
-                'customFields' => $customFields,
-            ]
+            $this->definition->templateDir() . '/editor',
+            $this->getTemplateParameters()
         );
     }
 
@@ -85,9 +89,22 @@ class LocationController extends Controller
     #[FrontpageRoute(verb: 'GET', url: '/location/')]
     public function index(): TemplateResponse
     {
+        $listId = $this->definition->listId();
+
+        $this->initialState->provideInitialState(
+            'listViewColumnOrder-' . $listId,
+            $this->listViewSettingsService->getColumnOrder($listId)
+        );
+
+        $this->initialState->provideInitialState(
+            'listViewUiState-' . $listId,
+            $this->listViewSettingsService->getUiState($listId)
+        );
+
         return new TemplateResponse(
             Application::APP_ID,
-            'location/list',
+            $this->definition->templateDir() . '/list',
+            $this->getTemplateParameters()
         );
     }
 
@@ -95,17 +112,31 @@ class LocationController extends Controller
     #[OpenAPI(OpenAPI::SCOPE_IGNORE)]
     #[FrontpageRoute(verb: 'GET', url: '/location/list')]
     public function list(
-        string $orderBy = 'name',
+        ?string $orderBy = null,
         string $direction = 'ASC',
         int $page = 1,
-        int $limit = 20,): JSONResponse
+        int $limit = 25,
+        ?array $filters = null,): JSONResponse
     {
-        $offset = ($page - 1) * $limit;
-        $data = $this->locationMapper->findAllPaged($orderBy, $direction, $limit, $offset);
-        $total   = $this->locationMapper->countAll();
+        $orderBy ??= $this->definition->defaultOrderBy;
 
-        $data['mainData'] = array_map(fn($d) => $d->jsonSerialize(/* $customFields */), $data['mainData']);
-        $data['relations'] = $data['relations'];
+        if($limit != 10 && $limit != 25 && $limit != 50 && $limit != 100 && $limit != 500 && $limit != 1000) {
+            $limit = 25;
+        }
+
+        $offset = ($page - 1) * $limit;
+        $data = $this->locationMapper->findAllPaged(
+            $orderBy,
+            $direction,
+            $limit,
+            $offset,
+            $filters,
+            $this->definition->listIncludes
+        );
+        $total   = $this->locationMapper->countAll($filters);
+        $customFields = $this->getCustomFields();
+
+        $data['mainData'] = array_map(fn($d) => $d->jsonSerialize($customFields), $data['mainData']);
 
         return new JSONResponse([
             'locations' => $data,
@@ -115,27 +146,14 @@ class LocationController extends Controller
         ]);
     }
 
-    #[\Deprecated(message: "Will be removed.", since: "1.9")]
-    #[NoCSRFRequired]
-    #[OpenAPI(OpenAPI::SCOPE_IGNORE)]
-    #[FrontpageRoute(verb: 'GET', url: '/location/listall')]
-    public function listall(): JSONResponse
-    {
-        $locations = $this->locationMapper->findAll();
-
-        return new JSONResponse([
-            'locations' => array_map(fn($d) => $d->jsonSerialize(), $locations),
-        ]);
-    }
-
     #[OpenAPI(OpenAPI::SCOPE_IGNORE)]
     #[FrontpageRoute(verb: 'POST', url: '/location/save')]
     public function save(): DataResponse
     {
-        $data = $this->locationService->getDataFromRequest($this->request->getParams(), $this->expectedFields);
+        $data = $this->locationService->getDataFromRequest($this->request->getParams(), $this->definition->expectedFields);
         $result = $this->locationService->validateData($data);
         $location = new Location();
-        $customFields = $this->customFieldService->getCustomFieldsDefinitionByGroup('sfxon_location');
+        $customFields = $this->getCustomFields();
         $location = $this->setLocationDataFromRequest($location);
         $customFieldData = $this->customFieldService->getCustomFieldDataFromRequest($customFields, $this->request->getParams());
         $customFieldErrors = $this->customFieldService->validateCustomFieldData($customFields, $customFieldData);
@@ -153,7 +171,7 @@ class LocationController extends Controller
         }
 
         $saved = $this->locationMapper->insert($location);
-        $this->customFieldService->updateCustomFieldsForEntity('sfxon_location', $saved->getId(), $customFieldData);
+        $this->customFieldService->updateCustomFieldsForEntity($this->definition->customFieldGroup, $saved->getId(), $customFieldData);
 
         return new DataResponse([
             'status' => 'ok',
@@ -163,47 +181,20 @@ class LocationController extends Controller
 
     #[NoCSRFRequired]
     #[OpenAPI(OpenAPI::SCOPE_IGNORE)]
-    #[FrontpageRoute(verb: 'POST', url: '/location/search')]
-    public function search(
-        string $orderBy = 'name',
-        string $direction = 'ASC',
-        int $page = 1,
-        int $limit = 20,): JSONResponse
-    {
-        $offset = ($page - 1) * $limit;
-        $filters = $this->request->getParam('filters');
-
-        $data = $this->locationMapper->findAllPaged($orderBy, $direction, $limit, $offset, $filters);
-        $total = $this->locationMapper->countAll($filters);
-
-        $data['mainData'] = array_map(fn($d) => $d->jsonSerialize(), $data['mainData']);
-
-        return new JSONResponse([
-            'mainData' => $data['mainData'],
-            'relations' => $data['relations'],
-            'total' => $total,
-            'page' => $page,
-            'limit' => $limit,
-        ]);
-    }
-
-    #[NoCSRFRequired]
-    #[OpenAPI(OpenAPI::SCOPE_IGNORE)]
-    #[FrontpageRoute(verb: 'GET', url: '/location/{id}')]
+    #[FrontpageRoute(verb: 'POST', url: '/location/{id}')]
     public function show(int $id): JSONResponse
     {
         try {
-            $data = $this->locationMapper->findById($id);
+            $include = $this->request->getParam('include');
+            $data = $this->locationMapper->findById($id, $include);
         } catch (DoesNotExistException) {
             return new JSONResponse(
-                ['status' => 'error', 'message' => 'Location not found'],
+                ['status' => 'error', 'message' => $this->definition->label . ' not found'],
                 Http::STATUS_NOT_FOUND
             );
         }
 
-        $customFields = $this->customFieldService->getCustomFieldsDefinitionByGroup('sfxon_location');
-        $data['mainData'] = $data['mainData']->jsonSerialize($customFields);
-        $data['relations'] = $data['relations'];
+        $data['mainData'] = $data['mainData']->jsonSerialize($this->getCustomFields());
 
         return new JSONResponse($data);
     }
@@ -215,16 +206,16 @@ class LocationController extends Controller
         // Return 404 if entry was not found.
         try {
             $location = $this->locationMapper->findById($id)['mainData'];
-        } catch (\OCP\AppFramework\Db\DoesNotExistException) {
+        } catch (DoesNotExistException) {
             return new DataResponse(
-                ['status' => 'error', 'message' => 'Location not found'],
+                ['status' => 'error', 'message' => $this->definition->label . ' not found'],
                 Http::STATUS_NOT_FOUND
             );
         }
 
-        $data = $this->locationService->getDataFromRequest($this->request->getParams(), $this->expectedFields);
+        $data = $this->locationService->getDataFromRequest($this->request->getParams(), $this->definition->expectedFields);
         $result = $this->locationService->validateData($data, $id);
-        $customFields = $this->customFieldService->getCustomFieldsDefinitionByGroup('sfxon_location');
+        $customFields = $this->getCustomFields();
         $customFieldData = $this->customFieldService->getCustomFieldDataFromRequest($customFields, $this->request->getParams());
         $customFieldErrors = $this->customFieldService->validateCustomFieldData($customFields, $customFieldData);
 
@@ -242,12 +233,25 @@ class LocationController extends Controller
 
         $location = $this->setLocationDataFromRequest($location);
         $updated = $this->locationMapper->update($location);
-        $this->customFieldService->updateCustomFieldsForEntity('sfxon_location', $updated->getId(), $customFieldData);
+        $this->customFieldService->updateCustomFieldsForEntity($this->definition->customFieldGroup, $updated->getId(), $customFieldData);
 
         return new DataResponse([
             'status' => 'ok',
             'id' => $updated->getId(),
         ]);
+    }
+
+    private function getCustomFields()
+    {
+        return $this->customFieldService->getCustomFieldsDefinitionByGroup($this->definition->customFieldGroup);
+    }
+
+    private function getTemplateParameters(): array
+    {
+        return [
+            'entityDefinitions' => $this->entityRegistry->fieldDefinitions(),
+            'customFields' => $this->getCustomFields(),
+        ];
     }
 
     private function setLocationDataFromRequest($location)
