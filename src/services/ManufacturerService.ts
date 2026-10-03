@@ -43,7 +43,7 @@ export async function fetchAllManufacturers(params: ListParams): Promise<Manufac
 }
 
 export async function fetchManufacturer(id: number): Promise<Manufacturer> {
-    const { data } = await axios.get(generateUrl(`/apps/sfxonitam/manufacturer/${id}`))
+    const { data } = await axios.post(generateUrl(`/apps/sfxonitam/manufacturer/${id}`))
     return data
 }
 

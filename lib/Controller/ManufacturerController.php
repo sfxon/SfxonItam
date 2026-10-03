@@ -2,6 +2,15 @@
 
 namespace OCA\SfxonItam\Controller;
 
+use OCA\SfxonItam\AppInfo\Application;
+use OCA\SfxonItam\Db\Manufacturer;
+use OCA\SfxonItam\Db\ManufacturerMapper;
+use OCA\SfxonItam\Definition\EntityRegistry;
+use OCA\SfxonItam\Definition\ManufacturerDefinition;
+use OCA\SfxonItam\Service\CustomFieldService;
+use OCA\SfxonItam\Service\DeleteGuardService;
+use OCA\SfxonItam\Service\ManufacturerService;
+use OCA\SfxonItam\Service\ListViewSettingsService;
 use OCP\AppFramework\Controller;
 use OCP\AppFramework\Db\DoesNotExistException;
 use OCP\AppFramework\Http;
@@ -9,30 +18,28 @@ use OCP\AppFramework\Http\Attribute\FrontpageRoute;
 use OCP\AppFramework\Http\Attribute\NoCSRFRequired;
 use OCP\AppFramework\Http\Attribute\OpenAPI;
 use OCP\AppFramework\Http\DataResponse;
-use OCP\AppFramework\Http\TemplateResponse;
 use OCP\AppFramework\Http\JSONResponse;
+use OCP\AppFramework\Http\TemplateResponse;
+use OCP\AppFramework\Services\IInitialState;
 use OCP\IRequest;
-use OCA\SfxonItam\AppInfo\Application;
-use OCA\SfxonItam\Db\DeviceTypeMapper;
-use OCA\SfxonItam\Db\Manufacturer;
-use OCA\SfxonItam\Db\ManufacturerMapper;
-use OCA\SfxonItam\Service\CustomFieldService;
-use OCA\SfxonItam\Service\ManufacturerService;
+
 
 /**
  * @psalm-suppress UnusedClass
  */
 class ManufacturerController extends Controller
 {
-    private array $expectedFields = ['name', 'comment'];
-
     public function __construct(
         string $appName,
         IRequest $request,
-        private DeviceTypeMapper $deviceTypeMapper,
         private ManufacturerMapper $manufacturerMapper,
         private readonly ManufacturerService $manufacturerService,
-        private CustomFieldService $customFieldService,)
+        private CustomFieldService $customFieldService,
+        private ListViewSettingsService $listViewSettingsService,
+        private IInitialState $initialState,
+        private readonly ManufacturerDefinition $definition,
+        private EntityRegistry $entityRegistry,
+        private DeleteGuardService $deleteGuardService,)
     {
         parent::__construct($appName, $request);
     }
@@ -41,22 +48,23 @@ class ManufacturerController extends Controller
     #[FrontpageRoute(verb: 'DELETE', url: '/manufacturer/{id}')]
     public function delete(int $id): JsonResponse
     {
-        // Only allow delete, if the deviceStatus is still used by another entity.
-        $hasEntries = $this->deviceTypeMapper->isEntityValueInUse('manufacturer_id', $id);
+        $violation = $this->deleteGuardService->findViolation($this->definition, $id);
 
-        if($hasEntries) {
-            return new JsonResponse([
+        if($violation !== null) {
+            return new JSONResponse([
                 'status' => 'error',
-                'errors' => ['Cannot delete. There are still deviceTypes assigned to this manufacturer.']
+                'errors' => [$violation]
             ], Http::STATUS_UNPROCESSABLE_ENTITY); // Returns error 422
         }
 
-        // Put this in a try-catch block, since findById will throw an error,
-        // if it does not find an element with the given id.
         try {
-            $manufacturer = $this->manufacturerMapper->findById($id)['mainData'];
-            $this->manufacturerMapper->delete($manufacturer);
-        } catch(\Error $error) {
+            $manufacturer = $this->manufacturerMapper->findById($id);
+            $this->manufacturerMapper->delete($manufacturer['mainData']);
+        } catch(DoesNotExistException) {
+            return new JSONResponse(
+                ['status' => 'error', 'message' => $this->definition->label . ' not found'],
+                Http::STATUS_NOT_FOUND
+            );
         }
 
         return new JSONResponse([
@@ -69,14 +77,10 @@ class ManufacturerController extends Controller
     #[FrontpageRoute(verb: 'GET', url: '/manufacturer/detail')]
     public function manufacturerDetail(): TemplateResponse
     {
-        $customFields = $this->customFieldService->getCustomFieldsDefinitionByGroup('sfxon_manufacturer');
-
         return new TemplateResponse(
             Application::APP_ID,
-            'manufacturer/editor',
-            [
-                'customFields' => $customFields,
-            ]
+            $this->definition->templateDir() . '/editor',
+            $this->getTemplateParameters()
         );
     }
 
@@ -85,9 +89,22 @@ class ManufacturerController extends Controller
     #[FrontpageRoute(verb: 'GET', url: '/manufacturer/')]
     public function index(): TemplateResponse
     {
+        $listId = $this->definition->listId();
+
+        $this->initialState->provideInitialState(
+            'listViewColumnOrder-' . $listId,
+            $this->listViewSettingsService->getColumnOrder($listId)
+        );
+
+        $this->initialState->provideInitialState(
+            'listViewUiState-' . $listId,
+            $this->listViewSettingsService->getUiState($listId)
+        );
+
         return new TemplateResponse(
             Application::APP_ID,
-            'manufacturer/list',
+            $this->definition->templateDir() . '/list',
+            $this->getTemplateParameters()
         );
     }
 
@@ -95,17 +112,31 @@ class ManufacturerController extends Controller
     #[OpenAPI(OpenAPI::SCOPE_IGNORE)]
     #[FrontpageRoute(verb: 'GET', url: '/manufacturer/list')]
     public function list(
-        string $orderBy = 'name',
+        ?string $orderBy = null,
         string $direction = 'ASC',
         int $page = 1,
-        int $limit = 20,): JSONResponse
+        int $limit = 25,
+        ?array $filters = null,): JSONResponse
     {
-        $offset = ($page - 1) * $limit;
-        $data = $this->manufacturerMapper->findAllPaged($orderBy, $direction, $limit, $offset);
-        $total   = $this->manufacturerMapper->countAll();
+        $orderBy ??= $this->definition->defaultOrderBy;
 
-        $data['mainData'] = array_map(fn($d) => $d->jsonSerialize(/* $customFields */), $data['mainData']);
-        $data['relations'] = $data['relations'];
+        if($limit != 10 && $limit != 25 && $limit != 50 && $limit != 100 && $limit != 500 && $limit != 1000) {
+            $limit = 25;
+        }
+
+        $offset = ($page - 1) * $limit;
+        $data = $this->manufacturerMapper->findAllPaged(
+            $orderBy,
+            $direction,
+            $limit,
+            $offset,
+            $filters,
+            $this->definition->listIncludes
+        );
+        $total   = $this->manufacturerMapper->countAll($filters);
+        $customFields = $this->getCustomFields();
+
+        $data['mainData'] = array_map(fn($d) => $d->jsonSerialize($customFields), $data['mainData']);
 
         return new JSONResponse([
             'manufacturers' => $data,
@@ -115,27 +146,14 @@ class ManufacturerController extends Controller
         ]);
     }
 
-    #[\Deprecated(message: "Will be removed.", since: "1.9")]
-    #[NoCSRFRequired]
-    #[OpenAPI(OpenAPI::SCOPE_IGNORE)]
-    #[FrontpageRoute(verb: 'GET', url: '/manufacturer/listall')]
-    public function listall(): JSONResponse
-    {
-        $manufacturers = $this->manufacturerMapper->findAll();
-
-        return new JSONResponse([
-            'manufacturers' => array_map(fn($d) => $d->jsonSerialize(), $manufacturers),
-        ]);
-    }
-
     #[OpenAPI(OpenAPI::SCOPE_IGNORE)]
     #[FrontpageRoute(verb: 'POST', url: '/manufacturer/save')]
     public function save(): DataResponse
     {
-        $data = $this->manufacturerService->getDataFromRequest($this->request->getParams(), $this->expectedFields);
+        $data = $this->manufacturerService->getDataFromRequest($this->request->getParams(), $this->definition->expectedFields);
         $result = $this->manufacturerService->validateData($data);
         $manufacturer = new Manufacturer();
-        $customFields = $this->customFieldService->getCustomFieldsDefinitionByGroup('sfxon_manufacturer');
+        $customFields = $this->getCustomFields();
         $manufacturer = $this->setManufacturerDataFromRequest($manufacturer);
         $customFieldData = $this->customFieldService->getCustomFieldDataFromRequest($customFields, $this->request->getParams());
         $customFieldErrors = $this->customFieldService->validateCustomFieldData($customFields, $customFieldData);
@@ -153,7 +171,7 @@ class ManufacturerController extends Controller
         }
 
         $saved = $this->manufacturerMapper->insert($manufacturer);
-        $this->customFieldService->updateCustomFieldsForEntity('sfxon_manufacturer', $saved->getId(), $customFieldData);
+        $this->customFieldService->updateCustomFieldsForEntity($this->definition->customFieldGroup, $saved->getId(), $customFieldData);
 
         return new DataResponse([
             'status' => 'ok',
@@ -163,47 +181,20 @@ class ManufacturerController extends Controller
 
     #[NoCSRFRequired]
     #[OpenAPI(OpenAPI::SCOPE_IGNORE)]
-    #[FrontpageRoute(verb: 'POST', url: '/manufacturer/search')]
-    public function search(
-        string $orderBy = 'name',
-        string $direction = 'ASC',
-        int $page = 1,
-        int $limit = 20,): JSONResponse
-    {
-        $offset = ($page - 1) * $limit;
-        $filters = $this->request->getParam('filters');
-
-        $data = $this->manufacturerMapper->findAllPaged($orderBy, $direction, $limit, $offset, $filters);
-        $total = $this->manufacturerMapper->countAll($filters);
-
-        $data['mainData'] = array_map(fn($d) => $d->jsonSerialize(), $data['mainData']);
-
-        return new JSONResponse([
-            'mainData' => $data['mainData'],
-            'relations' => $data['relations'],
-            'total' => $total,
-            'page' => $page,
-            'limit' => $limit,
-        ]);
-    }
-
-    #[NoCSRFRequired]
-    #[OpenAPI(OpenAPI::SCOPE_IGNORE)]
-    #[FrontpageRoute(verb: 'GET', url: '/manufacturer/{id}')]
+    #[FrontpageRoute(verb: 'POST', url: '/manufacturer/{id}')]
     public function show(int $id): JSONResponse
     {
         try {
-            $data = $this->manufacturerMapper->findById($id);
+            $include = $this->request->getParam('include');
+            $data = $this->manufacturerMapper->findById($id, $include);
         } catch (DoesNotExistException) {
             return new JSONResponse(
-                ['status' => 'error', 'message' => 'Manufacturer not found'],
+                ['status' => 'error', 'message' => $this->definition->label . ' not found'],
                 Http::STATUS_NOT_FOUND
             );
         }
 
-        $customFields = $this->customFieldService->getCustomFieldsDefinitionByGroup('sfxon_manufacturer');
-        $data['mainData'] = $data['mainData']->jsonSerialize($customFields);
-        $data['relations'] = $data['relations'];
+        $data['mainData'] = $data['mainData']->jsonSerialize($this->getCustomFields());
 
         return new JSONResponse($data);
     }
@@ -215,16 +206,16 @@ class ManufacturerController extends Controller
         // Return 404 if entry was not found.
         try {
             $manufacturer = $this->manufacturerMapper->findById($id)['mainData'];
-        } catch (\OCP\AppFramework\Db\DoesNotExistException) {
+        } catch (DoesNotExistException) {
             return new DataResponse(
-                ['status' => 'error', 'message' => 'Manufacturer not found'],
+                ['status' => 'error', 'message' => $this->definition->label . ' not found'],
                 Http::STATUS_NOT_FOUND
             );
         }
 
-        $data = $this->manufacturerService->getDataFromRequest($this->request->getParams(), $this->expectedFields);
+        $data = $this->manufacturerService->getDataFromRequest($this->request->getParams(), $this->definition->expectedFields);
         $result = $this->manufacturerService->validateData($data, $id);
-        $customFields = $this->customFieldService->getCustomFieldsDefinitionByGroup('sfxon_manufacturer');
+        $customFields = $this->getCustomFields();
         $customFieldData = $this->customFieldService->getCustomFieldDataFromRequest($customFields, $this->request->getParams());
         $customFieldErrors = $this->customFieldService->validateCustomFieldData($customFields, $customFieldData);
 
@@ -242,7 +233,7 @@ class ManufacturerController extends Controller
 
         $manufacturer = $this->setManufacturerDataFromRequest($manufacturer);
         $updated = $this->manufacturerMapper->update($manufacturer);
-        $this->customFieldService->updateCustomFieldsForEntity('sfxon_manufacturer', $updated->getId(), $customFieldData);
+        $this->customFieldService->updateCustomFieldsForEntity($this->definition->customFieldGroup, $updated->getId(), $customFieldData);
 
         return new DataResponse([
             'status' => 'ok',
@@ -250,6 +241,18 @@ class ManufacturerController extends Controller
         ]);
     }
 
+    private function getCustomFields()
+    {
+        return $this->customFieldService->getCustomFieldsDefinitionByGroup($this->definition->customFieldGroup);
+    }
+
+    private function getTemplateParameters(): array
+    {
+        return [
+            'entityDefinitions' => $this->entityRegistry->fieldDefinitions(),
+            'customFields' => $this->getCustomFields(),
+        ];
+    }
     private function setManufacturerDataFromRequest($manufacturer)
     {
         $manufacturer->setName($this->request->getParam('name'));
