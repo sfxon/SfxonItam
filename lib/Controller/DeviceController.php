@@ -2,7 +2,6 @@
 
 namespace OCA\SfxonItam\Controller;
 
-use OCA\SfxonItam\AppInfo\Application;
 use OCA\SfxonItam\Db\Device;
 use OCA\SfxonItam\Db\DeviceMapper;
 use OCA\SfxonItam\Definition\EntityRegistry;
@@ -39,7 +38,16 @@ class DeviceController extends AbstractItamController
         private EntityRegistry $entityRegistry,
         private DeleteGuardService $deleteGuardService)
     {
-        parent::__construct($appName, $request, $definition, $deleteGuardService, $deviceMapper);
+        parent::__construct(
+            $appName,
+            $request,
+            $definition,
+            $deleteGuardService,
+            $deviceMapper,
+            $entityRegistry,
+            $initialState,
+            $listViewSettingsService,
+            $customFieldService);
     }
 
     #[NoCSRFRequired]
@@ -55,11 +63,7 @@ class DeviceController extends AbstractItamController
     #[FrontpageRoute(verb: 'GET', url: '/device/detail')]
     public function deviceDetail(): TemplateResponse
     {
-        return new TemplateResponse(
-            Application::APP_ID,
-            $this->definition->templateDir() . '/editor',
-            $this->getTemplateParameters()
-        );
+        return $this->doDetail();
     }
 
     #[NoCSRFRequired]
@@ -67,23 +71,7 @@ class DeviceController extends AbstractItamController
     #[FrontpageRoute(verb: 'GET', url: '/')]
     public function index(): TemplateResponse
     {
-        $listId = $this->definition->listId();
-
-        $this->initialState->provideInitialState(
-            'listViewColumnOrder-' . $listId,
-            $this->listViewSettingsService->getColumnOrder($listId)
-        );
-
-        $this->initialState->provideInitialState(
-            'listViewUiState-' . $listId,
-            $this->listViewSettingsService->getUiState($listId)
-        );
-
-        return new TemplateResponse(
-            Application::APP_ID,
-            $this->definition->templateDir() . '/list',
-            $this->getTemplateParameters()
-        );
+        return $this->doIndex();
     }
 
     #[NoCSRFRequired]

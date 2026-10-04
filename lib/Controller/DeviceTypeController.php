@@ -2,7 +2,6 @@
 
 namespace OCA\SfxonItam\Controller;
 
-use OCA\SfxonItam\AppInfo\Application;
 use OCA\SfxonItam\Db\DeviceType;
 use OCA\SfxonItam\Db\DeviceTypeMapper;
 use OCA\SfxonItam\Definition\EntityRegistry;
@@ -40,7 +39,16 @@ class DeviceTypeController extends AbstractItamController
         private EntityRegistry $entityRegistry,
         private DeleteGuardService $deleteGuardService,)
     {
-        parent::__construct($appName, $request, $definition, $deleteGuardService, $deviceTypeMapper);
+        parent::__construct(
+            $appName,
+            $request,
+            $definition,
+            $deleteGuardService,
+            $deviceTypeMapper,
+            $entityRegistry,
+            $initialState,
+            $listViewSettingsService,
+            $customFieldService);
     }
 
     #[NoCSRFRequired]
@@ -56,11 +64,7 @@ class DeviceTypeController extends AbstractItamController
     #[FrontpageRoute(verb: 'GET', url: '/device-type/detail')]
     public function deviceTypeDetail(): TemplateResponse
     {
-        return new TemplateResponse(
-            Application::APP_ID,
-            $this->definition->templateDir() . '/editor',
-            $this->getTemplateParameters()
-        );
+        return $this->doDetail();
     }
 
     #[NoCSRFRequired]
@@ -68,23 +72,7 @@ class DeviceTypeController extends AbstractItamController
     #[FrontpageRoute(verb: 'GET', url: '/device-type/')]
     public function index(): TemplateResponse
     {
-        $listId = $this->definition->listId();
-
-        $this->initialState->provideInitialState(
-            'listViewColumnOrder-' . $listId,
-            $this->listViewSettingsService->getColumnOrder($listId)
-        );
-
-        $this->initialState->provideInitialState(
-            'listViewUiState-' . $listId,
-            $this->listViewSettingsService->getUiState($listId)
-        );
-
-        return new TemplateResponse(
-            Application::APP_ID,
-            $this->definition->templateDir() . '/list',
-            $this->getTemplateParameters()
-        );
+        return $this->doIndex();
     }
 
     #[NoCSRFRequired]
