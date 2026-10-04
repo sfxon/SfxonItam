@@ -2,13 +2,20 @@
 
 namespace OCA\SfxonItam\Service;
 
+use OCA\SfxonItam\Db\Merchant;
 use OCA\SfxonItam\Validator\MerchantValidator;
+use OCP\AppFramework\Db\Entity;
 
-class MerchantService
+class MerchantService extends ItamServiceAbstract
 {
     public function __construct(
         private readonly MerchantValidator $merchantValidator)
     {
+    }
+
+    public function createNewEntity(): Entity
+    {
+        return new Merchant();
     }
 
     public function getDataFromRequest($requestArray, $expectedFields)

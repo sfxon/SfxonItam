@@ -227,7 +227,7 @@ async function loadDeviceStatis() {
             limit: listState.limit,
             filters
         })
-        deviceStatis.value =  data.deviceStatis.mainData.map((deviceStatus: any) => {
+        deviceStatis.value =  data.data.mainData.map((deviceStatus: any) => {
             const row = { ...deviceStatus }
 
             for (const cf of props.customFields as any[]) {
@@ -237,7 +237,7 @@ async function loadDeviceStatis() {
             return row
         })
         listState.total = data.total
-        applyRelations(data.deviceStatis.relations)
+        applyRelations(data.data.relations)
     } catch (e) {
         error.value = t('sfxonitam', 'Error on loading device statis.')
         console.log(e)

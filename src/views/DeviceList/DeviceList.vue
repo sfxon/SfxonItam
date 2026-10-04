@@ -238,7 +238,7 @@ async function loadDevices() {
             filters
         })
 
-        devices.value = data.devices.mainData.map((device: any) => {
+        devices.value = data.data.mainData.map((device: any) => {
             const row = { ...device }
 
             for (const cf of props.customFields as any[]) {
@@ -248,7 +248,7 @@ async function loadDevices() {
             return row
         })
         listState.total = data.total
-        applyRelations(data.devices.relations)
+        applyRelations(data.data.relations)
     } catch (e) {
         error.value = t('sfxonitam', 'Error on loading devices.')
         console.log(e)

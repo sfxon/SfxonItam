@@ -79,7 +79,7 @@ async function loadDeviceTypes() {
             page: listState.page,
             limit: listState.limit
         })
-        deviceTypes.value = data.deviceTypes.mainData
+        deviceTypes.value = data.data.mainData
         listState.total = data.total
     } catch (e) {
         error.value = t('sfxonitam', 'Error while loading Device Type.')

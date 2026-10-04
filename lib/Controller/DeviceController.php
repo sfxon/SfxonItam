@@ -2,7 +2,6 @@
 
 namespace OCA\SfxonItam\Controller;
 
-use OCA\SfxonItam\Db\Device;
 use OCA\SfxonItam\Db\DeviceMapper;
 use OCA\SfxonItam\Definition\EntityRegistry;
 use OCA\SfxonItam\Definition\DeviceDefinition;
@@ -10,8 +9,7 @@ use OCA\SfxonItam\Service\CustomFieldService;
 use OCA\SfxonItam\Service\DeleteGuardService;
 use OCA\SfxonItam\Service\DeviceService;
 use OCA\SfxonItam\Service\ListViewSettingsService;
-use OCP\AppFramework\Db\DoesNotExistException;
-use OCP\AppFramework\Http;
+use OCP\AppFramework\Db\Entity;
 use OCP\AppFramework\Http\Attribute\FrontpageRoute;
 use OCP\AppFramework\Http\Attribute\NoCSRFRequired;
 use OCP\AppFramework\Http\Attribute\OpenAPI;
@@ -47,7 +45,8 @@ class DeviceController extends AbstractItamController
             $entityRegistry,
             $initialState,
             $listViewSettingsService,
-            $customFieldService);
+            $customFieldService,
+	    $deviceService);
     }
 
     #[NoCSRFRequired]
@@ -84,65 +83,14 @@ class DeviceController extends AbstractItamController
         int $limit = 25,
         ?array $filters = null,): JSONResponse
     {
-        $orderBy ??= $this->definition->defaultOrderBy;
-
-        if($limit != 10 && $limit != 25 && $limit != 50 && $limit != 100 && $limit != 500 && $limit != 1000) {
-            $limit = 25;
-        }
-
-        $offset = ($page - 1) * $limit;
-        $data = $this->deviceMapper->findAllPaged(
-            $orderBy,
-            $direction,
-            $limit,
-            $offset,
-            $filters,
-            $this->definition->listIncludes
-        );
-        $total   = $this->deviceMapper->countAll($filters);
-        $customFields = $this->getCustomFields();
-
-        $data['mainData'] = array_map(fn($d) => $d->jsonSerialize($customFields), $data['mainData']);
-
-        return new JSONResponse([
-            'devices' => $data,
-            'total'   => $total,
-            'page'    => $page,
-            'limit'   => $limit,
-        ]);
+        return $this->doList($orderBy, $direction, $page, $limit, $filters);
     }
 
     #[OpenAPI(OpenAPI::SCOPE_IGNORE)]
     #[FrontpageRoute(verb: 'POST', url: '/device/save')]
     public function save(): DataResponse
     {
-        $data = $this->deviceService->getDataFromRequest($this->request->getParams(), $this->definition->expectedFields);
-        $result = $this->deviceService->validateData($data);
-        $device = new Device();
-        $customFields = $this->getCustomFields();
-        $device = $this->setDeviceDataFromRequest($device);
-        $customFieldData = $this->customFieldService->getCustomFieldDataFromRequest($customFields, $this->request->getParams());
-        $customFieldErrors = $this->customFieldService->validateCustomFieldData($customFields, $customFieldData);
-
-        if(count($customFieldErrors) > 0) {
-            $result['valid'] = false;
-            $result['errors'] = array_merge($result['errors'], $customFieldErrors);
-        }
-
-        if($result['valid'] === false) {
-            return new DataResponse([
-                'status' => 'error',
-                'errors' => $result['errors']
-            ], Http::STATUS_UNPROCESSABLE_ENTITY); // Returns error 422
-        }
-
-        $saved = $this->deviceMapper->insert($device);
-        $this->customFieldService->updateCustomFieldsForEntity($this->definition->customFieldGroup, $saved->getId(), $customFieldData);
-
-        return new DataResponse([
-            'status' => 'ok',
-            'id' => $saved->getId(),
-        ]);
+        return $this->doUpsert();
     }
 
     #[NoCSRFRequired]
@@ -150,74 +98,14 @@ class DeviceController extends AbstractItamController
     #[FrontpageRoute(verb: 'POST', url: '/device/{id}')]
     public function show(int $id): JSONResponse
     {
-        try {
-            $include = $this->request->getParam('include');
-            $data = $this->deviceMapper->findById($id, $include);
-        } catch (DoesNotExistException) {
-            return new JSONResponse(
-                ['status' => 'error', 'message' => $this->definition->label . ' not found'],
-                Http::STATUS_NOT_FOUND
-            );
-        }
-
-        $data['mainData'] = $data['mainData']->jsonSerialize($this->getCustomFields());
-
-        return new JSONResponse($data);
+        return $this->doShow($id);
     }
 
     #[OpenAPI(OpenAPI::SCOPE_IGNORE)]
     #[FrontpageRoute(verb: 'PUT', url: '/device/{id}')]
     public function update(int $id): DataResponse
     {
-        // Return 404 if entry was not found.
-        try {
-            $device = $this->deviceMapper->findById($id)['mainData'];
-        } catch (DoesNotExistException) {
-            return new DataResponse(
-                ['status' => 'error', 'message' => $this->definition->label . ' not found'],
-                Http::STATUS_NOT_FOUND
-            );
-        }
-
-        $data = $this->deviceService->getDataFromRequest($this->request->getParams(), $this->definition->expectedFields);
-        $result = $this->deviceService->validateData($data, $id);
-        $customFields = $this->getCustomFields();
-        $customFieldData = $this->customFieldService->getCustomFieldDataFromRequest($customFields, $this->request->getParams());
-        $customFieldErrors = $this->customFieldService->validateCustomFieldData($customFields, $customFieldData);
-
-        if(count($customFieldErrors) > 0) {
-            $result['valid'] = false;
-            $result['errors'] = array_merge($result['errors'], $customFieldErrors);
-        }
-
-        if ($result['valid'] === false) {
-            return new DataResponse([
-                'status' => 'error',
-                'errors' => $result['errors'],
-            ], Http::STATUS_UNPROCESSABLE_ENTITY);
-        }
-
-        $device = $this->setDeviceDataFromRequest($device);
-        $updated = $this->deviceMapper->update($device);
-        $this->customFieldService->updateCustomFieldsForEntity($this->definition->customFieldGroup, $updated->getId(), $customFieldData);
-
-        return new DataResponse([
-            'status' => 'ok',
-            'id' => $updated->getId(),
-        ]);
-    }
-
-    private function getCustomFields()
-    {
-        return $this->customFieldService->getCustomFieldsDefinitionByGroup($this->definition->customFieldGroup);
-    }
-
-    private function getTemplateParameters(): array
-    {
-        return [
-            'entityDefinitions' => $this->entityRegistry->fieldDefinitions(),
-            'customFields' => $this->getCustomFields(),
-        ];
+        return $this->doUpsert($id);
     }
 
     private function sanitizeForeignKey($foreignKeyValue)
@@ -227,48 +115,48 @@ class DeviceController extends AbstractItamController
         return ($foreignKeyValue === 0) ? null : $foreignKeyValue;
     }
 
-    private function setDeviceDataFromRequest($device)
+    protected function setDataFromRequest(Entity $entityObject): Entity
     {
-        $device->setAssetNumber($this->request->getParam('assetNumber'));
+        $entityObject->setAssetNumber($this->request->getParam('assetNumber'));
 
         $deviceStatusId = $this->sanitizeForeignKey($this->request->getParam('deviceStatusId') ?? '');
-        $device->setDeviceStatusId($deviceStatusId);
+        $entityObject->setDeviceStatusId($deviceStatusId);
 
         $deviceTypeId = $this->sanitizeForeignKey($this->request->getParam('deviceTypeId') ?? '');
-        $device->setDeviceTypeId($deviceTypeId);
+        $entityObject->setDeviceTypeId($deviceTypeId);
 
-        $device->setDescription($this->request->getParam('description'));
+        $entityObject->setDescription($this->request->getParam('description'));
 
         $imageFileId = $this->sanitizeForeignKey($this->request->getParam('imageFileId') ?? '');
-        $device->setImageFileId($imageFileId);
+        $entityObject->setImageFileId($imageFileId);
 
-        $device->setInvoiceNumber($this->request->getParam('invoiceNumber'));
+        $entityObject->setInvoiceNumber($this->request->getParam('invoiceNumber'));
 
         $itamUserId = $this->sanitizeForeignKey($this->request->getParam('itamUserId') ?? '');
-        $device->setItamUserId($itamUserId);
+        $entityObject->setItamUserId($itamUserId);
 
         $merchantId = $this->sanitizeForeignKey($this->request->getParam('merchantId') ?? '');
-        $device->setMerchantId($merchantId);
+        $entityObject->setMerchantId($merchantId);
 
-        $device->setName($this->request->getParam('name'));
+        $entityObject->setName($this->request->getParam('name'));
 
         $positionId = $this->sanitizeForeignKey($this->request->getParam('positionId') ?? '');
-        $device->setPositionId($positionId);
+        $entityObject->setPositionId($positionId);
         
         $purchaseDateRaw = $this->request->getParam('purchaseDate');
-        $device->setPurchaseDate($purchaseDateRaw);
+        $entityObject->setPurchaseDate($purchaseDateRaw);
 
         $quantity = $this->request->getParam('quantity');
         $quantity = is_numeric($quantity) ? (float)$quantity : null;
-        $device->setQuantity($quantity);
+        $entityObject->setQuantity($quantity);
 
         $quantityUnitId = $this->sanitizeForeignKey($this->request->getParam('quantityUnitId') ?? '');
-        $device->setQuantityUnitId($quantityUnitId);
+        $entityObject->setQuantityUnitId($quantityUnitId);
 
-        $device->setSerialNumber($this->request->getParam('serialNumber'));
+        $entityObject->setSerialNumber($this->request->getParam('serialNumber'));
 
-        $device->setSerialNumber2($this->request->getParam('serialNumber2'));
+        $entityObject->setSerialNumber2($this->request->getParam('serialNumber2'));
 
-        return $device;
+        return $entityObject;
     }
 }

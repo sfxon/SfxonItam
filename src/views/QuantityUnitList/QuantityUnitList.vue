@@ -75,7 +75,7 @@ async function loadQuantityUnits() {
             page: listState.page,
             limit: listState.limit
         })
-        quantityUnits.value = data.quantityUnits.mainData
+        quantityUnits.value = data.data.mainData
         listState.total = data.total
     } catch (e) {
         error.value = t('sfxonitam', 'Error while loading quantity units.')

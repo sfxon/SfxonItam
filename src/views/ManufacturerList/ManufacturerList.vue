@@ -75,7 +75,7 @@ async function loadManufacturers() {
             page: listState.page,
             limit: listState.limit
         })
-        manufacturers.value = data.manufacturers.mainData
+        manufacturers.value = data.data.mainData
         listState.total = data.total
     } catch (e) {
         error.value = t('sfxonitam', 'Error while loading Manufacturers.')

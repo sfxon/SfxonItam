@@ -225,7 +225,7 @@ async function loadPositions() {
             filters,
             include: { location: {} }
         })
-        positions.value = data.positions.mainData.map((position: any) => {
+        positions.value = data.data.mainData.map((position: any) => {
             const row = { ...position }
 
             for (const cf of props.customFields as any[]) {
@@ -235,7 +235,7 @@ async function loadPositions() {
             return row
         })
         listState.total = data.total
-        applyRelations(data.positions.relations)
+        applyRelations(data.data.relations)
     } catch (e) {
         error.value = t('sfxonitam', 'Error while loading positions.')
         console.log(e)

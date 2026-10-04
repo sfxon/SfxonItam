@@ -213,7 +213,7 @@ async function loadItamUsers() {
     error.value = null
 
     try {
-	const filters = Object.fromEntries(
+        const filters = Object.fromEntries(
             Object.entries(filterValues).map(([key, entries]) => [
                 key,
                 entries.map(e => e.value)
@@ -224,9 +224,9 @@ async function loadItamUsers() {
             direction: listState.orderDirection,
             page: listState.page,
             limit: listState.limit,
-	    filters
+            filters
         })
-        itamUsers.value = data.itamUsers.mainData.map((itamUser: any) => {
+        itamUsers.value = data.data.mainData.map((itamUser: any) => {
             const row = { ...itamUser }
 
             for (const cf of props.customFields as any[]) {
@@ -236,10 +236,10 @@ async function loadItamUsers() {
             return row
         })
         listState.total = data.total
-        applyRelations(data.itamUsers.relations)
+        applyRelations(data.data.relations)
     } catch (e) {
         error.value = t('sfxonitam', 'Error while loading ItamUsers')
-	console.log(e)
+        console.log(e)
     }
 }
 

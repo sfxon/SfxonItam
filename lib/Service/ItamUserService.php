@@ -2,13 +2,20 @@
 
 namespace OCA\SfxonItam\Service;
 
+use OCA\SfxonItam\Db\ItamUser;
 use OCA\SfxonItam\Validator\ItamUserValidator;
+use OCP\AppFramework\Db\Entity;
 
-class ItamUserService
+class ItamUserService extends ItamServiceAbstract
 {
     public function __construct(
         private readonly ItamUserValidator $itamUserValidator,)
     {
+    }
+
+    public function createNewEntity(): Entity
+    {
+        return new ItamUser();
     }
 
     public function getDataFromRequest($requestArray, $expectedFields)

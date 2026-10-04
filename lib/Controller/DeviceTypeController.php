@@ -2,7 +2,6 @@
 
 namespace OCA\SfxonItam\Controller;
 
-use OCA\SfxonItam\Db\DeviceType;
 use OCA\SfxonItam\Db\DeviceTypeMapper;
 use OCA\SfxonItam\Definition\EntityRegistry;
 use OCA\SfxonItam\Definition\DeviceTypeDefinition;
@@ -10,8 +9,7 @@ use OCA\SfxonItam\Service\CustomFieldService;
 use OCA\SfxonItam\Service\DeleteGuardService;
 use OCA\SfxonItam\Service\DeviceTypeService;
 use OCA\SfxonItam\Service\ListViewSettingsService;
-use OCP\AppFramework\Db\DoesNotExistException;
-use OCP\AppFramework\Http;
+use OCP\AppFramework\Db\Entity;
 use OCP\AppFramework\Http\Attribute\FrontpageRoute;
 use OCP\AppFramework\Http\Attribute\NoCSRFRequired;
 use OCP\AppFramework\Http\Attribute\OpenAPI;
@@ -48,7 +46,8 @@ class DeviceTypeController extends AbstractItamController
             $entityRegistry,
             $initialState,
             $listViewSettingsService,
-            $customFieldService);
+            $customFieldService,
+            $deviceTypeService);
     }
 
     #[NoCSRFRequired]
@@ -85,65 +84,14 @@ class DeviceTypeController extends AbstractItamController
         int $limit = 25,
         ?array $filters = null,): JSONResponse
     {
-        $orderBy ??= $this->definition->defaultOrderBy;
-
-        if($limit != 10 && $limit != 25 && $limit != 50 && $limit != 100 && $limit != 500 && $limit != 1000) {
-            $limit = 25;
-        }
-
-        $offset = ($page - 1) * $limit;
-        $data = $this->deviceTypeMapper->findAllPaged(
-            $orderBy,
-            $direction,
-            $limit,
-            $offset,
-            $filters,
-            $this->definition->listIncludes
-        );
-        $total   = $this->deviceTypeMapper->countAll($filters);
-        $customFields = $this->getCustomFields();
-
-        $data['mainData'] = array_map(fn($d) => $d->jsonSerialize($customFields), $data['mainData']);
-
-        return new JSONResponse([
-            'deviceTypes' => $data,
-            'total' => $total,
-            'page' => $page,
-            'limit' => $limit,
-        ]);
+        return $this->doList($orderBy, $direction, $page, $limit, $filters);
     }
 
     #[OpenAPI(OpenAPI::SCOPE_IGNORE)]
     #[FrontpageRoute(verb: 'POST', url: '/device-type/save')]
     public function save(): DataResponse
     {
-        $data = $this->deviceTypeService->getDataFromRequest($this->request->getParams(), $this->definition->expectedFields);
-        $result = $this->deviceTypeService->validateData($data);
-        $deviceType = new DeviceType();
-        $customFields = $this->getCustomFields();
-        $deviceType = $this->setDeviceTypeDataFromRequest($deviceType);
-        $customFieldData = $this->customFieldService->getCustomFieldDataFromRequest($customFields, $this->request->getParams());
-        $customFieldErrors = $this->customFieldService->validateCustomFieldData($customFields, $customFieldData);
-
-        if(count($customFieldErrors) > 0) {
-            $result['valid'] = false;
-            $result['errors'] = array_merge($result['errors'], $customFieldErrors);
-        }
-
-        if($result['valid'] === false) {
-            return new DataResponse([
-                'status' => 'error',
-                'errors' => $result['errors']
-            ], Http::STATUS_UNPROCESSABLE_ENTITY); // Returns error 422
-        }
-
-        $saved = $this->deviceTypeMapper->insert($deviceType);
-        $this->customFieldService->updateCustomFieldsForEntity($this->definition->customFieldGroup, $saved->getId(), $customFieldData);
-
-        return new DataResponse([
-            'status' => 'ok',
-            'id' => $saved->getId(),
-        ]);
+        return $this->doUpsert();
     }
 
     #[NoCSRFRequired]
@@ -151,87 +99,19 @@ class DeviceTypeController extends AbstractItamController
     #[FrontpageRoute(verb: 'POST', url: '/device-type/{id}')]
     public function show(int $id): JSONResponse
     {
-        try {
-            $include = $this->request->getParam('include');
-
-            if(!is_array($include)) {
-                $include = [];
-            }
-
-            if(!isset($include['manufacturer'])) {
-                $include['manufacturer'] = [];
-            }
-            $data = $this->deviceTypeMapper->findById($id, $include);
-        } catch (DoesNotExistException) {
-            return new JSONResponse(
-                ['status' => 'error', 'message' => $this->definition->label . ' not found'],
-                Http::STATUS_NOT_FOUND
-            );
-        }
-
-        $data['mainData'] = $data['mainData']->jsonSerialize($this->getCustomFields());
-
-        return new JSONResponse($data);
+        return $this->doShow($id);
     }
 
     #[OpenAPI(OpenAPI::SCOPE_IGNORE)]
     #[FrontpageRoute(verb: 'PUT', url: '/device-type/{id}')]
     public function update(int $id): DataResponse
     {
-        // Return 404 if entry was not found.
-        try {
-            $deviceType = $this->deviceTypeMapper->findById($id)['mainData'];
-        } catch (DoesNotExistException) {
-            return new DataResponse(
-                ['status' => 'error', 'message' => $this->definition->label . ' not found'],
-                Http::STATUS_NOT_FOUND
-            );
-        }
-
-        $data = $this->deviceTypeService->getDataFromRequest($this->request->getParams(), $this->definition->expectedFields);
-        $result = $this->deviceTypeService->validateData($data, $id);
-        $customFields = $this->getCustomFields();
-        $customFieldData = $this->customFieldService->getCustomFieldDataFromRequest($customFields, $this->request->getParams());
-        $customFieldErrors = $this->customFieldService->validateCustomFieldData($customFields, $customFieldData);
-
-        if(count($customFieldErrors) > 0) {
-            $result['valid'] = false;
-            $result['errors'] = array_merge($result['errors'], $customFieldErrors);
-        }
-
-        if ($result['valid'] === false) {
-            return new DataResponse([
-                'status' => 'error',
-                'errors' => $result['errors'],
-            ], Http::STATUS_UNPROCESSABLE_ENTITY);
-        }
-
-        $deviceType = $this->setDeviceTypeDataFromRequest($deviceType);
-        $updated = $this->deviceTypeMapper->update($deviceType);
-        $this->customFieldService->updateCustomFieldsForEntity($this->definition->customFieldGroup, $updated->getId(), $customFieldData);
-
-        return new DataResponse([
-            'status' => 'ok',
-            'id' => $updated->getId(),
-        ]);
+        return $this->doUpsert($id);
     }
 
-    private function getCustomFields()
+    protected function setDataFromRequest(Entity $entityObject): Entity
     {
-        return $this->customFieldService->getCustomFieldsDefinitionByGroup($this->definition->customFieldGroup);
-    }
-
-    private function getTemplateParameters(): array
-    {
-        return [
-            'entityDefinitions' => $this->entityRegistry->fieldDefinitions(),
-            'customFields' => $this->getCustomFields(),
-        ];
-    }
-
-    private function setDeviceTypeDataFromRequest($deviceType)
-    {
-        $deviceType->setName($this->request->getParam('name'));
+        $entityObject->setName($this->request->getParam('name'));
 
         $manufacturerId = (int)$this->request->getParam('manufacturerId');
         
@@ -239,9 +119,9 @@ class DeviceTypeController extends AbstractItamController
             $manufacturerId = null;
         }
 
-        $deviceType->setManufacturerId($manufacturerId);
-        $deviceType->setComment($this->request->getParam('comment') ?? '');
+        $entityObject->setManufacturerId($manufacturerId);
+        $entityObject->setComment($this->request->getParam('comment') ?? '');
 
-        return $deviceType;
+        return $entityObject;
     }
 }

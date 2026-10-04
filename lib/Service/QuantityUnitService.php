@@ -2,13 +2,21 @@
 
 namespace OCA\SfxonItam\Service;
 
+use OCA\SfxonItam\Db\QuantityUnit;
 use OCA\SfxonItam\Validator\QuantityUnitValidator;
+use OCP\AppFramework\Db\Entity;
 
-class QuantityUnitService
+class QuantityUnitService extends ItamServiceAbstract
 {
     public function __construct(
         private readonly QuantityUnitValidator $quantityUnitValidator,)
     {
+    }
+
+    
+    public function createNewEntity(): Entity
+    {
+        return new QuantityUnit();
     }
 
     public function getDataFromRequest($requestArray, $expectedFields)

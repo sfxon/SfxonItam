@@ -2,13 +2,20 @@
 
 namespace OCA\SfxonItam\Service;
 
+use OCA\SfxonItam\Db\Location;
 use OCA\SfxonItam\Validator\LocationValidator;
+use OCP\AppFramework\Db\Entity;
 
-class LocationService
+class LocationService extends ItamServiceAbstract
 {
     public function __construct(
         private readonly LocationValidator $locationValidator,)
     {
+    }
+
+    public function createNewEntity(): Entity
+    {
+        return new Location();
     }
 
     public function getDataFromRequest($requestArray, $expectedFields)

@@ -2,13 +2,20 @@
 
 namespace OCA\SfxonItam\Service;
 
+use OCA\SfxonItam\Db\Position;
 use OCA\SfxonItam\Validator\PositionValidator;
+use OCP\AppFramework\Db\Entity;
 
 class PositionService extends ItamServiceAbstract
 {
     public function __construct(
         private readonly PositionValidator $positionValidator,)
-        {
+    {
+    }
+
+    public function createNewEntity(): Entity
+    {
+        return new Position();
     }
 
     public function getDataFromRequest($requestArray, $expectedFields,)

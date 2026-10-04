@@ -2,13 +2,20 @@
 
 namespace OCA\SfxonItam\Service;
 
+use OCA\SfxonItam\Db\Manufacturer;
 use OCA\SfxonItam\Validator\ManufacturerValidator;
+use OCP\AppFramework\Db\Entity;
 
-class ManufacturerService
+class ManufacturerService extends ItamServiceAbstract
 {
     public function __construct(
         private readonly ManufacturerValidator $manufacturerValidator,)
     {
+    }
+
+    public function createNewEntity(): Entity
+    {
+        return new Manufacturer();
     }
 
     public function getDataFromRequest($requestArray, $expectedFields)

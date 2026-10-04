@@ -2,13 +2,20 @@
 
 namespace OCA\SfxonItam\Service;
 
+use OCA\SfxonItam\Db\DeviceType;
 use OCA\SfxonItam\Validator\DeviceTypeValidator;
+use OCP\AppFramework\Db\Entity;
 
-class DeviceTypeService
+class DeviceTypeService extends ItamServiceAbstract
 {
     public function __construct(
         private readonly DeviceTypeValidator $deviceTypeValidator,)
     {
+    }
+
+    public function createNewEntity(): Entity
+    {
+        return new DeviceType();
     }
 
     public function getDataFromRequest($requestArray, $expectedFields)
