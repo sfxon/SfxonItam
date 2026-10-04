@@ -108,12 +108,4 @@ class QuantityUnitController extends AbstractItamController
     {
         return $this->doUpsert($id);
     }
-
-    protected function setDataFromRequest(Entity $entityObject): Entity
-    {
-        $entityObject->setName($this->request->getParam('name'));
-        $entityObject->setComment($this->request->getParam('comment') ?? '');
-
-        return $entityObject;
-    }
 }

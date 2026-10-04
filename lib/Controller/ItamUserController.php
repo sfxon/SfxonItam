@@ -107,13 +107,4 @@ class ItamUserController extends AbstractItamController
     {
         return $this->doUpsert($id);
     }
-
-    protected function setDataFromRequest(Entity $entityObject): Entity
-    {
-        $entityObject->setFirstname($this->request->getParam('firstname'));
-        $entityObject->setLastname($this->request->getParam('lastname'));
-        $entityObject->setEmail($this->request->getParam('email'));
-        $entityObject->setComment($this->request->getParam('comment'));
-        return $entityObject;
-    }
 }

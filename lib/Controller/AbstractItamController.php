@@ -241,5 +241,72 @@ abstract class AbstractItamController extends Controller
         ];
     }
 
-    abstract protected function setDataFromRequest(Entity $entityObject): Entity;
+    protected function setDataFromRequest(Entity $entityObject): Entity
+    {
+        $fieldDefinitions = $this->getEntityFieldDefinitions();
+
+        foreach ($this->entityDefinition->expectedFields as $field) {
+            $fieldDefinition = $fieldDefinitions[$field]
+                ?? throw new \LogicException(sprintf(
+                    'Field "%s" is expected by %s but missing in %s::getFieldDefinition().',
+                    $field,
+                    $this->entityDefinition->label,
+                    $this->entityDefinition->entityClass
+                ));
+
+            $setter = 'set' . ucfirst($fieldDefinition['propertyName'] ?? $field);
+            $entityObject->$setter(
+                $this->castRequestValue($this->request->getParam($field), $fieldDefinition)
+            );
+        }
+
+        return $entityObject;
+    }
+
+    private function getEntityFieldDefinitions(): array
+    {
+        /** @var class-string<Entity> $entityClass */
+        $entityClass = $this->entityDefinition->entityClass;
+        $indexed = [];
+
+        foreach ($entityClass::getFieldDefinition() as $definition) {
+            $indexed[$definition['propertyName'] ?? $definition['name']] = $definition;
+        }
+
+        return $indexed;
+    }
+
+    private function castRequestValue(mixed $raw, array $fieldDefinition): mixed
+    {
+        if (!empty($fieldDefinition['foreignEntity'])) {
+            return $this->normalizeForeignKey($raw);
+        }
+
+        $isEmpty = $raw === null || $raw === '';
+        $type = strtoupper((string)($fieldDefinition['type'] ?? 'VARCHAR'));
+
+        return match (true) {
+            in_array($type, ['INT', 'INTEGER', 'BIGINT', 'SMALLINT', 'TINYINT'], true)
+                => is_numeric($raw) ? (int)$raw : null,
+
+            in_array($type, ['DECIMAL', 'NUMERIC', 'FLOAT', 'DOUBLE'], true)
+                => is_numeric($raw) ? (float)$raw : null,
+
+            $type === 'TEXT'
+                => $isEmpty ? '' : $raw,
+
+            default => $raw,
+        };
+    }
+
+    private function normalizeForeignKey(mixed $raw): ?int
+    {
+        if (!is_numeric($raw)) {
+            return null;
+        }
+
+        $id = (int)$raw;
+
+        return $id > 0 ? $id : null;
+    }
 }

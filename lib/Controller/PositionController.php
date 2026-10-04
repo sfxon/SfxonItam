@@ -107,19 +107,4 @@ class PositionController extends AbstractItamController
     {
         return $this->doUpsert($id);
     }
-
-    protected function setDataFromRequest(Entity $entityObject): Entity
-    {
-        $locationId = (int)$this->request->getParam('locationId');
-        
-        if($locationId === 0) {
-            $locationId = null;
-        }
-
-        $entityObject->setName($this->request->getParam('name'));
-        $entityObject->setLocationId($locationId);
-        $entityObject->setComment($this->request->getParam('comment') ?? '');
-
-        return $entityObject;
-    }
 }
