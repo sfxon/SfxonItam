@@ -9,7 +9,6 @@ use OCA\SfxonItam\Service\CustomFieldService;
 use OCA\SfxonItam\Service\DeleteGuardService;
 use OCA\SfxonItam\Service\DeviceTypeService;
 use OCA\SfxonItam\Service\ListViewSettingsService;
-use OCP\AppFramework\Db\Entity;
 use OCP\AppFramework\Http\Attribute\FrontpageRoute;
 use OCP\AppFramework\Http\Attribute\NoCSRFRequired;
 use OCP\AppFramework\Http\Attribute\OpenAPI;
@@ -28,14 +27,14 @@ class DeviceTypeController extends AbstractItamController
     public function __construct(
         string $appName,
         IRequest $request,
-        private DeviceTypeMapper $deviceTypeMapper,
-        private readonly DeviceTypeService $deviceTypeService,
-        private CustomFieldService $customFieldService,
-        private ListViewSettingsService $listViewSettingsService,
-        private IInitialState $initialState,
-        private readonly DeviceTypeDefinition $definition,
-        private EntityRegistry $entityRegistry,
-        private DeleteGuardService $deleteGuardService,)
+        DeviceTypeMapper $deviceTypeMapper,
+        DeviceTypeService $deviceTypeService,
+        CustomFieldService $customFieldService,
+        ListViewSettingsService $listViewSettingsService,
+        IInitialState $initialState,
+        DeviceTypeDefinition $definition,
+        EntityRegistry $entityRegistry,
+        DeleteGuardService $deleteGuardService,)
     {
         parent::__construct(
             $appName,
@@ -47,13 +46,14 @@ class DeviceTypeController extends AbstractItamController
             $initialState,
             $listViewSettingsService,
             $customFieldService,
-            $deviceTypeService);
+            $deviceTypeService
+        );
     }
 
     #[NoCSRFRequired]
     #[OpenAPI(OpenAPI::SCOPE_IGNORE)]
     #[FrontpageRoute(verb: 'DELETE', url: '/device-type/{id}')]
-    public function delete(int $id): JsonResponse
+    public function delete(int $id): JSONResponse
     {
         return $this->doDelete($id);
     }
@@ -61,7 +61,7 @@ class DeviceTypeController extends AbstractItamController
     #[NoCSRFRequired]
     #[OpenAPI(OpenAPI::SCOPE_IGNORE)]
     #[FrontpageRoute(verb: 'GET', url: '/device-type/detail')]
-    public function deviceTypeDetail(): TemplateResponse
+    public function detail(): TemplateResponse
     {
         return $this->doDetail();
     }

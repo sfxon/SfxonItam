@@ -9,7 +9,6 @@ use OCA\SfxonItam\Service\CustomFieldService;
 use OCA\SfxonItam\Service\DeleteGuardService;
 use OCA\SfxonItam\Service\ItamUserService;
 use OCA\SfxonItam\Service\ListViewSettingsService;
-use OCP\AppFramework\Db\Entity;
 use OCP\AppFramework\Http\Attribute\FrontpageRoute;
 use OCP\AppFramework\Http\Attribute\NoCSRFRequired;
 use OCP\AppFramework\Http\Attribute\OpenAPI;
@@ -27,14 +26,14 @@ class ItamUserController extends AbstractItamController
     public function __construct(
         string $appName,
         IRequest $request,
-        private ItamUserMapper $itamUserMapper,
-        private readonly ItamUserService $itamUserService,
-        private CustomFieldService $customFieldService,
-        private ListViewSettingsService $listViewSettingsService,
-        private IInitialState $initialState,
-        private readonly ItamUserDefinition $definition,
-        private EntityRegistry $entityRegistry,
-        private DeleteGuardService $deleteGuardService,)
+        ItamUserMapper $itamUserMapper,
+        ItamUserService $itamUserService,
+        CustomFieldService $customFieldService,
+        ListViewSettingsService $listViewSettingsService,
+        IInitialState $initialState,
+        ItamUserDefinition $definition,
+        EntityRegistry $entityRegistry,
+        DeleteGuardService $deleteGuardService,)
     {
         parent::__construct(
             $appName,
@@ -46,7 +45,8 @@ class ItamUserController extends AbstractItamController
             $initialState,
             $listViewSettingsService,
             $customFieldService,
-            $itamUserService);
+            $itamUserService
+        );
     }
 
     #[NoCSRFRequired]
@@ -60,7 +60,7 @@ class ItamUserController extends AbstractItamController
     #[NoCSRFRequired]
     #[OpenAPI(OpenAPI::SCOPE_IGNORE)]
     #[FrontpageRoute(verb: 'GET', url: '/itam-user/detail')]
-    public function itamUserDetail(): TemplateResponse
+    public function detail(): TemplateResponse
     {
         return $this->doDetail();
     }

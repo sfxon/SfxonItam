@@ -9,7 +9,6 @@ use OCA\SfxonItam\Service\CustomFieldService;
 use OCA\SfxonItam\Service\DeleteGuardService;
 use OCA\SfxonItam\Service\ManufacturerService;
 use OCA\SfxonItam\Service\ListViewSettingsService;
-use OCP\AppFramework\Db\Entity;
 use OCP\AppFramework\Http\Attribute\FrontpageRoute;
 use OCP\AppFramework\Http\Attribute\NoCSRFRequired;
 use OCP\AppFramework\Http\Attribute\OpenAPI;
@@ -27,14 +26,14 @@ class ManufacturerController extends AbstractItamController
     public function __construct(
         string $appName,
         IRequest $request,
-        private ManufacturerMapper $manufacturerMapper,
-        private readonly ManufacturerService $manufacturerService,
-        private CustomFieldService $customFieldService,
-        private ListViewSettingsService $listViewSettingsService,
-        private IInitialState $initialState,
-        private readonly ManufacturerDefinition $definition,
-        private EntityRegistry $entityRegistry,
-        private DeleteGuardService $deleteGuardService,)
+        ManufacturerMapper $manufacturerMapper,
+        ManufacturerService $manufacturerService,
+        CustomFieldService $customFieldService,
+        ListViewSettingsService $listViewSettingsService,
+        IInitialState $initialState,
+        ManufacturerDefinition $definition,
+        EntityRegistry $entityRegistry,
+        DeleteGuardService $deleteGuardService,)
     {
         parent::__construct(
             $appName,
@@ -46,13 +45,14 @@ class ManufacturerController extends AbstractItamController
             $initialState,
             $listViewSettingsService,
             $customFieldService,
-            $manufacturerService);
+            $manufacturerService
+        );
     }
 
     #[NoCSRFRequired]
     #[OpenAPI(OpenAPI::SCOPE_IGNORE)]
     #[FrontpageRoute(verb: 'DELETE', url: '/manufacturer/{id}')]
-    public function delete(int $id): JsonResponse
+    public function delete(int $id): JSONResponse
     {
         return $this->doDelete($id);
     }
@@ -60,7 +60,7 @@ class ManufacturerController extends AbstractItamController
     #[NoCSRFRequired]
     #[OpenAPI(OpenAPI::SCOPE_IGNORE)]
     #[FrontpageRoute(verb: 'GET', url: '/manufacturer/detail')]
-    public function manufacturerDetail(): TemplateResponse
+    public function detail(): TemplateResponse
     {
         return $this->doDetail();
     }

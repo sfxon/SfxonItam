@@ -9,7 +9,6 @@ use OCA\SfxonItam\Service\CustomFieldService;
 use OCA\SfxonItam\Service\DeleteGuardService;
 use OCA\SfxonItam\Service\LocationService;
 use OCA\SfxonItam\Service\ListViewSettingsService;
-use OCP\AppFramework\Db\Entity;
 use OCP\AppFramework\Http\Attribute\FrontpageRoute;
 use OCP\AppFramework\Http\Attribute\NoCSRFRequired;
 use OCP\AppFramework\Http\Attribute\OpenAPI;
@@ -27,14 +26,14 @@ class LocationController extends AbstractItamController
     public function __construct(
         string $appName,
         IRequest $request,
-        private LocationMapper $locationMapper,
-        private readonly LocationService $locationService,
-        private CustomFieldService $customFieldService,
-        private ListViewSettingsService $listViewSettingsService,
-        private IInitialState $initialState,
-        private readonly LocationDefinition $definition,
-        private EntityRegistry $entityRegistry,
-        private DeleteGuardService $deleteGuardService)
+        LocationMapper $locationMapper,
+        LocationService $locationService,
+        CustomFieldService $customFieldService,
+        ListViewSettingsService $listViewSettingsService,
+        IInitialState $initialState,
+        LocationDefinition $definition,
+        EntityRegistry $entityRegistry,
+        DeleteGuardService $deleteGuardService)
     {
         parent::__construct(
             $appName,
@@ -46,13 +45,14 @@ class LocationController extends AbstractItamController
             $initialState,
             $listViewSettingsService,
             $customFieldService,
-            $locationService);
+            $locationService
+        );
     }
 
     #[NoCSRFRequired]
     #[OpenAPI(OpenAPI::SCOPE_IGNORE)]
     #[FrontpageRoute(verb: 'DELETE', url: '/location/{id}')]
-    public function delete(int $id): JsonResponse
+    public function delete(int $id): JSONResponse
     {
         return $this->doDelete($id);
     }
@@ -60,7 +60,7 @@ class LocationController extends AbstractItamController
     #[NoCSRFRequired]
     #[OpenAPI(OpenAPI::SCOPE_IGNORE)]
     #[FrontpageRoute(verb: 'GET', url: '/location/detail')]
-    public function locationDetail(): TemplateResponse
+    public function detail(): TemplateResponse
     {
         return $this->doDetail();
     }

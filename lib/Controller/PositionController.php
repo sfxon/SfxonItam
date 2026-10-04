@@ -9,7 +9,6 @@ use OCA\SfxonItam\Service\CustomFieldService;
 use OCA\SfxonItam\Service\DeleteGuardService;
 use OCA\SfxonItam\Service\ListViewSettingsService;
 use OCA\SfxonItam\Service\PositionService;
-use OCP\AppFramework\Db\Entity;
 use OCP\AppFramework\Http\Attribute\FrontpageRoute;
 use OCP\AppFramework\Http\Attribute\NoCSRFRequired;
 use OCP\AppFramework\Http\Attribute\OpenAPI;
@@ -27,14 +26,14 @@ class PositionController extends AbstractItamController
     public function __construct(
         string $appName,
         IRequest $request,
-        private PositionMapper $positionMapper,
-        private readonly PositionService $positionService,
-        private CustomFieldService $customFieldService,
-        private ListViewSettingsService $listViewSettingsService,
-        private IInitialState $initialState,
-        private PositionDefinition $definition,
-        private EntityRegistry $entityRegistry,
-        private DeleteGuardService $deleteGuardService)
+        PositionMapper $positionMapper,
+        PositionService $positionService,
+        CustomFieldService $customFieldService,
+        ListViewSettingsService $listViewSettingsService,
+        IInitialState $initialState,
+        PositionDefinition $definition,
+        EntityRegistry $entityRegistry,
+        DeleteGuardService $deleteGuardService,)
     {
         parent::__construct(
             $appName,
@@ -46,7 +45,8 @@ class PositionController extends AbstractItamController
             $initialState,
             $listViewSettingsService,
             $customFieldService,
-            $positionService);
+            $positionService
+        );
     }
 
     #[NoCSRFRequired]
@@ -60,7 +60,7 @@ class PositionController extends AbstractItamController
     #[NoCSRFRequired]
     #[OpenAPI(OpenAPI::SCOPE_IGNORE)]
     #[FrontpageRoute(verb: 'GET', url: '/position/detail')]
-    public function positionDetail(): TemplateResponse
+    public function detail(): TemplateResponse
     {
         return $this->doDetail();
     }

@@ -9,7 +9,6 @@ use OCA\SfxonItam\Service\CustomFieldService;
 use OCA\SfxonItam\Service\DeleteGuardService;
 use OCA\SfxonItam\Service\DeviceStatusService;
 use OCA\SfxonItam\Service\ListViewSettingsService;
-use OCP\AppFramework\Db\Entity;
 use OCP\AppFramework\Http\Attribute\FrontpageRoute;
 use OCP\AppFramework\Http\Attribute\NoCSRFRequired;
 use OCP\AppFramework\Http\Attribute\OpenAPI;
@@ -27,14 +26,14 @@ class DeviceStatusController extends AbstractItamController
     public function __construct(
         string $appName,
         IRequest $request,
-        private DeviceStatusMapper $deviceStatusMapper,
-        private readonly DeviceStatusService $deviceStatusService,
-        private CustomFieldService $customFieldService,
-        private ListViewSettingsService $listViewSettingsService,
-        private IInitialState $initialState,
-        private readonly DeviceStatusDefinition $definition,
-        private EntityRegistry $entityRegistry,
-        private DeleteGuardService $deleteGuardService,)
+        DeviceStatusMapper $deviceStatusMapper,
+        DeviceStatusService $deviceStatusService,
+        CustomFieldService $customFieldService,
+        ListViewSettingsService $listViewSettingsService,
+        IInitialState $initialState,
+        DeviceStatusDefinition $definition,
+        EntityRegistry $entityRegistry,
+        DeleteGuardService $deleteGuardService,)
     {
         parent::__construct(
             $appName,
@@ -46,7 +45,8 @@ class DeviceStatusController extends AbstractItamController
             $initialState,
             $listViewSettingsService,
             $customFieldService,
-            $deviceStatusService);
+            $deviceStatusService
+        );
     }
 
     #[NoCSRFRequired]
@@ -60,7 +60,7 @@ class DeviceStatusController extends AbstractItamController
     #[NoCSRFRequired]
     #[OpenAPI(OpenAPI::SCOPE_IGNORE)]
     #[FrontpageRoute(verb: 'GET', url: '/device-status/detail')]
-    public function deviceStatusDetail(): TemplateResponse
+    public function detail(): TemplateResponse
     {
         return $this->doDetail();
     }

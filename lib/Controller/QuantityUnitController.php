@@ -9,7 +9,6 @@ use OCA\SfxonItam\Service\CustomFieldService;
 use OCA\SfxonItam\Service\DeleteGuardService;
 use OCA\SfxonItam\Service\QuantityUnitService;
 use OCA\SfxonItam\Service\ListViewSettingsService;
-use OCP\AppFramework\Db\Entity;
 use OCP\AppFramework\Http\Attribute\FrontpageRoute;
 use OCP\AppFramework\Http\Attribute\NoCSRFRequired;
 use OCP\AppFramework\Http\Attribute\OpenAPI;
@@ -28,14 +27,14 @@ class QuantityUnitController extends AbstractItamController
     public function __construct(
         string $appName,
         IRequest $request,
-        private QuantityUnitMapper $quantityUnitMapper,
-        private readonly QuantityUnitService $quantityUnitService,
-        private CustomFieldService $customFieldService,
-        private ListViewSettingsService $listViewSettingsService,
-        private IInitialState $initialState,
-        private readonly QuantityUnitDefinition $definition,
-        private EntityRegistry $entityRegistry,
-        private DeleteGuardService $deleteGuardService,)
+        QuantityUnitMapper $quantityUnitMapper,
+        QuantityUnitService $quantityUnitService,
+        CustomFieldService $customFieldService,
+        ListViewSettingsService $listViewSettingsService,
+        IInitialState $initialState,
+        QuantityUnitDefinition $definition,
+        EntityRegistry $entityRegistry,
+        DeleteGuardService $deleteGuardService,)
     {
         parent::__construct(
             $appName,
@@ -47,13 +46,14 @@ class QuantityUnitController extends AbstractItamController
             $initialState,
             $listViewSettingsService,
             $customFieldService,
-            $quantityUnitService);
+            $quantityUnitService
+        );
     }
 
     #[NoCSRFRequired]
     #[OpenAPI(OpenAPI::SCOPE_IGNORE)]
     #[FrontpageRoute(verb: 'DELETE', url: '/quantity-unit/{id}')]
-    public function delete(int $id): JsonResponse
+    public function delete(int $id): JSONResponse
     {
         return $this->doDelete($id);
     }
@@ -61,7 +61,7 @@ class QuantityUnitController extends AbstractItamController
     #[NoCSRFRequired]
     #[OpenAPI(OpenAPI::SCOPE_IGNORE)]
     #[FrontpageRoute(verb: 'GET', url: '/quantity-unit/detail')]
-    public function quantityUnitDetail(): TemplateResponse
+    public function detail(): TemplateResponse
     {
         return $this->doDetail();
     }

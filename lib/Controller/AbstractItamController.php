@@ -22,6 +22,9 @@ use OCP\IRequest;
 
 abstract class AbstractItamController extends Controller
 {
+    private const ALLOWED_LIMITS = [10, 25, 50, 100, 500, 1000];
+    private const DEFAULT_LIMIT = 25;
+
     protected EntityDefinition $entityDefinition;
     private EntityMapperAbstract $mapper;
     private DeleteGuardService $deleteGuardService;
@@ -41,7 +44,7 @@ abstract class AbstractItamController extends Controller
         IInitialState $initialState,
         ListViewSettingsService $listViewSettingsService,
         CustomFieldService $customFieldService,
-        ItamServiceAbstract $itamService
+        ItamServiceAbstract $itamService,
     ) {
         parent::__construct($appName, $request);
         $this->entityDefinition = $definition;
@@ -58,26 +61,21 @@ abstract class AbstractItamController extends Controller
     {
         $violation = $this->deleteGuardService->findViolation($this->entityDefinition, $id);
 
-        if($violation !== null) {
+        if ($violation !== null) {
             return new JSONResponse([
                 'status' => 'error',
-                'errors' => [$violation]
+                'errors' => [$violation],
             ], Http::STATUS_UNPROCESSABLE_ENTITY); // Returns error 422
         }
 
         try {
             $entityObject = $this->mapper->findById($id);
             $this->mapper->delete($entityObject['mainData']);
-        } catch(DoesNotExistException) {
-            return new JSONResponse(
-                ['status' => 'error', 'message' => $this->entityDefinition->label . ' not found'],
-                Http::STATUS_NOT_FOUND
-            );
+        } catch (DoesNotExistException) {
+            return $this->notFoundResponse();
         }
 
-        return new JSONResponse([
-            'status' => 'ok',
-        ]);
+        return new JSONResponse(['status' => 'ok']);
     }
 
     protected function doDetail(): TemplateResponse
@@ -110,17 +108,17 @@ abstract class AbstractItamController extends Controller
         );
     }
 
-    public function doList(
+    protected function doList(
         ?string $orderBy = null,
         string $direction = 'ASC',
         int $page = 1,
-        int $limit = 25,
-        ?array $filters = null,): JSONResponse
-    {
+        int $limit = self::DEFAULT_LIMIT,
+        ?array $filters = null,
+    ): JSONResponse {
         $orderBy ??= $this->entityDefinition->defaultOrderBy;
 
-        if($limit != 10 && $limit != 25 && $limit != 50 && $limit != 100 && $limit != 500 && $limit != 1000) {
-            $limit = 25;
+        if (!in_array($limit, self::ALLOWED_LIMITS, true)) {
+            $limit = self::DEFAULT_LIMIT;
         }
 
         $offset = ($page - 1) * $limit;
@@ -135,7 +133,7 @@ abstract class AbstractItamController extends Controller
         $total = $this->mapper->countAll($filters);
         $customFields = $this->getCustomFields();
 
-        $data['mainData'] = array_map(fn($d) => $d->jsonSerialize($customFields), $data['mainData']);
+        $data['mainData'] = array_map(fn ($d) => $d->jsonSerialize($customFields), $data['mainData']);
 
         return new JSONResponse([
             'data' => $data,
@@ -145,25 +143,22 @@ abstract class AbstractItamController extends Controller
         ]);
     }
 
-    public function doShow(int $id): JSONResponse
+    protected function doShow(int $id): JSONResponse
     {
         try {
             $include = $this->request->getParam('include');
 
-            if(!is_array($include)) {
+            if (!is_array($include)) {
                 $include = [];
             }
 
-            if(!isset($include['location'])) {
+            if (!isset($include['location'])) {
                 $include['location'] = [];
             }
 
             $data = $this->mapper->findById($id, $include);
         } catch (DoesNotExistException) {
-            return new JSONResponse(
-                ['status' => 'error', 'message' => $this->entityDefinition->label . ' not found'],
-                Http::STATUS_NOT_FOUND
-            );
+            return $this->notFoundResponse();
         }
 
         $data['mainData'] = $data['mainData']->jsonSerialize($this->getCustomFields());
@@ -171,19 +166,15 @@ abstract class AbstractItamController extends Controller
         return new JSONResponse($data);
     }
 
-    public function doUpsert(?int $id = null): DataResponse
+    protected function doUpsert(?int $id = null): DataResponse
     {
         $isUpdate = $id !== null;
 
-        // Entity laden bzw. neu erzeugen
         if ($isUpdate) {
             try {
                 $entityObject = $this->mapper->findById($id)['mainData'];
             } catch (DoesNotExistException) {
-                return new DataResponse(
-                    ['status' => 'error', 'message' => $this->entityDefinition->label . ' not found'],
-                    Http::STATUS_NOT_FOUND
-                );
+                return $this->notFoundResponse();
             }
         } else {
             $entityObject = $this->itamService->createNewEntity();
@@ -192,9 +183,8 @@ abstract class AbstractItamController extends Controller
         $params = $this->request->getParams();
         $customFields = $this->getCustomFields();
 
-        // Validierung
         $data = $this->itamService->getDataFromRequest($params, $this->entityDefinition->expectedFields);
-        $result = $this->itamService->validateData($data, $id); 
+        $result = $this->itamService->validateData($data, $id);
         $customFieldData = $this->customFieldService->getCustomFieldDataFromRequest($customFields, $params);
         $customFieldErrors = $this->customFieldService->validateCustomFieldData($customFields, $customFieldData);
 
@@ -204,14 +194,11 @@ abstract class AbstractItamController extends Controller
         }
 
         if ($result['valid'] === false) {
-            return new DataResponse([
-                'status' => 'error',
-                'errors' => $result['errors'],
-            ], Http::STATUS_UNPROCESSABLE_ENTITY);
+            return $this->validationErrorResponse($result['errors']);
         }
 
         // Daten übernehmen und speichern
-        $entityObject = $this->setDataFromRequest($entityObject);
+        $entityObject = $this->setDataFromRequest($entityObject, $data);
         $saved = $isUpdate
             ? $this->mapper->update($entityObject)
             : $this->mapper->insert($entityObject);
@@ -228,7 +215,23 @@ abstract class AbstractItamController extends Controller
         ]);
     }
 
-    private function getCustomFields()
+    private function notFoundResponse(): JSONResponse
+    {
+        return new JSONResponse(
+            ['status' => 'error', 'message' => $this->entityDefinition->label . ' not found'],
+            Http::STATUS_NOT_FOUND
+        );
+    }
+
+    private function validationErrorResponse(array $errors): DataResponse
+    {
+        return new DataResponse(
+            ['status' => 'error', 'errors' => $errors],
+            Http::STATUS_UNPROCESSABLE_ENTITY
+        );
+    }
+
+    private function getCustomFields(): array
     {
         return $this->customFieldService->getCustomFieldsDefinitionByGroup($this->entityDefinition->customFieldGroup);
     }
@@ -241,7 +244,7 @@ abstract class AbstractItamController extends Controller
         ];
     }
 
-    protected function setDataFromRequest(Entity $entityObject): Entity
+    protected function setDataFromRequest(Entity $entityObject, array $data): Entity
     {
         $fieldDefinitions = $this->getEntityFieldDefinitions();
 
@@ -255,8 +258,9 @@ abstract class AbstractItamController extends Controller
                 ));
 
             $setter = 'set' . ucfirst($fieldDefinition['propertyName'] ?? $field);
+            $raw = $data[$field] ?? $this->request->getParam($field);
             $entityObject->$setter(
-                $this->castRequestValue($this->request->getParam($field), $fieldDefinition)
+                $this->castRequestValue($raw, $fieldDefinition)
             );
         }
 

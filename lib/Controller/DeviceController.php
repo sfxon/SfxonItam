@@ -9,7 +9,6 @@ use OCA\SfxonItam\Service\CustomFieldService;
 use OCA\SfxonItam\Service\DeleteGuardService;
 use OCA\SfxonItam\Service\DeviceService;
 use OCA\SfxonItam\Service\ListViewSettingsService;
-use OCP\AppFramework\Db\Entity;
 use OCP\AppFramework\Http\Attribute\FrontpageRoute;
 use OCP\AppFramework\Http\Attribute\NoCSRFRequired;
 use OCP\AppFramework\Http\Attribute\OpenAPI;
@@ -27,14 +26,14 @@ class DeviceController extends AbstractItamController
     public function __construct(
         string $appName,
         IRequest $request,
-        private DeviceMapper $deviceMapper,
-        private readonly DeviceService $deviceService,
-        private CustomFieldService $customFieldService,
-        private ListViewSettingsService $listViewSettingsService,
-        private IInitialState $initialState,
-        private readonly DeviceDefinition $definition,
-        private EntityRegistry $entityRegistry,
-        private DeleteGuardService $deleteGuardService)
+        DeviceMapper $deviceMapper,
+        DeviceService $deviceService,
+        CustomFieldService $customFieldService,
+        ListViewSettingsService $listViewSettingsService,
+        IInitialState $initialState,
+        DeviceDefinition $definition,
+        EntityRegistry $entityRegistry,
+        DeleteGuardService $deleteGuardService)
     {
         parent::__construct(
             $appName,
@@ -46,13 +45,14 @@ class DeviceController extends AbstractItamController
             $initialState,
             $listViewSettingsService,
             $customFieldService,
-	    $deviceService);
+            $deviceService
+        );
     }
 
     #[NoCSRFRequired]
     #[OpenAPI(OpenAPI::SCOPE_IGNORE)]
     #[FrontpageRoute(verb: 'DELETE', url: '/device/{id}')]
-    public function delete(int $id): JsonResponse
+    public function delete(int $id): JSONResponse
     {
         return $this->doDelete($id);
     }
@@ -60,7 +60,7 @@ class DeviceController extends AbstractItamController
     #[NoCSRFRequired]
     #[OpenAPI(OpenAPI::SCOPE_IGNORE)]
     #[FrontpageRoute(verb: 'GET', url: '/device/detail')]
-    public function deviceDetail(): TemplateResponse
+    public function detail(): TemplateResponse
     {
         return $this->doDetail();
     }
@@ -106,12 +106,5 @@ class DeviceController extends AbstractItamController
     public function update(int $id): DataResponse
     {
         return $this->doUpsert($id);
-    }
-
-    private function sanitizeForeignKey($foreignKeyValue)
-    {
-        $foreignKeyValue = intval($foreignKeyValue);
-
-        return ($foreignKeyValue === 0) ? null : $foreignKeyValue;
     }
 }
