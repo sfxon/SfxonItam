@@ -2,13 +2,9 @@
 
 namespace OCA\SfxonItam\Db;
 
-use OCP\AppFramework\Db\QBMapper;
 use OCP\IDBConnection;
 
-/**
- * @template-extends QBMapper<Merchant>
- */
-class MerchantMapper extends QBMapper
+class MerchantMapper extends EntityMapperAbstract
 {
     use TSfxonEntityMapper;
     use TSfxonEntityMapperWithNameFilter;

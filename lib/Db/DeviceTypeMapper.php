@@ -1,14 +1,10 @@
-<?php
-declare(strict_types=1);
+<?php declare(strict_types=1);
+
 namespace OCA\SfxonItam\Db;
 
-use OCP\AppFramework\Db\QBMapper;
 use OCP\IDBConnection;
 
-/**
- * @template-extends QBMapper<DeviceType>
- */
-class DeviceTypeMapper extends QBMapper
+class DeviceTypeMapper extends EntityMapperAbstract
 {
     use TSfxonEntityMapper;
     use TSfxonEntityMapperWithNameFilter;

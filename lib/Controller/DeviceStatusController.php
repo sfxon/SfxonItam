@@ -11,7 +11,6 @@ use OCA\SfxonItam\Service\CustomFieldService;
 use OCA\SfxonItam\Service\DeleteGuardService;
 use OCA\SfxonItam\Service\DeviceStatusService;
 use OCA\SfxonItam\Service\ListViewSettingsService;
-use OCP\AppFramework\Controller;
 use OCP\AppFramework\Db\DoesNotExistException;
 use OCP\AppFramework\Http;
 use OCP\AppFramework\Http\Attribute\FrontpageRoute;
@@ -27,7 +26,7 @@ use OCP\IRequest;
 /**
  * @psalm-suppress UnusedClass
  */
-class DeviceStatusController extends Controller
+class DeviceStatusController extends AbstractItamController
 {
     public function __construct(
         string $appName,
@@ -41,36 +40,15 @@ class DeviceStatusController extends Controller
         private EntityRegistry $entityRegistry,
         private DeleteGuardService $deleteGuardService,)
     {
-        parent::__construct($appName, $request);
+        parent::__construct($appName, $request, $definition, $deleteGuardService, $deviceStatusMapper);
     }
 
     #[NoCSRFRequired]
     #[OpenAPI(OpenAPI::SCOPE_IGNORE)]
     #[FrontpageRoute(verb: 'DELETE', url: '/device-status/{id}')]
-    public function delete(int $id): JsonResponse
+    public function delete(int $id): JSONResponse
     {
-        $violation = $this->deleteGuardService->findViolation($this->definition, $id);
-
-        if($violation !== null) {
-            return new JSONResponse([
-                'status' => 'error',
-                'errors' => [$violation]
-            ], Http::STATUS_UNPROCESSABLE_ENTITY); // Returns error 422
-        }
-
-        try {
-            $deviceStatus = $this->deviceStatusMapper->findById($id);
-            $this->deviceStatusMapper->delete($deviceStatus['mainData']);
-        } catch(DoesNotExistException) {
-            return new JSONResponse(
-                ['status' => 'error', 'message' => $this->definition->label . ' not found'],
-                Http::STATUS_NOT_FOUND
-            );
-        }
-
-        return new JSONResponse([
-            'status' => 'ok',
-        ]);
+        return $this->doDelete($id);
     }
 
     #[NoCSRFRequired]

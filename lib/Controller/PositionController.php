@@ -43,6 +43,7 @@ class PositionController extends AbstractItamController
         parent::__construct($appName, $request, $definition, $deleteGuardService, $positionMapper);
     }
 
+    #[NoCSRFRequired]
     #[OpenAPI(OpenAPI::SCOPE_IGNORE)]
     #[FrontpageRoute(verb: 'DELETE', url: '/position/{id}')]
     public function delete(int $id): JSONResponse

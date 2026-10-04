@@ -11,7 +11,6 @@ use OCA\SfxonItam\Service\CustomFieldService;
 use OCA\SfxonItam\Service\DeleteGuardService;
 use OCA\SfxonItam\Service\ManufacturerService;
 use OCA\SfxonItam\Service\ListViewSettingsService;
-use OCP\AppFramework\Controller;
 use OCP\AppFramework\Db\DoesNotExistException;
 use OCP\AppFramework\Http;
 use OCP\AppFramework\Http\Attribute\FrontpageRoute;
@@ -27,7 +26,7 @@ use OCP\IRequest;
 /**
  * @psalm-suppress UnusedClass
  */
-class ManufacturerController extends Controller
+class ManufacturerController extends AbstractItamController
 {
     public function __construct(
         string $appName,
@@ -41,35 +40,15 @@ class ManufacturerController extends Controller
         private EntityRegistry $entityRegistry,
         private DeleteGuardService $deleteGuardService,)
     {
-        parent::__construct($appName, $request);
+        parent::__construct($appName, $request, $definition, $deleteGuardService, $manufacturerMapper);
     }
 
+    #[NoCSRFRequired]
     #[OpenAPI(OpenAPI::SCOPE_IGNORE)]
     #[FrontpageRoute(verb: 'DELETE', url: '/manufacturer/{id}')]
     public function delete(int $id): JsonResponse
     {
-        $violation = $this->deleteGuardService->findViolation($this->definition, $id);
-
-        if($violation !== null) {
-            return new JSONResponse([
-                'status' => 'error',
-                'errors' => [$violation]
-            ], Http::STATUS_UNPROCESSABLE_ENTITY); // Returns error 422
-        }
-
-        try {
-            $manufacturer = $this->manufacturerMapper->findById($id);
-            $this->manufacturerMapper->delete($manufacturer['mainData']);
-        } catch(DoesNotExistException) {
-            return new JSONResponse(
-                ['status' => 'error', 'message' => $this->definition->label . ' not found'],
-                Http::STATUS_NOT_FOUND
-            );
-        }
-
-        return new JSONResponse([
-            'status' => 'ok',
-        ]);
+        return $this->doDelete($id);
     }
 
     #[NoCSRFRequired]

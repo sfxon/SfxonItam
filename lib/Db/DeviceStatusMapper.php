@@ -2,13 +2,10 @@
 
 namespace OCA\SfxonItam\Db;
 
-use OCP\AppFramework\Db\QBMapper;
 use OCP\IDBConnection;
 
-/**
- * @template-extends QBMapper<DeviceStatus>
- */
-class DeviceStatusMapper extends QBMapper {
+class DeviceStatusMapper extends EntityMapperAbstract
+{
     use TSfxonEntityMapper;
     use TSfxonEntityMapperWithNameFilter;
 
