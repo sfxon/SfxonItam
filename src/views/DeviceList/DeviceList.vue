@@ -438,9 +438,9 @@ onUnmounted(() => {
             </SfxonItamHeaderBc>
 
             <div :class="$style.sfxonItamContent">
-                <div v-if="error" class="device-list__error">{{ error }}</div>
+                <div v-if="error">{{ error }}</div>
 
-                <div v-else-if="loading" class="device-list__loading">
+                <div v-else-if="loading">
                     <NcLoadingIcon :size="32" />
                 </div>
 
