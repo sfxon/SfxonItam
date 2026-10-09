@@ -22,6 +22,17 @@ trait TSfxonEntityMapper
                 continue;
             }
 
+            // Pseudo filters for free-text search: `_search` = terms, `_searchFields` = property names.
+            // A term has to match in at least one of the fields (OR across fields).
+            if ($key === '_searchFields') {
+                continue;
+            }
+
+            if ($key === '_search') {
+                $this->applySearchFilter($qb, $fieldMap, (array)($filters['_searchFields'] ?? []), (array)$values);
+                continue;
+            }
+
             // JOIN Filter
             if (isset(self::JOIN_FILTERS[$key])) {
                 $this->applyJoinFilter($qb, self::JOIN_FILTERS[$key], $values);
@@ -46,6 +57,51 @@ trait TSfxonEntityMapper
                 'none' => null,
                 default => null,
             };
+        }
+    }
+
+    /**
+     * Free-text search over several fields. Each term must match in at least one field.
+     * Fields are whitelisted via the field definitions and must be 'like' fields.
+     *
+     * @param array<string, array> $fieldMap
+     * @param string[] $propertyNames
+     * @param array $terms
+     */
+    private function applySearchFilter(IQueryBuilder $qb, array $fieldMap, array $propertyNames, array $terms): void
+    {
+        $columns = [];
+
+        foreach ($propertyNames as $property) {
+            $field = $fieldMap[$property] ?? null;
+            if ($field === null) {
+                continue;
+            }
+
+            $filterType = $field['filterType'] ?? $this->resolveFilterType($field['type']);
+            if ($filterType === 'like') {
+                $columns[] = self::TABLE_ALIAS . '.' . $field['name'];
+            }
+        }
+
+        if ($columns === []) {
+            return;
+        }
+
+        foreach ($terms as $term) {
+            $term = trim((string)$term);
+            if ($term === '') {
+                continue;
+            }
+
+            $param = $qb->createNamedParameter('%' . $this->db->escapeLikeParameter(strtolower($term)) . '%');
+            $orX = $qb->expr()->orX();
+
+            foreach ($columns as $column) {
+                $orX->add($qb->expr()->like($qb->func()->lower($column), $param));
+            }
+
+            $qb->andWhere($orX);
         }
     }
 

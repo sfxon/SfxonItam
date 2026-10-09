@@ -1,9 +1,8 @@
 <script setup lang="ts">
 
-import { computed, onMounted, onUnmounted, reactive, ref } from 'vue'
-import { deleteDevice } from '@/services/DeviceService'
+import { computed, onMounted, onUnmounted, reactive, ref, watch } from 'vue'
+import { deleteDevice, fetchDevices } from '@/services/DeviceService'
 import type { Device } from '@/services/DeviceService'
-import { fetchDevices } from '@/services/DeviceService'
 import { emit as emitEventBus, subscribe as subscribeEventBus, unsubscribe as unsubscribeEventBus } from '@nextcloud/event-bus'
 import { generateUrl } from '@nextcloud/router'
 import { loadState } from '@nextcloud/initial-state'
@@ -27,23 +26,21 @@ import SfxonPagination from '@/components/SfxonPagination'
 import SfxonQrCodeView from '@/components/SfxonQrCodeView'
 import SfxonTable from '@/components/SfxonTable'
 import { useListState } from '@/composables/useListState'
-import * as DeviceStatusService from '@/services/DeviceStatusService'
-import { getDeviceStatusDetailLink } from '@/services/DeviceStatusService'
-import * as DeviceTypeService from '@/services/DeviceTypeService'
-import { getDeviceTypeDetailLink } from '@/services/DeviceTypeService'
-import * as ItamUserService from '@/services/ItamUserService'
-import { getItamUserDetailLink } from '@/services/ItamUserService'
-import { fetchAllLocations } from '@/services/LocationService'
-import { fetchAllManufacturers, getManufacturerDetailLink } from '@/services/ManufacturerService'
-import * as MerchantService from '@/services/MerchantService'
-import { getMerchantDetailLink } from '@/services/MerchantService'
-import * as PositionService from '@/services/PositionService'
-import { getPositionDetailLink } from '@/services/PositionService'
-import * as QuantityUnitService from '@/services/QuantityUnitService'
-import { getQuantityUnitDetailLink } from '@/services/QuantityUnitService'
 import { useColumnOrder } from '@/composables/useColumnOrder'
+import { useRelatedEntities } from '@/composables/useRelatedEntities'
+import type { RelationMeta } from '@/composables/useRelatedEntities'
 import { saveUiState } from '@/services/ListViewSettings'
-import { watch } from 'vue'
+
+const props = defineProps({
+    entityDefinitions: {
+        type: Object,
+        required: true,
+    },
+    customFields: {
+        type: Array,
+        default: () => [],
+    },
+})
 
 const breadcrumbs = computed<BreadcrumbItem[]>(() => [
     {
@@ -55,11 +52,12 @@ const breadcrumbs = computed<BreadcrumbItem[]>(() => [
 ])
 
 const VIEW_ID = 'device-list'
+const CUSTOM_FIELD_COLUMN_PREFIX = 'custom.'
 
 const initialUiState = loadState<{ filterSidebarOpen?: boolean; navigationOpen?: boolean }>(
     'sfxonitam',
     'listViewUiState-' + VIEW_ID,
-    { filterSidebarOpen: true, navigationOpen: true }
+    { filterSidebarOpen: true, navigationOpen: true },
 )
 
 const filterSidebarOpen = ref(initialUiState.filterSidebarOpen ?? true)
@@ -82,22 +80,13 @@ const listState = useListState()
 const devices = ref<Device[]>([])
 const deviceToDelete = ref<Device | null>(null)
 const filterValues = reactive<Record<string, { value: any }[]>>({})
+const appliedFilters = ref<Record<string, any[]>>({})
 const modalState = reactive<{
     dataRow: any | null,
     type: 'barcode' | 'image' | 'qrCode'
 }>({
     dataRow: null,
     type: 'image',
-})
-const relatedEntityData = reactive<Record<string, { id: any; label: string }[]>>({
-    'deviceStatus': [],
-    'deviceType': [],
-    'itamUser': [],
-    'location': [],
-    'manufacturer': [],
-    'merchant': [],
-    'position': [],
-    'quantityUnit': [],
 })
 const previewState = reactive<{
     dataRow: any | null,
@@ -106,49 +95,46 @@ const previewState = reactive<{
     dataRow: null,
     type: 'image',
 })
-const props = defineProps({
-    entityDefinitions: {
-        type: Object,
-        required: true,
-    },
-    customFields: {
-        type: Array,
-        default: () => [],
-    },
-})
-const CUSTOM_FIELD_COLUMN_PREFIX = 'custom.'
+
+const entityMeta = loadState<Record<string, RelationMeta>>('sfxonitam', 'entityMeta', {})
+
+function relatedEntityOf(key: string): string | undefined {
+    const entity = key.replace(/Id$/, '')
+
+    return entity in entityMeta ? entity : undefined
+}
+const {
+    data: relatedEntityData,
+    applyRelations,
+    searchFns: relatedEntitySearchFns,
+    detailUrl,
+} = useRelatedEntities(entityMeta)
 
 function customFieldColumnKey(technicalName: string): string {
     return `${CUSTOM_FIELD_COLUMN_PREFIX}${technicalName}`
 }
 
+function generateDeviceUrl(device: Device) {
+    return generateUrl(`/apps/sfxonitam/device/detail?deviceId=${device.id}`)
+}
+
+function onGetDeviceUrl(dataRow: any) {
+    return generateDeviceUrl(dataRow)
+}
 function addItem() {
     window.location.href = generateUrl('/apps/sfxonitam/device/detail')
 }
 
-function barcodeMounted(el: HTMLElement, dataRow: any) {
-    const onEnter = previewBarcode.bind(null, dataRow)
-    const onClick = openModal.bind(null, dataRow, 'barcode')
+function onEditDevice(device: Device) {
+    window.location.href = generateDeviceUrl(device)
+}
 
-    el.addEventListener('mouseenter', onEnter)
-    el.addEventListener('click', onClick)
-
-    return () => {
-        el.removeEventListener('mouseenter', onEnter)
-        el.removeEventListener('click', onClick)
-    }
+function onDeleteDevice(device: Device) {
+    deviceToDelete.value = device
 }
 
 function cancelDelete() {
     deviceToDelete.value = null
-}
-
-function clearData() {
-    devices.value = []
-}
-
-function closeModal() {
-    modalState.dataRow = null
 }
 
 async function confirmDelete() {
@@ -160,82 +146,87 @@ async function confirmDelete() {
     await loadDevices()
 }
 
-function defaultCellMounted(el: HTMLElement, dataRow: any) {
-    const onEnter = previewImage.bind(null, dataRow)
+function onFilterBtn() {
+    appliedFilters.value = Object.fromEntries(
+        Object.entries(filterValues).map(([key, entries]) => [
+            key,
+            entries.map((e) => e.value),
+        ]),
+    )
+    devices.value = []
+    listState.page = 1
+    reloadDevices()
+}
 
+function openModal(dataRow: any, type: 'barcode' | 'image' | 'qrCode') {
+    modalState.dataRow = dataRow
+    modalState.type = type
+}
+
+function closeModal() {
+    modalState.dataRow = null
+}
+
+function previewImage(dataRow: any) {
+    previewState.dataRow = dataRow
+    previewState.type = 'image'
+}
+
+function previewBarcode(dataRow: any) {
+    previewState.dataRow = dataRow
+    previewState.type = 'barcode'
+}
+
+function previewQrCode(dataRow: any) {
+    previewState.dataRow = dataRow
+    previewState.type = 'qrCode'
+}
+
+function previewClear(_dataRow: any) {
+    previewState.dataRow = null
+}
+
+function bindCell(
+    el: HTMLElement,
+    onEnter: () => void,
+    onClick?: () => void,
+) {
     el.addEventListener('mouseenter', onEnter)
+    if (onClick) {
+        el.addEventListener('click', onClick)
+    }
 
     return () => {
         el.removeEventListener('mouseenter', onEnter)
-    }
-}
-
-function generateDeviceUrl(device: Device) {
-    return generateUrl(`/apps/sfxonitam/device/detail?deviceId=${device.id}`)
-}
-
-function onGetDeviceUrl(dataRow: any) {
-    return generateDeviceUrl(dataRow)
-}
-
-function imageCellMounted(el: HTMLElement, dataRow: any) {
-    const onEnter = previewImage.bind(null, dataRow)
-    const onClick = openModal.bind(null, dataRow, 'image')
-
-    el.addEventListener('mouseenter', onEnter)
-    el.addEventListener('click', onClick)
-
-    return () => {
-        el.removeEventListener('mouseenter', onEnter)
-        el.removeEventListener('click', onClick)
-    }
-}
-
-const relationLabelBuilders: Record<string, (row: any) => string> = {
-    deviceStatus: (row) => row.name,
-    deviceType: (row) => row.name,
-    itamUser: (row) => `${row.firstname} ${row.lastname}`,
-    merchant: (row) => row.name,
-    position: (row) => row.location ? `${row.location.name} - ${row.name}` : row.name,
-    quantityUnit: (row) => row.name,
-}
-
-function applyRelations(relations?: Record<string, Record<string, any>>) {
-    if (!relations) {
-        return
-    }
-
-    for (const [relationName, buildLabel] of Object.entries(relationLabelBuilders)) {
-        const rows = relations[relationName]
-
-        if (!rows) {
-            continue
+        if (onClick) {
+            el.removeEventListener('click', onClick)
         }
-
-        relatedEntityData[relationName] = Object.values(rows).map((row: any) => ({
-            id: row.id,
-            label: buildLabel(row),
-        }))
     }
 }
+
+const defaultCellMounted = (el: HTMLElement, dataRow: any) =>
+    bindCell(el, () => previewImage(dataRow))
+
+const imageCellMounted = (el: HTMLElement, dataRow: any) =>
+    bindCell(el, () => previewImage(dataRow), () => openModal(dataRow, 'image'))
+
+const qrCodeCellMounted = (el: HTMLElement, dataRow: any) =>
+    bindCell(el, () => previewQrCode(dataRow), () => openModal(dataRow, 'qrCode'))
+
+const barcodeMounted = (el: HTMLElement, dataRow: any) =>
+    bindCell(el, () => previewBarcode(dataRow), () => openModal(dataRow, 'barcode'))
+
 
 async function loadDevices() {
     error.value = null
 
     try {
-        const filters = Object.fromEntries(
-            Object.entries(filterValues).map(([key, entries]) => [
-                key,
-                entries.map(e => e.value)
-            ])
-        )
-
         const data = await fetchDevices({
             orderBy: listState.orderBy,
             direction: listState.orderDirection,
             page: listState.page,
             limit: listState.limit,
-            filters
+            filters: appliedFilters.value,
         })
 
         devices.value = data.data.mainData.map((device: any) => {
@@ -255,218 +246,69 @@ async function loadDevices() {
     }
 }
 
-async function searchDeviceStatis(query: string, signal: AbortSignal): Promise<void> {
-    const filters = { name: [query] }
-
-    const data = await DeviceStatusService.findDeviceStatis({ filters }, signal)
-
-    if (data === null || data.mainData === null) {
-        return
-    }
-
-    relatedEntityData['deviceStatus'] = Object.values(data.mainData).map((deviceStatus: any) => ({
-        id: deviceStatus.id,
-        label: deviceStatus.name
-    }))
-}
-
-async function searchDeviceTypes(query: string, signal: AbortSignal): Promise<void> {
-    const filters = { name: [query] }
-
-    const data = await DeviceTypeService.findDeviceTypes({ filters }, signal)
-
-    if (data === null || data.mainData === null) {
-        return
-    }
-
-    relatedEntityData['deviceType'] = Object.values(data.mainData).map((deviceType: any) => ({
-        id: deviceType.id,
-        label: deviceType.name
-    }))
-}
-
-async function searchItamUsers(query: string, signal: AbortSignal): Promise<void> {
-    const filters = {
-        firstname: [query],
-        lastname: [query],
-        email: [query]
-    }
-
-    const data = await ItamUserService.findItamUsers({ filters }, signal)
-
-    if (data === null || data.mainData === null) {
-        return
-    }
-
-    relatedEntityData['itamUser'] = Object.values(data.mainData).map((itamUser: any) => ({
-        id: itamUser.id,
-        label: itamUser.firstname + ' ' + itamUser.lastname
-    }))
-}
-
-async function searchMerchants(query: string, signal: AbortSignal): Promise<void> {
-    const filters = { name: [query] }
-
-    const data = await MerchantService.findMerchants({ filters }, signal)
-
-    if (data === null || data.mainData === null) {
-        return
-    }
-
-    relatedEntityData['merchant'] = Object.values(data.mainData).map((merchant: any) => ({
-        id: merchant.id,
-        label: merchant.name
-    }))
-}
-
-async function searchPositions(query: string, signal: AbortSignal): Promise<void> {
-    const filters = { name: [query] }
-    const include = { location: {} }
-
-    const data = await PositionService.findPositions({ filters, include }, signal)
-
-    if (data === null || data.result === null || data.result.mainData === null) {
-        return
-    }
-
-    relatedEntityData['position'] = Object.values(data.result.mainData).map((position: any) => {
-        const location = data.result.relations?.location?.[position.locationId]
-        const label = location ? `${location.name} - ${position.name}` : position.name
-        
-        return {
-            id: position.id,
-            label
-        }
-    })
-
-    // Sort list alphabetically ASC.
-    relatedEntityData['position'].sort((a, b) => a.label.localeCompare(b.label))
-}
-
-async function searchQuantityUnits(query: string, signal: AbortSignal): Promise<void> {
-    const filters = { name: [query] }
-    const data = await QuantityUnitService.findQuantityUnits({ filters }, signal)
-
-    if (data === null || data.mainData === null) {
-        return
-    }
-
-    relatedEntityData['quantityUnit'] = Object.values(data.mainData).map((quantityUnit: any) => ({
-        id: quantityUnit.id,
-        label: quantityUnit.name
-    }))
-}
-
-async function searchManufacturers(_query: string, _signal: AbortSignal): Promise<void> {
-    const data = await fetchAllManufacturers({})
-
-    relatedEntityData['manufacturer'] = Object.values(data.manufacturers).map((manufacturer: any) => ({
-        id: manufacturer.id,
-        label: manufacturer.name
-    }))
-}
-
-async function searchLocations(_query: string, _signal: AbortSignal): Promise<void> {
-    const data = await fetchAllLocations({})
-
-    relatedEntityData['location'] = Object.values(data.locations).map((location: any) => ({
-        id: location.id,
-        label: location.name
-    }))
-}
-
-const relatedEntitySearchFns = {
-    deviceStatus: searchDeviceStatis,
-    deviceType: searchDeviceTypes,
-    itamUser: searchItamUsers,
-    location: searchLocations,
-    manufacturer: searchManufacturers,
-    merchant: searchMerchants,
-    position: searchPositions,
-    quantityUnit: searchQuantityUnits,
-}
-
-function onEditDevice(device: Device) {
-    window.location.href = generateDeviceUrl(device)
-}
-
-async function onDeleteDevice(device: Device) {
-    deviceToDelete.value = device
-}
-
-function onFilterBtn() {
-    clearData()
-    listState.page = 1;
-    reloadDevices()
-}
-
-function openModal(dataRow: any, type: 'barcode' | 'image' | 'qrCode') {
-    modalState.dataRow = dataRow
-    modalState.type = type
-}
-
-function previewImage(dataRow: any) {
-    previewState.dataRow = dataRow
-    previewState.type = 'image'
-}
-
-function qrCodeCellMounted(el: HTMLElement, dataRow: any) {
-    const onEnter = previewQrCode.bind(null, dataRow)
-    const onClick = openModal.bind(null, dataRow, 'qrCode')
-
-    el.addEventListener('mouseenter', onEnter)
-    el.addEventListener('click', onClick)
-
-    return () => {
-        el.removeEventListener('mouseenter', onEnter)
-        el.removeEventListener('click', onClick)
-    }
-}
-
-function previewBarcode(dataRow: any) {
-    previewState.dataRow = dataRow
-    previewState.type = 'barcode'
-    return true
-}
-
-function previewQrCode(dataRow: any) {
-    previewState.dataRow = dataRow
-    previewState.type = 'qrCode'
-    return true
-}
-
-function previewClear(_dataRow: any) {
-    previewState.dataRow = null
-}
-
 async function reloadDevices() {
     loading.value = true
     await loadDevices()
-
     loading.value = false
 }
 
-// Must be defined after the eventHandlers (previewQrCode, previewImage, rowLeave),
+
+function relationColumn(key: string, label: string) {
+    const entity = relatedEntityOf(key)
+
+    return {
+        type: 'relatedEntity',
+        relatedEntityName: entity,
+        key,
+        entityDetailUrlCallback: (idOrRow: any) => detailUrl(entity, idOrRow),
+        label,
+        sortable: true,
+        cellMounted: defaultCellMounted,
+        colLinkCallback: onGetDeviceUrl,
+    }
+}
+
+function relationFilter(key: string, label: string) {
+    return {
+        type: 'relatedEntity',
+        relatedEntityName: relatedEntityOf(key),
+        key,
+        label,
+    }
+}
+
+// Must be defined after the event handlers (previewQrCode, previewImage, ...),
 // because const with ref/reactive depend on the order of the declaration.
 const staticColumns = [
     { type: 'image', label: t('sfxonitam', 'Image'), key: 'imageFileId', cellMounted: imageCellMounted, },
     { type: 'qrCode', label: t('sfxonitam', 'QR-Code'), key: '#qrcode', valueKey: 'id', cellMounted: qrCodeCellMounted, },
     { type: 'barcode', label: t('sfxonitam', 'Barcode'), key: '#barcode', valueKey: 'name', prefix: 'DEV', cellMounted: barcodeMounted, },
     { key: 'name', label: t('sfxonitam', 'Name'), sortable: true, cellMounted: defaultCellMounted, colLinkCallback: onGetDeviceUrl, },
-    { type: 'quantityWithUnit', relatedEntityName: 'quantityUnit', key: 'quantity', relatedEntityKey: 'quantityUnitId', entityDetailUrlCallback: getQuantityUnitDetailLink, label: t('sfxonitam', 'Quantity'), sortable: true, cellMounted: defaultCellMounted, colLinkCallback: onGetDeviceUrl, },
-    { type: 'relatedEntity', relatedEntityName: 'deviceStatus', key: 'deviceStatusId', entityDetailUrlCallback: getDeviceStatusDetailLink, label: t('sfxonitam', 'DeviceStatus'), sortable: true, cellMounted: defaultCellMounted, colLinkCallback: onGetDeviceUrl, },
-    { type: 'relatedEntity', relatedEntityName: 'position', key: 'positionId', entityDetailUrlCallback: getPositionDetailLink, label: t('sfxonitam', 'Position'), sortable: true, cellMounted: defaultCellMounted, colLinkCallback: onGetDeviceUrl, },
-    { type: 'relatedEntity', relatedEntityName: 'deviceType', key: 'deviceTypeId', entityDetailUrlCallback: getDeviceTypeDetailLink, label: t('sfxonitam', 'DeviceType'), sortable: true, cellMounted: defaultCellMounted, colLinkCallback: onGetDeviceUrl, },
-    { type: 'relatedEntity', relatedEntityName: 'itamUser', key: 'itamUserId', entityDetailUrlCallback: getItamUserDetailLink, label: t('sfxonitam', 'User'), sortable: true, cellMounted: defaultCellMounted, colLinkCallback: onGetDeviceUrl, },
+    {
+        type: 'quantityWithUnit',
+        relatedEntityName: relatedEntityOf('quantityUnitId'),
+        key: 'quantity',
+        relatedEntityKey: 'quantityUnitId',
+        entityDetailUrlCallback: (idOrRow: any) => detailUrl(relatedEntityOf('quantityUnitId'), idOrRow),
+        label: t('sfxonitam', 'Quantity'),
+        sortable: true,
+        cellMounted: defaultCellMounted,
+        colLinkCallback: onGetDeviceUrl,
+    },
+    relationColumn('deviceStatusId', t('sfxonitam', 'DeviceStatus')),
+    relationColumn('positionId', t('sfxonitam', 'Position')),
+    relationColumn('deviceTypeId', t('sfxonitam', 'DeviceType')),
+    relationColumn('itamUserId', t('sfxonitam', 'User')),
     { key: 'serialNumber', label: t('sfxonitam', 'Serial Number'), sortable: true, cellMounted: defaultCellMounted, colLinkCallback: onGetDeviceUrl, },
     { key: 'serialNumber2', label: t('sfxonitam', 'Serial Number 2'), sortable: true, cellMounted: defaultCellMounted, colLinkCallback: onGetDeviceUrl, },
     { key: 'assetNumber', label: t('sfxonitam', 'Asset Number'), sortable: true, cellMounted: defaultCellMounted, colLinkCallback: onGetDeviceUrl, },
-    { type: 'relatedEntity', relatedEntityName: 'merchant', key: 'merchantId', entityDetailUrlCallback: getMerchantDetailLink, label: t('sfxonitam', 'Merchant'), sortable: true, cellMounted: defaultCellMounted, colLinkCallback: onGetDeviceUrl, },
+    relationColumn('merchantId', t('sfxonitam', 'Merchant')),
     { key: 'invoiceNumber', label: t('sfxonitam', 'Invoice-Number'), sortable: true, cellMounted: defaultCellMounted, colLinkCallback: onGetDeviceUrl, },
     { type: 'date', key: 'purchaseDate', label: t('sfxonitam', 'Purchase Date'), sortable: true, cellMounted: defaultCellMounted, colLinkCallback: onGetDeviceUrl, },
     { type: 'actions', key: '#actions', label: t('sfxonitam', 'Action'), sortable: false, cellMounted: defaultCellMounted, },
 ]
-const customFieldColumns = computed(() => (props.customFields as any[]).map(cf => ({
+
+const customFieldColumns = computed(() => (props.customFields as any[]).map((cf) => ({
     key: customFieldColumnKey(cf.technicalName),
     label: cf.name,
     sortable: false,
@@ -481,24 +323,24 @@ const { orderedColumns, showModal, onSaved } = useColumnOrder('device-list', col
 const filterFields = [
     { key: 'name', label: t('sfxonitam', 'Name'), },
     { type: 'numericFromTo', key: 'quantity', labelFrom: t('sfxonitam', 'Quantity from'), labelTo: t('sfxonitam', 'Quantity to'), },
-    { type: 'relatedEntity', relatedEntityName: 'quantityUnit', key: 'quantityUnitId', label: t('sfxonitam', 'QuantityUnit'), },
-    { type: 'relatedEntity', relatedEntityName: 'deviceStatus', key: 'deviceStatusId', label: t('sfxonitam', 'DeviceStatus'), },
-    { type: 'relatedEntity', relatedEntityName: 'position', key: 'positionId', label: t('sfxonitam', 'Position'), },
-    { type: 'relatedEntity', relatedEntityName: 'location', key: 'locationId', label: t('sfxonitam', 'Location'), },
-    { type: 'relatedEntity', relatedEntityName: 'deviceType', key: 'deviceTypeId', label: t('sfxonitam', 'DeviceType'), },
-    { type: 'relatedEntity', relatedEntityName: 'manufacturer', key: 'manufacturerId', label: t('sfxonitam', 'Manufacturer'), },
-    { type: 'relatedEntity', relatedEntityName: 'itamUser', key: 'itamUserId', label: t('sfxonitam', 'User'), },
+    relationFilter('quantityUnitId', t('sfxonitam', 'QuantityUnit')),
+    relationFilter('deviceStatusId', t('sfxonitam', 'DeviceStatus')),
+    relationFilter('positionId', t('sfxonitam', 'Position')),
+    relationFilter('locationId', t('sfxonitam', 'Location')),
+    relationFilter('deviceTypeId', t('sfxonitam', 'DeviceType')),
+    relationFilter('manufacturerId', t('sfxonitam', 'Manufacturer')),
+    relationFilter('itamUserId', t('sfxonitam', 'User')),
     { key: 'serialNumber', label: t('sfxonitam', 'Serial Number'), },
     { key: 'serialNumber2', label: t('sfxonitam', 'Serial Number 2'), },
     { key: 'assetNumber', label: t('sfxonitam', 'Asset Number'), },
-    { type: 'relatedEntity', relatedEntityName: 'merchant', key: 'merchantId', label: t('sfxonitam', 'Merchant'), },
+    relationFilter('merchantId', t('sfxonitam', 'Merchant')),
     { key: 'invoiceNumber', label: t('sfxonitam', 'Invoice Number'), },
     { type: 'date', key: 'purchaseDate', labelFrom: t('sfxonitam', 'Purchase Date from'), labelTo: t('sfxonitam', 'Purchase Date to') },
 ]
 
 watch(
     () => [listState.orderBy, listState.orderDirection, listState.page, listState.limit],
-    loadDevices
+    loadDevices,
 )
 
 onMounted(async () => {
@@ -518,8 +360,8 @@ onUnmounted(() => {
         <NcAppNavigation>
             <NcAppNavigationList :class="$style.sfxonNavList">
                 <NcAppNavigationNew
-                :text="t('sfxonitam', 'Add device')"
-                @click="addItem"
+                    :text="t('sfxonitam', 'Add device')"
+                    @click="addItem"
                 >
                     <template #icon>
                         <NcIconSvgWrapper :path="mdiPlus" :size="20" />
@@ -626,29 +468,29 @@ onUnmounted(() => {
 
     <NcDialog
         v-if="deviceToDelete"
-        :name="t('sfxonitam', 'Gerät löschen')"
+        :name="t('sfxonitam', 'Delete device')"
         :open="!!deviceToDelete"
         @closing="cancelDelete"
     >
         <p>
-            {{ t('sfxonitam', `Delete entry „${deviceToDelete.name}"?`) }}
+            {{ t('sfxonitam', 'Delete entry „{name}"?', { name: deviceToDelete.name }) }}
         </p>
 
         <template #actions>
-            <NcButton 
-                variant="tertiary" 
+            <NcButton
+                variant="tertiary"
                 @click="cancelDelete">
-                {{ t('sfxonitam', 'Abbrechen') }}
+                {{ t('sfxonitam', 'Cancel') }}
             </NcButton>
             <NcButton
                 variant="error"
                 @click="confirmDelete">
-                {{ t('sfxonitam', 'Löschen') }}
+                {{ t('sfxonitam', 'Delete') }}
             </NcButton>
         </template>
     </NcDialog>
 
-    <!-- Image or QR-Code Dialog/Popup. -->
+    <!-- Image, barcode or QR-Code dialog/popup. -->
     <NcDialog
         v-if="modalState.dataRow"
         :name="modalState.dataRow?.name ?? ''"
@@ -687,6 +529,7 @@ onUnmounted(() => {
             </template>
         </div>
     </NcDialog>
+
     <SfxonColumnOrderModal
         :active-columns="orderedColumns"
         :all-columns="columns"
@@ -695,30 +538,13 @@ onUnmounted(() => {
         list-id="device-list"
         @saved="onSaved"
         :show="showModal"
-     />
+    />
 </template>
 
 <style module>
-    .sfxonItamHeader {
-        align-items: center;
-        display: flex;
-        flex: 0 0;
-        font-weight: bold;
-        gap: var(--default-grid-baseline);
-        margin-block: var(--app-navigation-padding, 4px);
-        margin-inline: calc(var(--default-clickable-area) + 2*var(--app-navigation-padding, 4px)) var(--app-navigation-padding, 4px);
-        max-width: 100%;
-        min-height: 32px;
-    }
-
     .sfxonItamContent {
         padding-left: 12px;
         padding-right: 12px;
-    }
-
-    .sfxonItamHeaderSidebarToggleBtn {
-        margin-left: auto;
-        margin-right: 0;
     }
 
     .sfxonNavList {

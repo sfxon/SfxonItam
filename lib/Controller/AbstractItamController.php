@@ -101,6 +101,11 @@ abstract class AbstractItamController extends Controller
             $this->listViewSettingsService->getUiState($listId)
         );
 
+        $this->initialState->provideInitialState(
+            'entityMeta',
+            $this->entityRegistry->describeAll()
+        );
+
         return new TemplateResponse(
             Application::APP_ID,
             $this->entityDefinition->templateDir() . '/list',

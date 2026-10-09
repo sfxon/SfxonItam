@@ -31,6 +31,8 @@ final class ItamUserDefinition extends EntityDefinition
                     'Cannot delete. There are still devices assigned to this itamUser.'
                 ),
             ],
+            labelFields: ['firstname', 'lastname'],
+            searchFields: ['firstname', 'lastname', 'email'],
         );
     }
 }

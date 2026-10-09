@@ -58,4 +58,28 @@ final class EntityRegistry
 
         return $result;
     }
+
+    public function describeAll(): array
+    {
+        $result = [];
+        foreach (array_keys(self::MAP) as $key) {
+            $result[$key] = $this->describe($key);
+        }
+
+        return $result;
+    }
+
+    private function describe(string $key): array
+    {
+        $target = $this->get($key);
+
+        return [
+            'entity' => $target->key,
+            'route' => $target->route,
+            'labelFields' => $target->labelFields,
+            'labelParent' => $target->labelParent,
+            'labelSeparator' => $target->labelSeparator,
+            'searchFields' => $target->searchFields ?: $target->labelFields,
+        ];
+    }
 }

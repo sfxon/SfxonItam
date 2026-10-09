@@ -3,7 +3,7 @@
 namespace OCA\SfxonItam\Definition;
 
 /**
- * Describes how an entity is handled in the UI/API (route, list, template, custom field group, deletion rules). 
+ * Describes how an entity is handled in the UI/API (route, list, template, custom field group, deletion rules).
  * Knowledge regarding tables and columns remains in lib/Db.
  */
 abstract class EntityDefinition
@@ -37,6 +37,10 @@ abstract class EntityDefinition
      * @param list<string> $expectedFields
      * @param array<string, mixed> $listIncludes
      * @param list<DeleteGuard> $deleteGuards
+     * @param list<string> $labelFields Properties joined to the display label, e.g. ['firstname', 'lastname']
+     * @param string|null $labelParent Relation whose name is prefixed to the label, e.g. 'location' for positions
+     * @param string $labelSeparator Separator between parent name and own label
+     * @param list<string> $searchFields Properties searched in dropdowns (default: $labelFields)
      */
     public function __construct(
         public readonly string $key,
@@ -50,6 +54,10 @@ abstract class EntityDefinition
         public readonly string $defaultOrderBy = 'name',
         public readonly array $listIncludes = [],
         public readonly array $deleteGuards = [],
+        public readonly array $labelFields = ['name'],
+        public readonly ?string $labelParent = null,
+        public readonly string $labelSeparator = ' - ',
+        public readonly array $searchFields = [],
     ) {
     }
 
