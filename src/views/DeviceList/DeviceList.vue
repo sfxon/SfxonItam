@@ -139,7 +139,7 @@ function cancelDelete() {
 
 async function confirmDelete() {
     if (!deviceToDelete.value) {
-    	return
+        return
     }
     await deleteDevice(deviceToDelete.value.id)
     deviceToDelete.value = null
@@ -154,8 +154,12 @@ function onFilterBtn() {
         ]),
     )
     devices.value = []
-    listState.page = 1
-    reloadDevices()
+
+    if (listState.page === 1) {
+        reloadDevices()
+    } else {
+        listState.page = 1
+    }
 }
 
 function openModal(dataRow: any, type: 'barcode' | 'image' | 'qrCode') {
@@ -248,8 +252,12 @@ async function loadDevices() {
 
 async function reloadDevices() {
     loading.value = true
-    await loadDevices()
-    loading.value = false
+
+    try {
+        await loadDevices()
+    } finally {
+        loading.value = false
+    }
 }
 
 
@@ -340,7 +348,7 @@ const filterFields = [
 
 watch(
     () => [listState.orderBy, listState.orderDirection, listState.page, listState.limit],
-    loadDevices,
+    () => reloadDevices(),
 )
 
 onMounted(async () => {
