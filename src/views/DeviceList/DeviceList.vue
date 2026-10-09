@@ -326,7 +326,7 @@ const customFieldColumns = computed(() => (props.customFields as any[]).map((cf)
 
 const columns = computed(() => [...staticColumns, ...customFieldColumns.value])
 const defaultColumns = ['imageFileId', '#qrcode', '#barcode', 'name', '#actions']
-const { orderedColumns, showModal, onSaved } = useColumnOrder('device-list', columns.value, defaultColumns)
+const { orderedColumns, showModal, onSaved } = useColumnOrder(VIEW_ID, columns.value, defaultColumns)
 
 const filterFields = [
     { key: 'name', label: t('sfxonitam', 'Name'), },
@@ -543,7 +543,7 @@ onUnmounted(() => {
         :all-columns="columns"
         @close="showModal = false"
         :default-columns="defaultColumns"
-        list-id="device-list"
+        :list-id="VIEW_ID"
         @saved="onSaved"
         :show="showModal"
     />
