@@ -32,10 +32,6 @@ import type { RelationMeta } from '@/composables/useRelatedEntities'
 import { saveUiState } from '@/services/ListViewSettings'
 
 const props = defineProps({
-    entityDefinitions: {
-        type: Object,
-        required: true,
-    },
     customFields: {
         type: Array,
         default: () => [],
