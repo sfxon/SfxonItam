@@ -1,211 +1,149 @@
 <script setup lang="ts">
-import { ref, watch, onMounted } from 'vue'
-import NcAppContent from '@nextcloud/vue/components/NcAppContent'
-import NcAppNavigation from '@nextcloud/vue/components/NcAppNavigation'
-import NcAppNavigationList from '@nextcloud/vue/components/NcAppNavigationList'
-import NcAppNavigationNew from '@nextcloud/vue/components/NcAppNavigationNew'
-import NcContent from '@nextcloud/vue/components/NcContent'
-import { mdiPlus } from '@mdi/js'
-import NcIconSvgWrapper from '@nextcloud/vue/components/NcIconSvgWrapper'
-import NcLoadingIcon from '@nextcloud/vue/components/NcLoadingIcon'
-import { translate as t } from '@nextcloud/l10n'
+import { computed } from 'vue'
 import { generateUrl } from '@nextcloud/router'
-import SfxonMainNavigation from '@/components/SfxonMainNavigation'
+import { translate as t } from '@nextcloud/l10n'
+import { deleteMerchant, fetchMerchants } from '@/services/MerchantService'
+import type { Merchant } from '@/services/MerchantService'
+import SfxonColumnOrderModal from '@/components/SfxonColumnOrderModal'
+import SfxonConfirmDialog from '@/components/SfxonConfirmDialog'
+import SfxonFilterBar from '@/components/SfxonFilterBar'
+import SfxonListLayout from '@/components/SfxonListLayout'
 import SfxonPagination from '@/components/SfxonPagination'
 import SfxonTable from '@/components/SfxonTable'
-import { useListState } from '@/composables/useListState'
-import { fetchMerchants, deleteMerchant } from '@/services/MerchantService'
-import type { Merchant } from '@/services/MerchantService'
-import NcDialog from '@nextcloud/vue/components/NcDialog'
-import NcButton from '@nextcloud/vue/components/NcButton'
-import NcNoteCard from '@nextcloud/vue/components/NcNoteCard'
+import type { BreadcrumbItem } from '@/components/SfxonItamHeaderBc'
+import { createListColumns } from '@/composables/createListColumns'
+import { customFieldColumns, withCustomFieldValues } from '@/composables/customFieldColumns'
+import type { CustomField } from '@/composables/customFieldColumns'
+import { useColumnOrder } from '@/composables/useColumnOrder'
+import { useEntityList } from '@/composables/useEntityList'
+import { useListViewUiState } from '@/composables/useListViewUiState'
+import type { CellMounted } from '@/composables/useMediaPreview'
 
-const loading = ref(false)
-const error = ref<string | null>(null)
-const merchants = ref<Merchant[]>([])
-const listState = useListState()
-const merchantToDelete = ref<Merchant | null>(null)
-const generalError = ref<string>('')
-
-const columns = [
-    { key: 'name', label: t('sfxonitam', 'Name'), sortable: true },
-    { key: 'comment', label: t('sfxonitam', 'Beschreibung/Kommentare'), sortable: false },
-    { type: 'actions', label: t('sfxonitam', 'Aktion'), sortable: false },
-];
+const props = defineProps<{
+    entityDefinitions?: Record<string, unknown>
+    customFields?: CustomField[]
+}>()
+const VIEW_ID = 'merchant-list'
+const merchantUrl = (merchant: Pick<Merchant, 'id'>) => generateUrl(`/apps/sfxonitam/merchant/detail?merchantId=${merchant.id}`)
+const breadcrumbs = computed<BreadcrumbItem[]>(() => [{
+    label: t('sfxonitam', 'Merchant'),
+    link: generateUrl('/apps/sfxonitam/merchant'),
+    forceIconText: true,
+    disableDrop: true,
+}])
+const { filterSidebarOpen } = useListViewUiState(VIEW_ID)
+const {
+    listState,
+    items: merchants,
+    loading,
+    error,
+    filterValues,
+    applyFilters,
+    itemToDelete: merchantToDelete,
+    requestDelete,
+    cancelDelete,
+    confirmDelete,
+    relatedEntityData,
+    relatedEntitySearchFns,
+    relatedEntityOf,
+    detailUrl,
+} = useEntityList<Merchant>({
+    fetch: fetchMerchants,
+    remove: deleteMerchant,
+    mapRow: (row) => withCustomFieldValues(row, props.customFields ?? []),
+    errorMessage: t('sfxonitam', 'Error on loading merchants.'),
+})
+const deleteMessage = computed(() => t('sfxonitam', 'Delete entry „{name}"?', {
+    name: merchantToDelete.value?.name ?? '',
+}))
+const noopCellMounted: CellMounted = () => () => {}
+const col = createListColumns({
+    relatedEntityOf,
+    detailUrl,
+    rowUrl: merchantUrl,
+    cellMounted: noopCellMounted,
+})
+const staticColumns = [
+    col.text('name', t('sfxonitam', 'Name')),
+    col.text('comment', t('sfxonitam', 'Comment'), { sortable: false }),
+    col.actions(t('sfxonitam', 'Action')),
+]
+const columns = computed(() => [
+    ...staticColumns,
+    ...customFieldColumns(props.customFields ?? [], noopCellMounted, merchantUrl),
+])
+const defaultColumns = ['name', 'comment', '#actions']
+const { orderedColumns, showModal: columnOrderModalOpen, onSaved } = useColumnOrder(VIEW_ID, columns.value, defaultColumns)
+const filterFields = [
+    col.textFilter('name', t('sfxonitam', 'Name')),
+]
 
 function addItem() {
     window.location.href = generateUrl('/apps/sfxonitam/merchant/detail')
 }
 
-function cancelDelete() {
-    merchantToDelete.value = null
-}
-
-async function confirmDelete() {
-    if (!merchantToDelete.value) {
-        return
-    }
-
-    try {
-        let result = await deleteMerchant(merchantToDelete.value.id)
-    } catch (e: any) {
-        merchantToDelete.value = null
-
-        if(e.response && e.response.status == 422) {
-            generalError.value = e.response.data.errors.join('<br>')
-        } else {
-            generalError.value = 'An error occured on delete.'
-        }
-        return;
-    }
-
-    merchantToDelete.value = null
-    await loadMerchants()
-}
-
-async function loadMerchants() {
-    generalError.value = ''
-    loading.value = true
-    error.value = null
-
-    try {
-        const data = await fetchMerchants({
-            orderBy: listState.orderBy,
-            direction: listState.orderDirection,
-            page: listState.page,
-            limit: listState.limit
-        })
-        merchants.value = data.data.mainData
-        listState.total = data.total
-    } catch (e) {
-        error.value = t('sfxonitam', 'Error while loading Merchants.')
-    } finally {
-        loading.value = false
-    }
-}
-
 function onEditMerchant(merchant: Merchant) {
-    window.location.href = generateUrl(`/apps/sfxonitam/merchant/detail?merchantId=${merchant.id}`);
+    window.location.href = merchantUrl(merchant)
 }
-
-async function onDeleteMerchant(merchant: Merchant) {
-    generalError.value = ''
-    merchantToDelete.value = merchant
-}
-
-watch(() => listState, loadMerchants, { deep: true })
-onMounted(loadMerchants)
 </script>
 
 <template>
-    <NcContent app-name="sfxonitam">
-        <NcAppNavigation>
-            <NcAppNavigationList>
-                <NcAppNavigationNew
-                :text="t('sfxonitam', 'Neuer Händler')"
-                @click="addItem"
-                >
-                    <template #icon>
-                        <NcIconSvgWrapper :path="mdiPlus" :size="20" />
-                    </template>
-                </NcAppNavigationNew>
-            </NcAppNavigationList>
-            <SfxonMainNavigation :currentPage="'merchants'" />
-        </NcAppNavigation>
-
-        <!-- Inhaltsbereich -->
-        <NcAppContent>
-            <div :class="$style.sfxonItamHeader">
-                Händler-Verwaltung
-            </div>
-
-            <!-- Allgemeine Fehlermeldung -->
-            <div :class="$style.sfxonItamGeneralError">
-                <NcNoteCard
-                    v-if="generalError"
-                    type="error"
-                >
-                    {{ generalError }}
-                </NcNoteCard>
-            </div>
-
-            <div :class="$style.sfxonItamContent">
-                <!-- Fehler -->
-                <div v-if="error" class="merchants-list__error">{{ error }}</div>
-
-                <!-- Ladeindikator -->
-                <div v-else-if="loading" class="merchants-list__loading">
-                    <NcLoadingIcon :size="32" />
-                </div>
-
-                <!-- Leerer Zustand -->
-                <div v-else-if="merchants.length === 0" class="merchants-list__empty">
-                    {{ t('sfxonitam', 'Keine Händler gefunden.') }}
-                </div>
-
-                <SfxonTable
-                    :columns="columns"
-                    :dataArray="merchants"
-                    :dataArrayKey="'id'"
-                    :deleteCallback="onDeleteMerchant"
-                    :editCallback="onEditMerchant"
-                    :listState="listState"
-                    :orderByCallback="listState.sortBy"
-                />
-
-                <SfxonPagination
-                    v-model:page="listState.page"
-                    :listState="listState"
-                />
-            </div>
-        </NcAppContent>
-    </NcContent>
-
-    <NcDialog
-        v-if="merchantToDelete"
-        :name="t('sfxonitam', 'Händler löschen')"
-        :open="!!merchantToDelete"
-        @closing="cancelDelete"
+    <SfxonListLayout
+        v-model:filterSidebarOpen="filterSidebarOpen"
+        :breadcrumbs="breadcrumbs"
+        current-page="merchants"
+        :add-label="t('sfxonitam', 'Add Merchant')"
+        :loading="loading"
+        :error="error"
+        @add="addItem"
+        @edit-columns="columnOrderModalOpen = true"
     >
-        <p>
-            {{ t('sfxonitam', `Händler „${merchantToDelete.name}" wirklich löschen?`) }}
-        </p>
+        <SfxonTable
+            :columns="orderedColumns"
+            :dataArray="merchants"
+            :dataArrayKey="'id'"
+            :deleteCallback="requestDelete"
+            :editCallback="onEditMerchant"
+            :listState="listState"
+            :orderByCallback="listState.sortBy"
+            :relatedEntityData="relatedEntityData"
+        />
 
-        <template #actions>
-            <NcButton 
-                variant="tertiary" 
-                @click="cancelDelete">
-                {{ t('sfxonitam', 'Abbrechen') }}
-            </NcButton>
-            <NcButton
-                variant="error"
-                @click="confirmDelete">
-                {{ t('sfxonitam', 'Löschen') }}
-            </NcButton>
+        <SfxonPagination
+            v-model:page="listState.page"
+            :listState="listState"
+        />
+
+        <template #filter>
+            <SfxonFilterBar
+                v-model:filterSidebarOpen="filterSidebarOpen"
+                :filterFields="filterFields"
+                :filterValues="filterValues"
+                :onFilterBtn="applyFilters"
+                :relatedEntityData="relatedEntityData"
+                :relatedEntitySearchFns="relatedEntitySearchFns"
+            />
         </template>
-    </NcDialog>
+
+        <template #dialogs>
+            <SfxonConfirmDialog
+                :open="!!merchantToDelete"
+                :title="t('sfxonitam', 'Delete merchant')"
+                :message="deleteMessage"
+                :confirm-label="t('sfxonitam', 'Delete')"
+                @confirm="confirmDelete"
+                @cancel="cancelDelete"
+            />
+
+            <SfxonColumnOrderModal
+                :active-columns="orderedColumns"
+                :all-columns="columns"
+                :default-columns="defaultColumns"
+                :list-id="VIEW_ID"
+                :show="columnOrderModalOpen"
+                @close="columnOrderModalOpen = false"
+                @saved="onSaved"
+            />
+        </template>
+    </SfxonListLayout>
 </template>
-
-<style module>
-    .sfxonItamHeader {
-        align-items: center;
-        display: flex;
-        flex: 0 0;
-        font-weight: bold;
-        gap: var(--default-grid-baseline);
-        margin-block: var(--app-navigation-padding, 4px);
-        margin-inline: calc(var(--default-clickable-area) + 2*var(--app-navigation-padding, 4px)) var(--app-navigation-padding, 4px);
-        max-width: 100%;
-        min-height: 32px;
-    }
-
-    .sfxonItamContent {
-        padding-left: 12px;
-        padding-right: 12px;
-    }
-
-    .sfxonItamGeneralError {
-        padding-left: 12px;
-        padding-right: 12px;
-    }
-</style>
