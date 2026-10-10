@@ -1,4 +1,5 @@
 import { onMounted, reactive, ref, watch } from 'vue'
+import type { Ref } from 'vue'
 import { loadState } from '@nextcloud/initial-state'
 import { useListState } from '@/composables/useListState'
 import { useRelatedEntities } from '@/composables/useRelatedEntities'
@@ -31,12 +32,19 @@ export interface EntityListOptions<T extends { id: any }> {
 
 export function useEntityList<T extends { id: any }>(options: EntityListOptions<T>) {
     const listState = useListState()
-    const items = ref<T[]>([]) as { value: T[] }
+    const items = ref([]) as Ref<T[]>
     const loading = ref(false)
     const error = ref<string | null>(null)
-    const itemToDelete = ref<T | null>(null) as { value: T | null }
+    const itemToDelete = ref(null) as Ref<T | null>
     const filterValues = reactive<Record<string, { value: any }[]>>({})
     const appliedFilters = ref<Record<string, any[]>>({})
+
+    function snapshotFilters() {
+        appliedFilters.value = Object.fromEntries(
+            Object.entries(filterValues).map(([key, entries]) => [key, entries.map((e) => e.value)]),
+        )
+    }
+
     const entityMeta = loadState<Record<string, RelationMeta>>('sfxonitam', 'entityMeta', {})
     const {
         data: relatedEntityData,
@@ -83,14 +91,13 @@ export function useEntityList<T extends { id: any }>(options: EntityListOptions<
     }
 
     function applyFilters() {
-        appliedFilters.value = Object.fromEntries(
-            Object.entries(filterValues).map(([key, entries]) => [key, entries.map((e) => e.value)]),
-        )
+        snapshotFilters()
         items.value = []
 
         if (listState.page === 1) {
             reload()
         } else {
+            loading.value = true
             listState.page = 1
         }
     }
@@ -114,10 +121,19 @@ export function useEntityList<T extends { id: any }>(options: EntityListOptions<
 
     watch(
         () => [listState.orderBy, listState.orderDirection, listState.page, listState.limit],
-        () => reload(),
+        async () => {
+            try {
+                await load()
+            } finally {
+                loading.value = false
+            }
+        },
     )
 
-    onMounted(reload)
+    onMounted(() => {
+        snapshotFilters()
+        reload()
+    })
 
     return {
         listState,
