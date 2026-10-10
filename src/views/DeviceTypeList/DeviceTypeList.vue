@@ -1,237 +1,151 @@
 <script setup lang="ts">
-import { reactive, ref, watch, onMounted } from 'vue'
-import NcAppContent from '@nextcloud/vue/components/NcAppContent'
-import NcAppNavigation from '@nextcloud/vue/components/NcAppNavigation'
-import NcAppNavigationList from '@nextcloud/vue/components/NcAppNavigationList'
-import NcAppNavigationNew from '@nextcloud/vue/components/NcAppNavigationNew'
-import NcContent from '@nextcloud/vue/components/NcContent'
-import { mdiPlus } from '@mdi/js'
-import NcIconSvgWrapper from '@nextcloud/vue/components/NcIconSvgWrapper'
-import NcLoadingIcon from '@nextcloud/vue/components/NcLoadingIcon'
-import { translate as t } from '@nextcloud/l10n'
+import { computed } from 'vue'
 import { generateUrl } from '@nextcloud/router'
-import SfxonMainNavigation from '@/components/SfxonMainNavigation'
+import { translate as t } from '@nextcloud/l10n'
+import { deleteDeviceType, fetchDeviceTypes } from '@/services/DeviceTypeService'
+import type { DeviceType } from '@/services/DeviceTypeService'
+import SfxonColumnOrderModal from '@/components/SfxonColumnOrderModal'
+import SfxonConfirmDialog from '@/components/SfxonConfirmDialog'
+import SfxonFilterBar from '@/components/SfxonFilterBar'
+import SfxonListLayout from '@/components/SfxonListLayout'
 import SfxonPagination from '@/components/SfxonPagination'
 import SfxonTable from '@/components/SfxonTable'
-import { useListState } from '@/composables/useListState'
-import { fetchDeviceTypes, deleteDeviceType } from '@/services/DeviceTypeService'
-import type { DeviceType } from '@/services/DeviceTypeService'
-import NcDialog from '@nextcloud/vue/components/NcDialog'
-import NcButton from '@nextcloud/vue/components/NcButton'
-import NcNoteCard from '@nextcloud/vue/components/NcNoteCard'
-import { fetchAllManufacturers } from '@/services/ManufacturerService'
+import type { BreadcrumbItem } from '@/components/SfxonItamHeaderBc'
+import { createListColumns } from '@/composables/createListColumns'
+import { customFieldColumns, withCustomFieldValues } from '@/composables/customFieldColumns'
+import type { CustomField } from '@/composables/customFieldColumns'
+import { useColumnOrder } from '@/composables/useColumnOrder'
+import { useEntityList } from '@/composables/useEntityList'
+import { useListViewUiState } from '@/composables/useListViewUiState'
+import type { CellMounted } from '@/composables/useMediaPreview'
 
-const loading = ref(false)
-const manufacturersLoading = ref(false)
-const error = ref<string | null>(null)
-const deviceTypes = ref<DeviceType[]>([])
-const relatedEntityData = reactive({ manufacturer: [] as { id: number; label: string }[] });
-const listState = useListState()
-const deviceTypeToDelete = ref<DeviceType | null>(null)
-const generalError = ref<string>('')
-
-const columns = [
-    { key: 'name', label: t('sfxonitam', 'Name'), sortable: true },
-    { type: 'relatedEntity', relatedEntityName: 'manufacturer', key: 'manufacturerId', label: t('sfxonitam', 'Manufacturer'), sortable: false },
-    { key: 'comment', label: t('sfxonitam', 'Beschreibung/Kommentare'), sortable: false },
-    { type: 'actions', label: t('sfxonitam', 'Aktion'), sortable: false },
-];
+const props = defineProps<{
+    entityDefinitions?: Record<string, unknown>
+    customFields?: CustomField[]
+}>()
+const VIEW_ID = 'device-type-list'
+const deviceTypeUrl = (deviceType: Pick<DeviceType, 'id'>) => generateUrl(`/apps/sfxonitam/device-type/detail?deviceTypeId=${deviceType.id}`)
+const breadcrumbs = computed<BreadcrumbItem[]>(() => [{
+    label: t('sfxonitam', 'Device Type'),
+    link: generateUrl('/apps/sfxonitam/device-type'),
+    forceIconText: true,
+    disableDrop: true,
+}])
+const { filterSidebarOpen } = useListViewUiState(VIEW_ID)
+const {
+    listState,
+    items: deviceTypes,
+    loading,
+    error,
+    filterValues,
+    applyFilters,
+    itemToDelete: deviceTypeToDelete,
+    requestDelete,
+    cancelDelete,
+    confirmDelete,
+    relatedEntityData,
+    relatedEntitySearchFns,
+    relatedEntityOf,
+    detailUrl,
+} = useEntityList<DeviceType>({
+    fetch: fetchDeviceTypes,
+    remove: deleteDeviceType,
+    mapRow: (row) => withCustomFieldValues(row, props.customFields ?? []),
+    errorMessage: t('sfxonitam', 'Error on loading device types.'),
+})
+const deleteMessage = computed(() => t('sfxonitam', 'Delete entry „{name}"?', {
+    name: deviceTypeToDelete.value?.name ?? '',
+}))
+const noopCellMounted: CellMounted = () => () => {}
+const col = createListColumns({
+    relatedEntityOf,
+    detailUrl,
+    rowUrl: deviceTypeUrl,
+    cellMounted: noopCellMounted,
+})
+const staticColumns = [
+    col.text('name', t('sfxonitam', 'Name')),
+    col.relation('manufacturerId', t('sfxonitam', 'Manufacturer')),
+    col.text('comment', t('sfxonitam', 'Comment'), { sortable: false }),
+    col.actions(t('sfxonitam', 'Action')),
+]
+const columns = computed(() => [
+    ...staticColumns,
+    ...customFieldColumns(props.customFields ?? [], noopCellMounted, deviceTypeUrl),
+])
+const defaultColumns = ['name', 'manufacturerId', '#actions']
+const { orderedColumns, showModal: columnOrderModalOpen, onSaved } = useColumnOrder(VIEW_ID, columns.value, defaultColumns)
+const filterFields = [
+    col.textFilter('name', t('sfxonitam', 'Name')),
+    col.relationFilter('manufacturerId', t('sfxonitam', 'Manufacturer')),
+]
 
 function addItem() {
     window.location.href = generateUrl('/apps/sfxonitam/device-type/detail')
 }
 
-function cancelDelete() {
-    deviceTypeToDelete.value = null
-}
-
-async function confirmDelete() {
-    if (!deviceTypeToDelete.value) {
-        return
-    }
-
-    try {
-        let result = await deleteDeviceType(deviceTypeToDelete.value.id)
-    } catch (e: any) {
-        deviceTypeToDelete.value = null
-
-        if(e.response && e.response.status == 422) {
-            generalError.value = e.response.data.errors.join('<br>')
-        } else {
-            generalError.value = 'Es ist ein Fehler beim Löschen aufgetreten.'
-        }
-        return;
-    }
-
-    deviceTypeToDelete.value = null
-    await loadDeviceTypes()
-}
-
-async function loadDeviceTypes() {
-    generalError.value = ''
-    loading.value = true
-    error.value = null
-
-    try {
-        const data = await fetchDeviceTypes({
-            orderBy: listState.orderBy,
-            direction: listState.orderDirection,
-            page: listState.page,
-            limit: listState.limit
-        })
-        deviceTypes.value = data.data.mainData
-        listState.total = data.total
-    } catch (e) {
-        error.value = t('sfxonitam', 'Error while loading Device Type.')
-    } finally {
-        loading.value = false
-    }
-}
-
-async function loadManufacturers() {
-    manufacturersLoading.value = true;
-
-    try {
-        const data = await fetchAllManufacturers({})
-
-        relatedEntityData['manufacturer'] = Object.values(data.manufacturers).map((deviceStatus: any) => ({
-            id: deviceStatus.id,
-            label: deviceStatus.name
-        }))
-    } catch(e) {
-        console.error('Fehler beim Laden der Device-Stati', e)
-    } finally {
-        manufacturersLoading.value = false
-    }
-}
-
 function onEditDeviceType(deviceType: DeviceType) {
-    window.location.href = generateUrl(`/apps/sfxonitam/device-type/detail?deviceTypeId=${deviceType.id}`);
+    window.location.href = deviceTypeUrl(deviceType)
 }
-
-async function onDeleteDeviceType(deviceType: DeviceType) {
-    generalError.value = ''
-    deviceTypeToDelete.value = deviceType
-}
-
-watch(() => listState, loadDeviceTypes, { deep: true })
-
-onMounted(async () => {
-    // await loadManufacturers()
-    await loadDeviceTypes()
-})
 </script>
 
 <template>
-    <NcContent app-name="sfxonitam">
-        <NcAppNavigation>
-            <NcAppNavigationList>
-                <NcAppNavigationNew
-                :text="t('sfxonitam', 'Neuer Geräte-Typ')"
-                @click="addItem"
-                >
-                    <template #icon>
-                        <NcIconSvgWrapper :path="mdiPlus" :size="20" />
-                    </template>
-                </NcAppNavigationNew>
-            </NcAppNavigationList>
-            <SfxonMainNavigation :currentPage="'deviceTypes'" />
-        </NcAppNavigation>
-
-        <!-- Inhaltsbereich -->
-        <NcAppContent>
-            <div :class="$style.sfxonItamHeader">
-                Geräte-Typ-Verwaltung
-            </div>
-
-            <!-- Allgemeine Fehlermeldung -->
-            <div :class="$style.sfxonItamGeneralError">
-                <NcNoteCard
-                    v-if="generalError"
-                    type="error"
-                >
-                    {{ generalError }}
-                </NcNoteCard>
-            </div>
-
-            <div :class="$style.sfxonItamContent">
-                <!-- Fehler -->
-                <div v-if="error" class="deviceTypes-list__error">{{ error }}</div>
-
-                <!-- Ladeindikator -->
-                <div v-else-if="loading" class="deviceTypes-list__loading">
-                    <NcLoadingIcon :size="32" />
-                </div>
-
-                <!-- Leerer Zustand -->
-                <div v-else-if="deviceTypes.length === 0" class="deviceTypes-list__empty">
-                    {{ t('sfxonitam', 'Keine Geräte-Typen gefunden.') }}
-                </div>
-
-                <SfxonTable
-                    :columns="columns"
-                    :dataArray="deviceTypes"
-                    :dataArrayKey="'id'"
-                    :deleteCallback="onDeleteDeviceType"
-                    :editCallback="onEditDeviceType"
-                    :listState="listState"
-                    :orderByCallback="listState.sortBy"
-                    :relatedEntityData="relatedEntityData"
-                />
-
-                <SfxonPagination
-                    v-model:page="listState.page"
-                    :listState="listState"
-                />
-            </div>
-        </NcAppContent>
-    </NcContent>
-
-    <NcDialog
-        v-if="deviceTypeToDelete"
-        :name="t('sfxonitam', 'Geräte-Typ löschen')"
-        :open="!!deviceTypeToDelete"
-        @closing="cancelDelete"
+    <SfxonListLayout
+        v-model:filterSidebarOpen="filterSidebarOpen"
+        :breadcrumbs="breadcrumbs"
+        current-page="deviceTypes"
+        :add-label="t('sfxonitam', 'Add Device Type')"
+        :loading="loading"
+        :error="error"
+        @add="addItem"
+        @edit-columns="columnOrderModalOpen = true"
     >
-        <p>
-            {{ t('sfxonitam', `Geräte-Typ „${deviceTypeToDelete.name}" wirklich löschen?`) }}
-        </p>
+        <SfxonTable
+            :columns="orderedColumns"
+            :dataArray="deviceTypes"
+            :dataArrayKey="'id'"
+            :deleteCallback="requestDelete"
+            :editCallback="onEditDeviceType"
+            :listState="listState"
+            :orderByCallback="listState.sortBy"
+            :relatedEntityData="relatedEntityData"
+        />
 
-        <template #actions>
-            <NcButton 
-                variant="tertiary" 
-                @click="cancelDelete">
-                {{ t('sfxonitam', 'Abbrechen') }}
-            </NcButton>
-            <NcButton
-                variant="error"
-                @click="confirmDelete">
-                {{ t('sfxonitam', 'Löschen') }}
-            </NcButton>
+        <SfxonPagination
+            v-model:page="listState.page"
+            :listState="listState"
+        />
+
+        <template #filter>
+            <SfxonFilterBar
+                v-model:filterSidebarOpen="filterSidebarOpen"
+                :filterFields="filterFields"
+                :filterValues="filterValues"
+                :onFilterBtn="applyFilters"
+                :relatedEntityData="relatedEntityData"
+                :relatedEntitySearchFns="relatedEntitySearchFns"
+            />
         </template>
-    </NcDialog>
+
+        <template #dialogs>
+            <SfxonConfirmDialog
+                :open="!!deviceTypeToDelete"
+                :title="t('sfxonitam', 'Delete device type')"
+                :message="deleteMessage"
+                :confirm-label="t('sfxonitam', 'Delete')"
+                @confirm="confirmDelete"
+                @cancel="cancelDelete"
+            />
+
+            <SfxonColumnOrderModal
+                :active-columns="orderedColumns"
+                :all-columns="columns"
+                :default-columns="defaultColumns"
+                :list-id="VIEW_ID"
+                :show="columnOrderModalOpen"
+                @close="columnOrderModalOpen = false"
+                @saved="onSaved"
+            />
+        </template>
+    </SfxonListLayout>
 </template>
-
-<style module>
-    .sfxonItamHeader {
-        align-items: center;
-        display: flex;
-        flex: 0 0;
-        font-weight: bold;
-        gap: var(--default-grid-baseline);
-        margin-block: var(--app-navigation-padding, 4px);
-        margin-inline: calc(var(--default-clickable-area) + 2*var(--app-navigation-padding, 4px)) var(--app-navigation-padding, 4px);
-        max-width: 100%;
-        min-height: 32px;
-    }
-
-    .sfxonItamContent {
-        padding-left: 12px;
-        padding-right: 12px;
-    }
-
-    .sfxonItamGeneralError {
-        padding-left: 12px;
-        padding-right: 12px;
-    }
-</style>

@@ -59,7 +59,7 @@ class DeviceType extends Entity implements \JsonSerializable, ISortableEntity {
             ],
             [
                 'defaultValue' => NULL,
-                'filterType' => 'none',
+                'filterType' => 'in',
                 'foreignEntity' => 'manufacturer',
                 'index' => true,
                 'label' => 'Manufacturer',

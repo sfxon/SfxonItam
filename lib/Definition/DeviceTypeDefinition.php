@@ -21,6 +21,7 @@ final class DeviceTypeDefinition extends EntityDefinition
             mapperClass: DeviceTypeMapper::class,
             serviceClass: DeviceTypeService::class,
             customFieldGroup: 'sfxon_device_type',
+            listIncludes: ['manufacturer' => []],
             expectedFields: ['name', 'manufacturerId', 'comment'],
             deleteGuards: [
                 new DeleteGuard(
