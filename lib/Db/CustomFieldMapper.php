@@ -194,7 +194,7 @@ class CustomFieldMapper extends QBMapper {
         ?array $filters = null,
         ?array $include = null
     ): array {
-        $allowedColumns = [ 'name', 'position' ];
+        $allowedColumns = [ 'name', 'position', 'technicalName' ];
         $col = in_array($orderBy, $allowedColumns, true) ? $orderBy : 'name';
         $col = strtolower(preg_replace('/[A-Z]/', '_$0', $col)); // Convert camel case to snake case.
         $dir = strtoupper($direction) === 'DESC' ? 'DESC' : 'ASC';
@@ -246,6 +246,7 @@ class CustomFieldMapper extends QBMapper {
 
             match ($key) {
                 'name' => $this->applyLikeFilter($qb, $this->tableNameAlias . '.name', $values),
+                'technicalName' => $this->applyLikeFilter($qb, $this->tableNameAlias . '.technical_name', $values),
                 default => null,
             };
         }

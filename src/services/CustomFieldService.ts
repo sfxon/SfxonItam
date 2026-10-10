@@ -6,10 +6,17 @@ export interface CustomField {
     id: number
     name: string | null
     comment: string
+    technicalName?: string | null
+    customFieldGroupId?: number | string | null
+    type?: string | null
+    position?: number
 }
 
 export interface CustomFieldListResponse {
-    position: CustomField[]
+    result: {
+        mainData: CustomField[]
+        relations: Record<string, unknown>
+    }
     total: number
     page: number
     limit: number
@@ -26,6 +33,7 @@ export interface ListParams {
     direction: string
     page: number
     limit: number
+    filters?: Record<string, any>
 }
 
 export async function createCustomField(payload: CustomFieldPayload) {
@@ -42,8 +50,22 @@ export async function fetchCustomField(id: number): Promise<CustomField> {
     return data
 }
 
-export async function fetchCustomFields(customFieldGroupId: number, params: ListParams): Promise<CustomFieldListResponse> {
-    const { data } = await axios.get(generateUrl('/apps/sfxonitam/custom-field/list?customFieldGroupId=' + customFieldGroupId), { params })
+export async function fetchCustomFields(customFieldGroupId: number, options: ListParams): Promise<CustomFieldListResponse> {
+    const params = new URLSearchParams()
+    params.append('customFieldGroupId', String(customFieldGroupId))
+    params.append('orderBy', options.orderBy)
+    params.append('direction', options.direction)
+    params.append('page', String(options.page))
+    params.append('limit', String(options.limit))
+
+    // PHP expects filters[key][]=value.
+    for (const [key, values] of Object.entries(options.filters ?? {})) {
+        for (const value of values) {
+            params.append(`filters[${key}][]`, value)
+        }
+    }
+
+    const { data } = await axios.get(generateUrl('/apps/sfxonitam/custom-field/list') + '?' + params.toString())
     return data
 }
 

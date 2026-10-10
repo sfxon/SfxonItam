@@ -11,17 +11,23 @@ use OCP\AppFramework\Http\Attribute\OpenAPI;
 use OCP\AppFramework\Http\DataResponse;
 use OCP\AppFramework\Http\TemplateResponse;
 use OCP\AppFramework\Http\JSONResponse;
+use OCP\AppFramework\Services\IInitialState;
 use OCP\IRequest;
 use OCA\SfxonItam\AppInfo\Application;
 use OCA\SfxonItam\Db\CustomFieldGroupMapper;
 use OCA\SfxonItam\Db\CustomFieldMapper;
 use OCA\SfxonItam\ForeignKey\ForeignKeyRegistry;
 use OCA\SfxonItam\Service\CustomFieldService;
+use OCA\SfxonItam\Service\ListViewSettingsService;
 
 /**
  * @psalm-suppress UnusedClass
  */
 class CustomFieldController extends Controller {
+    private const LIST_ID = 'custom-field-list';
+    private const ALLOWED_LIMITS = [10, 25, 50, 100, 500, 1000];
+    private const DEFAULT_LIMIT = 25;
+
     private array $expectedFields = [
         'customFieldGroupId',
         'technicalName',
@@ -48,7 +54,9 @@ class CustomFieldController extends Controller {
         IRequest $request,
         private CustomFieldGroupMapper $customFieldGroupMapper,
         private CustomFieldMapper $customFieldMapper,
-        private readonly CustomFieldService $customFieldService,)
+        private readonly CustomFieldService $customFieldService,
+        private readonly IInitialState $initialState,
+        private readonly ListViewSettingsService $listViewSettingsService,)
     {
         parent::__construct($appName, $request);
     }
@@ -60,20 +68,11 @@ class CustomFieldController extends Controller {
         try {
             $this->customFieldService->deleteCustomField($id);
         } catch (DoesNotExistException) {
-            return new JSONResponse(
-                ['status' => 'error', 'message' => 'Custom field not found'],
-                Http::STATUS_NOT_FOUND
-            );
+            return $this->jsonError('Custom field not found', Http::STATUS_NOT_FOUND);
         } catch (\InvalidArgumentException $e) {
-            return new JSONResponse(
-                ['status' => 'error', 'message' => $e->getMessage()],
-                Http::STATUS_BAD_REQUEST
-            );
+            return $this->jsonError($e->getMessage(), Http::STATUS_BAD_REQUEST);
         } catch (\Exception $e) {
-            return new JSONResponse(
-                ['status' => 'error', 'message' => 'Unexpected error: ' . $e->getMessage()],
-                Http::STATUS_INTERNAL_SERVER_ERROR
-            );
+            return $this->jsonError('Unexpected error: ' . $e->getMessage(), Http::STATUS_INTERNAL_SERVER_ERROR);
         }
 
         return new JSONResponse(['status' => 'ok']);
@@ -85,21 +84,12 @@ class CustomFieldController extends Controller {
     public function detail(): TemplateResponse
     {
         $customFieldId = (int)$this->request->getParam('customFieldId');
-        $customFieldGroupId = 0;
 
-        if($customFieldId === 0) {
-            $customFieldGroupId = (int)$this->request->getParam('customFieldGroupId');
-        } else {
-            $customField = $this->customFieldMapper->findById(intval($customFieldId));
-            $customFieldGroupId = $customField->getCustomFieldGroupId();
-        }
+        $customFieldGroupId = $customFieldId === 0
+            ? (int)$this->request->getParam('customFieldGroupId')
+            : (int)$this->customFieldMapper->findById($customFieldId)->getCustomFieldGroupId();
 
-        $customFieldGroup = $this->customFieldGroupMapper->findById(intval($customFieldGroupId));
-
-        if ($customFieldGroup === null) {
-            throw new \Exception('Custom field group not found.');
-        }
-
+        $customFieldGroup = $this->requireGroup($customFieldGroupId);
         $foreignKeyTargets = [];
 
         foreach (ForeignKeyRegistry::getTargets() as $key => $target) {
@@ -127,11 +117,16 @@ class CustomFieldController extends Controller {
     public function index(): TemplateResponse
     {
         $customFieldGroupId = (int)$this->request->getParam('customFieldGroupId');
-        $customFieldGroup = $this->customFieldGroupMapper->findById(intval($customFieldGroupId));
+        $customFieldGroup = $this->requireGroup($customFieldGroupId);
 
-        if ($customFieldGroup === null) {
-            throw new \Exception('Custom field group not found.');
-        }
+        $this->initialState->provideInitialState(
+            'listViewColumnOrder-' . self::LIST_ID,
+            $this->listViewSettingsService->getColumnOrder(self::LIST_ID)
+        );
+        $this->initialState->provideInitialState(
+            'listViewUiState-' . self::LIST_ID,
+            $this->listViewSettingsService->getUiState(self::LIST_ID)
+        );
 
         return new TemplateResponse(
             Application::APP_ID,
@@ -147,24 +142,25 @@ class CustomFieldController extends Controller {
         string $orderBy = 'name',
         string $direction = 'ASC',
         int $page = 1,
-        int $limit = 20): JSONResponse
+        int $limit = self::DEFAULT_LIMIT,
+        ?array $filters = null): JSONResponse
     {
         $customFieldGroupId = (int)$this->request->getParam('customFieldGroupId');
-        $existing = $this->customFieldGroupMapper->findById(intval($customFieldGroupId));
+        $this->requireGroup($customFieldGroupId);
 
-        if ($existing === null) {
-            throw new \Exception('Custom field group not found.');
+        if (!in_array($limit, self::ALLOWED_LIMITS, true)) {
+            $limit = self::DEFAULT_LIMIT;
         }
 
-        $offset = ($page - 1) * $limit;
-        $result = $this->customFieldMapper->searchPaged($customFieldGroupId, $orderBy, $direction, $limit, $offset);
-        $total   = $this->customFieldMapper->countAll($customFieldGroupId);
+        $offset = (max($page, 1) - 1) * $limit;
+        $result = $this->customFieldMapper->searchPaged($customFieldGroupId, $orderBy, $direction, $limit, $offset, $filters);
+        $total = $this->customFieldMapper->countAll($customFieldGroupId, $filters);
 
         return new JSONResponse([
             'result' => $result,
-            'total'   => $total,
-            'page'    => $page,
-            'limit'   => $limit,
+            'total' => $total,
+            'page' => $page,
+            'limit' => $limit,
         ]);
     }
 
@@ -175,25 +171,16 @@ class CustomFieldController extends Controller {
         $data = $this->customFieldService->getDataFromRequest($this->request->getParams(), $this->expectedFields);
         $result = $this->customFieldService->validateData($data);
 
-        if($result['valid'] === false) {
-            return new DataResponse([
-                'status' => 'error',
-                'errors' => $result['errors']
-            ], Http::STATUS_UNPROCESSABLE_ENTITY); // Returns error 422
+        if ($result['valid'] === false) {
+            return $this->validationError($result['errors']);
         }
 
         try {
             $customField = $this->customFieldService->createCustomField($data);
         } catch (\InvalidArgumentException $e) {
-            return new DataResponse([
-                'status'  => 'error',
-                'message' => $e->getMessage(),
-            ], Http::STATUS_BAD_REQUEST);
+            return $this->dataError($e->getMessage(), Http::STATUS_BAD_REQUEST);
         } catch (\Exception $e) {
-            return new DataResponse([
-                'status'  => 'error',
-                'message' => 'Unexpected error: ' . $e->getMessage(),
-            ], Http::STATUS_INTERNAL_SERVER_ERROR);
+            return $this->dataError('Unexpected error: ' . $e->getMessage(), Http::STATUS_INTERNAL_SERVER_ERROR);
         }
 
         return new DataResponse([
@@ -205,14 +192,12 @@ class CustomFieldController extends Controller {
     #[NoCSRFRequired]
     #[OpenAPI(OpenAPI::SCOPE_IGNORE)]
     #[FrontpageRoute(verb: 'GET', url: '/custom-field/{id}')]
-    public function show(int $id): JSONResponse {
+    public function show(int $id): JSONResponse
+    {
         try {
             $customField = $this->customFieldMapper->findById($id);
         } catch (DoesNotExistException) {
-            return new JSONResponse(
-                ['status' => 'error', 'message' => 'Custom field not found'],
-                Http::STATUS_NOT_FOUND
-            );
+            return $this->jsonError('Custom field not found', Http::STATUS_NOT_FOUND);
         }
 
         return new JSONResponse($customField->jsonSerialize());
@@ -222,28 +207,19 @@ class CustomFieldController extends Controller {
     #[FrontpageRoute(verb: 'PUT', url: '/custom-field/{id}')]
     public function update(int $id): DataResponse
     {
-        // Return 404 if entry was not found.
         try {
             $customField = $this->customFieldMapper->findById($id);
-        } catch (\OCP\AppFramework\Db\DoesNotExistException) {
-            return new DataResponse(
-                ['status' => 'error', 'message' => 'Device not found'],
-                Http::STATUS_NOT_FOUND
-            );
+        } catch (DoesNotExistException) {
+            return $this->dataError('Custom field not found', Http::STATUS_NOT_FOUND);
         }
 
         $data = $this->customFieldService->getDataFromRequest($this->request->getParams(), $this->expectedUpdateFields);
-
         $result = $this->customFieldService->validateUpdateData($data, $id);
 
         if ($result['valid'] === false) {
-            return new DataResponse([
-                'status' => 'error',
-                'errors' => $result['errors'],
-            ], Http::STATUS_UNPROCESSABLE_ENTITY);
+            return $this->validationError($result['errors']);
         }
 
-        // Update fields.
         $customField->setComment($this->request->getParam('comment') ?? '');
         $customField->setEditable(
             filter_var($this->request->getParam('editable'), FILTER_VALIDATE_BOOLEAN)
@@ -255,7 +231,36 @@ class CustomFieldController extends Controller {
 
         return new DataResponse([
             'status' => 'ok',
-            'id'     => $updated->getId(),
+            'id' => $updated->getId(),
         ]);
+    }
+
+    /**
+     * @return \OCP\AppFramework\Db\Entity
+     */
+    private function requireGroup(int $customFieldGroupId)
+    {
+        $customFieldGroup = $this->customFieldGroupMapper->findById($customFieldGroupId);
+
+        if ($customFieldGroup === null) {
+            throw new \Exception('Custom field group not found.');
+        }
+
+        return $customFieldGroup;
+    }
+
+    private function jsonError(string $message, int $status): JSONResponse
+    {
+        return new JSONResponse(['status' => 'error', 'message' => $message], $status);
+    }
+
+    private function dataError(string $message, int $status): DataResponse
+    {
+        return new DataResponse(['status' => 'error', 'message' => $message], $status);
+    }
+
+    private function validationError(array $errors): DataResponse
+    {
+        return new DataResponse(['status' => 'error', 'errors' => $errors], Http::STATUS_UNPROCESSABLE_ENTITY);
     }
 }

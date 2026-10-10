@@ -1,257 +1,159 @@
 <script setup lang="ts">
-import { reactive, ref, watch, onMounted } from 'vue'
-import NcAppContent from '@nextcloud/vue/components/NcAppContent'
-import NcAppNavigation from '@nextcloud/vue/components/NcAppNavigation'
-import NcAppNavigationList from '@nextcloud/vue/components/NcAppNavigationList'
-import NcAppNavigationNew from '@nextcloud/vue/components/NcAppNavigationNew'
-import NcBreadcrumbs from '@nextcloud/vue/components/NcBreadcrumbs'
-import NcBreadcrumb from '@nextcloud/vue/components/NcBreadcrumb'
-import NcContent from '@nextcloud/vue/components/NcContent'
-import { mdiPlus } from '@mdi/js'
-import NcIconSvgWrapper from '@nextcloud/vue/components/NcIconSvgWrapper'
-import NcLoadingIcon from '@nextcloud/vue/components/NcLoadingIcon'
-import { translate as t } from '@nextcloud/l10n'
+import { computed } from 'vue'
 import { generateUrl } from '@nextcloud/router'
-import SfxonMainNavigation from '@/components/SfxonMainNavigation'
+import { translate as t } from '@nextcloud/l10n'
+import { deleteCustomField, fetchCustomFields } from '@/services/CustomFieldService'
+import type { CustomField } from '@/services/CustomFieldService'
+import SfxonColumnOrderModal from '@/components/SfxonColumnOrderModal'
+import SfxonConfirmDialog from '@/components/SfxonConfirmDialog'
+import SfxonFilterBar from '@/components/SfxonFilterBar'
+import SfxonListLayout from '@/components/SfxonListLayout'
 import SfxonPagination from '@/components/SfxonPagination'
 import SfxonTable from '@/components/SfxonTable'
-import { useListState } from '@/composables/useListState'
-import { fetchCustomFields, deleteCustomField } from '@/services/CustomFieldService'
-import type { CustomField } from '@/services/CustomFieldService'
-import NcDialog from '@nextcloud/vue/components/NcDialog'
-import NcButton from '@nextcloud/vue/components/NcButton'
-import NcNoteCard from '@nextcloud/vue/components/NcNoteCard'
+import type { BreadcrumbItem } from '@/components/SfxonItamHeaderBc'
+import { createListColumns } from '@/composables/createListColumns'
+import { useColumnOrder } from '@/composables/useColumnOrder'
+import { useEntityList } from '@/composables/useEntityList'
+import { useListViewUiState } from '@/composables/useListViewUiState'
+import type { CellMounted } from '@/composables/useMediaPreview'
 
-const customFields   = ref<CustomField[]>([])
-const customFieldToDelete = ref<CustomField | null>(null)
-const columns = [
-    { key: 'name', label: t('sfxonitam', 'Name'), sortable: true },
-    { key: 'technicalName', label: t('sfxonitam', 'Technical Name'), sortable: true },
-    { key: 'comment', label: t('sfxonitam', 'Comment'), sortable: false },
-    { type: 'actions', label: t('sfxonitam', 'Action'), sortable: false },
-]
-const error = ref<string | null>(null)
-const filterValues = reactive<Record<string, { value: any }[]>>({})
-const generalError = ref<string>('')
-const listState = useListState()
-const loading = ref(false)
-const props = defineProps({
-    customFieldGroupId: {
-        type: Number,
-        required: true,
+const props = defineProps<{
+    customFieldGroupId: number
+    customFieldGroup?: { name?: string }
+}>()
+const VIEW_ID = 'custom-field-list'
+const customFieldUrl = (customField: Pick<CustomField, 'id'>) => generateUrl(`/apps/sfxonitam/custom-field/detail?customFieldId=${customField.id}`)
+const groupName = computed(() => props.customFieldGroup?.name ?? '')
+const breadcrumbs = computed<BreadcrumbItem[]>(() => [
+    {
+        label: t('sfxonitam', 'Custom Field Sets'),
+        link: generateUrl('/apps/sfxonitam/custom-field-group/'),
+        forceIconText: true,
+        disableDrop: true,
     },
-    customFieldGroup: {
-        type: Object,
-        default: () => ({})
-    }
-})
-const relatedEntityData = reactive({ 'location': {}, });
+    {
+        label: t('sfxonitam', 'Custom Fields for {name}', { name: groupName.value }),
+        link: '#',
+        forceIconText: true,
+        disableDrop: true,
+    },
+])
+const { filterSidebarOpen } = useListViewUiState(VIEW_ID)
+const {
+    listState,
+    items: customFields,
+    loading,
+    error,
+    filterValues,
+    applyFilters,
+    itemToDelete: customFieldToDelete,
+    requestDelete,
+    cancelDelete,
+    confirmDelete,
+    relatedEntityData,
+    relatedEntitySearchFns,
+    relatedEntityOf,
+    detailUrl,
+} = useEntityList<CustomField>({
+    // The group id comes from the page, so it is bound here.
+    // fetchCustomFields returns { result: { mainData, relations }, total }, the list expects { data: ..., total }.
+    fetch: async (params) => {
+        const response = await fetchCustomFields(props.customFieldGroupId, params)
 
-console.log('test: ', props)
+        return { ...response, data: response.result }
+    },
+    remove: deleteCustomField,
+    errorMessage: t('sfxonitam', 'Error on loading custom fields.'),
+})
+const deleteMessage = computed(() => t('sfxonitam', 'Delete custom field „{name}"?', {
+    name: customFieldToDelete.value?.name ?? '',
+}))
+const noopCellMounted: CellMounted = () => () => {}
+const col = createListColumns({
+    relatedEntityOf,
+    detailUrl,
+    rowUrl: customFieldUrl,
+    cellMounted: noopCellMounted,
+})
+const columns = [
+    col.text('name', t('sfxonitam', 'Name')),
+    col.text('technicalName', t('sfxonitam', 'Technical Name')),
+    col.text('comment', t('sfxonitam', 'Comment'), { sortable: false }),
+    col.actions(t('sfxonitam', 'Action')),
+]
+const defaultColumns = ['name', 'technicalName', 'comment', '#actions']
+const { orderedColumns, showModal: columnOrderModalOpen, onSaved } = useColumnOrder(VIEW_ID, columns, defaultColumns)
+const filterFields = [
+    col.textFilter('name', t('sfxonitam', 'Name')),
+    col.textFilter('technicalName', t('sfxonitam', 'Technical Name')),
+]
 
 function addItem() {
     window.location.href = generateUrl('/apps/sfxonitam/custom-field/detail?customFieldGroupId=' + props.customFieldGroupId)
 }
 
-function cancelDelete() {
-    customFieldToDelete.value = null
-}
-
-async function confirmDelete() {
-    if (!customFieldToDelete.value) {
-        return
-    }
-
-    try {
-        let result = await deleteCustomField(customFieldToDelete.value.id)
-    } catch (e: any) {
-        customFieldToDelete.value = null
-
-        if(e.response && e.response.status == 422) {
-            generalError.value = e.response.data.errors.join('<br>')
-        } else {
-            generalError.value = 'Could not delete custom field.'
-        }
-        return;
-    }
-
-    customFieldToDelete.value = null
-    await loadCustomFields()
-}
-
-async function loadCustomFields() {
-    error.value = null
-
-    try {
-        const filters = Object.fromEntries(
-            Object.entries(filterValues).map(([key, entries]) => [
-                key,
-                entries.map(e => e.value)
-            ])
-        )
-
-        const data = await fetchCustomFields(
-            props.customFieldGroupId,
-            {
-                orderBy: listState.orderBy,
-                direction: listState.orderDirection,
-                page: listState.page,
-                limit: listState.limit,
-                filters
-            }
-        )
-
-        customFields.value = data.result.mainData
-        listState.total = data.total
-    } catch (e) {
-        error.value = t('sfxonitam', 'Error loading Custom Field Groups.')
-        console.log(e)
-    }
-}
-
 function onEditCustomField(customField: CustomField) {
-    window.location.href = generateUrl(`/apps/sfxonitam/custom-field/detail?customFieldId=${customField.id}`);
+    window.location.href = customFieldUrl(customField)
 }
-
-async function onDeleteCustomField(customField: CustomField) {
-    generalError.value = ''
-    customFieldToDelete.value = customField
-}
-
-watch(() => listState, loadCustomFields, { deep: true })
-
-onMounted(async () => {
-    await loadCustomFields()
-})
 </script>
 
 <template>
-    <NcContent app-name="sfxonitam">
-        <NcAppNavigation>
-            <NcAppNavigationList>
-                <NcAppNavigationNew
-                :text="t('sfxonitam', 'Create Custom Field')"
-                @click="addItem"
-                >
-                    <template #icon>
-                        <NcIconSvgWrapper :path="mdiPlus" :size="20" />
-                    </template>
-                </NcAppNavigationNew>
-            </NcAppNavigationList>
-            <SfxonMainNavigation :currentPage="'customFields'" />
-        </NcAppNavigation>
-
-        <!-- Inhaltsbereich -->
-        <NcAppContent>
-            <div :class="$style.sfxonItamHeader">
-                <NcBreadcrumbs root-icon="">
-                    <NcBreadcrumb
-                        :disable-drop="true"
-                        :force-icon-text="true"
-                        :href="generateUrl('/apps/sfxonitam/custom-field-group/')"
-                        name="Custom Field Sets"
-                        title="Custom Field Sets" />
-                    <NcBreadcrumb
-                        :disable-drop="true"
-                        :force-icon-text="true"
-                        href="#"
-                        :name="'Custom Fields for ' + props.customFieldGroup.name"
-                        :title="'Custom Fields for ' + props.customFieldGroup.name" />
-                </NcBreadcrumbs>
-            </div>
-
-            <!-- Allgemeine Fehlermeldung -->
-            <div :class="$style.sfxonItamGeneralError">
-                <NcNoteCard
-                    v-if="generalError"
-                    type="error"
-                >
-                    {{ generalError }}
-                </NcNoteCard>
-            </div>
-
-            <div :class="$style.sfxonItamContent">
-                <!-- Fehler -->
-                <div v-if="error" class="custom-fields-list__error">{{ error }}</div>
-
-                <!-- Ladeindikator -->
-                <div v-else-if="loading" class="custom-fields-list__loading">
-                    <NcLoadingIcon :size="32" />
-                </div>
-
-                <!-- Leerer Zustand -->
-                <div v-else-if="customFields.length === 0" class="custom-fields-list__empty">
-                    {{ t('sfxonitam', 'No custom fields found.') }}
-                </div>
-
-                <SfxonTable
-                    :columns="columns"
-                    :dataArray="customFields"
-                    :dataArrayKey="'id'"
-                    :deleteCallback="onDeleteCustomField"
-                    :editCallback="onEditCustomField"
-                    :listState="listState"
-                    :orderByCallback="listState.sortBy"
-                    :relatedEntityData="relatedEntityData"
-                />
-
-                <SfxonPagination
-                    v-model:page="listState.page"
-                    :listState="listState"
-                />
-            </div>
-        </NcAppContent>
-    </NcContent>
-
-    <NcDialog
-        v-if="customFieldToDelete"
-        :name="t('sfxonitam', 'Position löschen')"
-        :open="!!customFieldToDelete"
-        @closing="cancelDelete"
+    <SfxonListLayout
+        v-model:filterSidebarOpen="filterSidebarOpen"
+        :breadcrumbs="breadcrumbs"
+        current-page="customFields"
+        :add-label="t('sfxonitam', 'Create Custom Field')"
+        :loading="loading"
+        :error="error"
+        @add="addItem"
+        @edit-columns="columnOrderModalOpen = true"
     >
-        <p>
-            {{ t('sfxonitam', `Delete custom field „${customFieldToDelete.name}"?`) }}
-        </p>
+        <SfxonTable
+            :columns="orderedColumns"
+            :dataArray="customFields"
+            :dataArrayKey="'id'"
+            :deleteCallback="requestDelete"
+            :editCallback="onEditCustomField"
+            :listState="listState"
+            :orderByCallback="listState.sortBy"
+            :relatedEntityData="relatedEntityData"
+        />
 
-        <template #actions>
-            <NcButton 
-                variant="tertiary" 
-                @click="cancelDelete">
-                {{ t('sfxonitam', 'Cancel') }}
-            </NcButton>
-            <NcButton
-                variant="error"
-                @click="confirmDelete">
-                {{ t('sfxonitam', 'Confirm delete') }}
-            </NcButton>
+        <SfxonPagination
+            v-model:page="listState.page"
+            :listState="listState"
+        />
+
+        <template #filter>
+            <SfxonFilterBar
+                v-model:filterSidebarOpen="filterSidebarOpen"
+                :filterFields="filterFields"
+                :filterValues="filterValues"
+                :onFilterBtn="applyFilters"
+                :relatedEntityData="relatedEntityData"
+                :relatedEntitySearchFns="relatedEntitySearchFns"
+            />
         </template>
-    </NcDialog>
+
+        <template #dialogs>
+            <SfxonConfirmDialog
+                :open="!!customFieldToDelete"
+                :title="t('sfxonitam', 'Delete custom field')"
+                :message="deleteMessage"
+                :confirm-label="t('sfxonitam', 'Delete')"
+                @confirm="confirmDelete"
+                @cancel="cancelDelete"
+            />
+
+            <SfxonColumnOrderModal
+                :active-columns="orderedColumns"
+                :all-columns="columns"
+                :default-columns="defaultColumns"
+                :list-id="VIEW_ID"
+                :show="columnOrderModalOpen"
+                @close="columnOrderModalOpen = false"
+                @saved="onSaved"
+            />
+        </template>
+    </SfxonListLayout>
 </template>
-
-<style module>
-    .sfxonItamHeader {
-        align-items: start;
-        display: flex;
-        flex: 0 0;
-        font-weight: bold;
-        gap: var(--default-grid-baseline);
-        margin-block: var(--app-navigation-padding, 4px);
-        margin-inline: calc(var(--default-clickable-area) + 2*var(--app-navigation-padding, 4px)) var(--app-navigation-padding, 4px);
-        max-width: 100%;
-        min-height: 32px;
-    }
-
-    .sfxonItamHeader :global(.breadcrumb) {
-        align-items: start!important;
-    }
-
-    .sfxonItamContent {
-        padding-left: 12px;
-        padding-right: 12px;
-    }
-
-    .sfxonItamGeneralError {
-        padding-left: 12px;
-        padding-right: 12px;
-    }
-</style>
