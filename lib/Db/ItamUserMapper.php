@@ -24,6 +24,9 @@ class ItamUserMapper extends EntityMapperAbstract
         parent::__construct($db, self::TABLE_NAME, ItamUser::class);
     }
 
+    protected function getDefaultSortField(): string {
+        return 'email';
+    }
     // TODO: Have to check, what happens with case sensitivity.
     public function findByEmail(string $email): ?ItamUser {
         $qb = $this->db->getQueryBuilder();
