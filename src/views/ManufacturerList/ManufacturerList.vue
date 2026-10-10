@@ -1,211 +1,149 @@
 <script setup lang="ts">
-import { ref, watch, onMounted } from 'vue'
-import NcAppContent from '@nextcloud/vue/components/NcAppContent'
-import NcAppNavigation from '@nextcloud/vue/components/NcAppNavigation'
-import NcAppNavigationList from '@nextcloud/vue/components/NcAppNavigationList'
-import NcAppNavigationNew from '@nextcloud/vue/components/NcAppNavigationNew'
-import NcContent from '@nextcloud/vue/components/NcContent'
-import { mdiPlus } from '@mdi/js'
-import NcIconSvgWrapper from '@nextcloud/vue/components/NcIconSvgWrapper'
-import NcLoadingIcon from '@nextcloud/vue/components/NcLoadingIcon'
-import { translate as t } from '@nextcloud/l10n'
+import { computed } from 'vue'
 import { generateUrl } from '@nextcloud/router'
-import SfxonMainNavigation from '@/components/SfxonMainNavigation'
+import { translate as t } from '@nextcloud/l10n'
+import { deleteManufacturer, fetchManufacturers } from '@/services/ManufacturerService'
+import type { Manufacturer } from '@/services/ManufacturerService'
+import SfxonColumnOrderModal from '@/components/SfxonColumnOrderModal'
+import SfxonConfirmDialog from '@/components/SfxonConfirmDialog'
+import SfxonFilterBar from '@/components/SfxonFilterBar'
+import SfxonListLayout from '@/components/SfxonListLayout'
 import SfxonPagination from '@/components/SfxonPagination'
 import SfxonTable from '@/components/SfxonTable'
-import { useListState } from '@/composables/useListState'
-import { fetchManufacturers, deleteManufacturer } from '@/services/ManufacturerService'
-import type { Manufacturer } from '@/services/ManufacturerService'
-import NcDialog from '@nextcloud/vue/components/NcDialog'
-import NcButton from '@nextcloud/vue/components/NcButton'
-import NcNoteCard from '@nextcloud/vue/components/NcNoteCard'
+import type { BreadcrumbItem } from '@/components/SfxonItamHeaderBc'
+import { createListColumns } from '@/composables/createListColumns'
+import { customFieldColumns, withCustomFieldValues } from '@/composables/customFieldColumns'
+import type { CustomField } from '@/composables/customFieldColumns'
+import { useColumnOrder } from '@/composables/useColumnOrder'
+import { useEntityList } from '@/composables/useEntityList'
+import { useListViewUiState } from '@/composables/useListViewUiState'
+import type { CellMounted } from '@/composables/useMediaPreview'
 
-const loading   = ref(false)
-const error     = ref<string | null>(null)
-const manufacturers   = ref<Manufacturer[]>([])
-const listState = useListState()
-const manufacturerToDelete = ref<Manufacturer | null>(null)
-const generalError = ref<string>('')
-
-const columns = [
-    { key: 'name', label: t('sfxonitam', 'Name'), sortable: true },
-    { key: 'comment', label: t('sfxonitam', 'Beschreibung/Kommentare'), sortable: false },
-    { type: 'actions', label: t('sfxonitam', 'Aktion'), sortable: false },
-];
+const props = defineProps<{
+    entityDefinitions?: Record<string, unknown>
+    customFields?: CustomField[]
+}>()
+const VIEW_ID = 'manufacturer-list'
+const manufacturerUrl = (manufacturer: Pick<Manufacturer, 'id'>) => generateUrl(`/apps/sfxonitam/manufacturer/detail?manufacturerId=${manufacturer.id}`)
+const breadcrumbs = computed<BreadcrumbItem[]>(() => [{
+    label: t('sfxonitam', 'Manufacturer'),
+    link: generateUrl('/apps/sfxonitam/manufacturer'),
+    forceIconText: true,
+    disableDrop: true,
+}])
+const { filterSidebarOpen } = useListViewUiState(VIEW_ID)
+const {
+    listState,
+    items: manufacturers,
+    loading,
+    error,
+    filterValues,
+    applyFilters,
+    itemToDelete: manufacturerToDelete,
+    requestDelete,
+    cancelDelete,
+    confirmDelete,
+    relatedEntityData,
+    relatedEntitySearchFns,
+    relatedEntityOf,
+    detailUrl,
+} = useEntityList<Manufacturer>({
+    fetch: fetchManufacturers,
+    remove: deleteManufacturer,
+    mapRow: (row) => withCustomFieldValues(row, props.customFields ?? []),
+    errorMessage: t('sfxonitam', 'Error on loading manufacturers.'),
+})
+const deleteMessage = computed(() => t('sfxonitam', 'Delete entry „{name}"?', {
+    name: manufacturerToDelete.value?.name ?? '',
+}))
+const noopCellMounted: CellMounted = () => () => {}
+const col = createListColumns({
+    relatedEntityOf,
+    detailUrl,
+    rowUrl: manufacturerUrl,
+    cellMounted: noopCellMounted,
+})
+const staticColumns = [
+    col.text('name', t('sfxonitam', 'Name')),
+    col.text('comment', t('sfxonitam', 'Comment'), { sortable: false }),
+    col.actions(t('sfxonitam', 'Action')),
+]
+const columns = computed(() => [
+    ...staticColumns,
+    ...customFieldColumns(props.customFields ?? [], noopCellMounted, manufacturerUrl),
+])
+const defaultColumns = ['name', 'comment', '#actions']
+const { orderedColumns, showModal: columnOrderModalOpen, onSaved } = useColumnOrder(VIEW_ID, columns.value, defaultColumns)
+const filterFields = [
+    col.textFilter('name', t('sfxonitam', 'Name')),
+]
 
 function addItem() {
     window.location.href = generateUrl('/apps/sfxonitam/manufacturer/detail')
 }
 
-function cancelDelete() {
-    manufacturerToDelete.value = null
-}
-
-async function confirmDelete() {
-    if (!manufacturerToDelete.value) {
-        return
-    }
-
-    try {
-        let result = await deleteManufacturer(manufacturerToDelete.value.id)
-    } catch (e: any) {
-        manufacturerToDelete.value = null
-
-        if(e.response && e.response.status == 422) {
-            generalError.value = e.response.data.errors.join('<br>')
-        } else {
-            generalError.value = 'An error occured on delete.'
-        }
-        return;
-    }
-
-    manufacturerToDelete.value = null
-    await loadManufacturers()
-}
-
-async function loadManufacturers() {
-    generalError.value = ''
-    loading.value = true
-    error.value = null
-
-    try {
-        const data = await fetchManufacturers({
-            orderBy: listState.orderBy,
-            direction: listState.orderDirection,
-            page: listState.page,
-            limit: listState.limit
-        })
-        manufacturers.value = data.data.mainData
-        listState.total = data.total
-    } catch (e) {
-        error.value = t('sfxonitam', 'Error while loading Manufacturers.')
-    } finally {
-        loading.value = false
-    }
-}
-
 function onEditManufacturer(manufacturer: Manufacturer) {
-    window.location.href = generateUrl(`/apps/sfxonitam/manufacturer/detail?manufacturerId=${manufacturer.id}`);
+    window.location.href = manufacturerUrl(manufacturer)
 }
-
-async function onDeleteManufacturer(manufacturer: Manufacturer) {
-    generalError.value = ''
-    manufacturerToDelete.value = manufacturer
-}
-
-watch(() => listState, loadManufacturers, { deep: true })
-onMounted(loadManufacturers)
 </script>
 
 <template>
-    <NcContent app-name="sfxonitam">
-        <NcAppNavigation>
-            <NcAppNavigationList>
-                <NcAppNavigationNew
-                :text="t('sfxonitam', 'Neuer Hersteller')"
-                @click="addItem"
-                >
-                    <template #icon>
-                        <NcIconSvgWrapper :path="mdiPlus" :size="20" />
-                    </template>
-                </NcAppNavigationNew>
-            </NcAppNavigationList>
-            <SfxonMainNavigation :currentPage="'manufacturers'" />
-        </NcAppNavigation>
-
-        <!-- Inhaltsbereich -->
-        <NcAppContent>
-            <div :class="$style.sfxonItamHeader">
-                Hersteller-Verwaltung
-            </div>
-
-            <!-- Allgemeine Fehlermeldung -->
-            <div :class="$style.sfxonItamGeneralError">
-                <NcNoteCard
-                    v-if="generalError"
-                    type="error"
-                >
-                    {{ generalError }}
-                </NcNoteCard>
-            </div>
-
-            <div :class="$style.sfxonItamContent">
-                <!-- Fehler -->
-                <div v-if="error" class="manufacturers-list__error">{{ error }}</div>
-
-                <!-- Ladeindikator -->
-                <div v-else-if="loading" class="manufacturers-list__loading">
-                    <NcLoadingIcon :size="32" />
-                </div>
-
-                <!-- Leerer Zustand -->
-                <div v-else-if="manufacturers.length === 0" class="manufacturers-list__empty">
-                    {{ t('sfxonitam', 'Keine Hersteller gefunden.') }}
-                </div>
-
-                <SfxonTable
-                    :columns="columns"
-                    :dataArray="manufacturers"
-                    :dataArrayKey="'id'"
-                    :deleteCallback="onDeleteManufacturer"
-                    :editCallback="onEditManufacturer"
-                    :listState="listState"
-                    :orderByCallback="listState.sortBy"
-                />
-
-                <SfxonPagination
-                    v-model:page="listState.page"
-                    :listState="listState"
-                />
-            </div>
-        </NcAppContent>
-    </NcContent>
-
-    <NcDialog
-        v-if="manufacturerToDelete"
-        :name="t('sfxonitam', 'Hersteller löschen')"
-        :open="!!manufacturerToDelete"
-        @closing="cancelDelete"
+    <SfxonListLayout
+        v-model:filterSidebarOpen="filterSidebarOpen"
+        :breadcrumbs="breadcrumbs"
+        current-page="manufacturers"
+        :add-label="t('sfxonitam', 'Add Manufacturer')"
+        :loading="loading"
+        :error="error"
+        @add="addItem"
+        @edit-columns="columnOrderModalOpen = true"
     >
-        <p>
-            {{ t('sfxonitam', `Hersteller „${manufacturerToDelete.name}" wirklich löschen?`) }}
-        </p>
+        <SfxonTable
+            :columns="orderedColumns"
+            :dataArray="manufacturers"
+            :dataArrayKey="'id'"
+            :deleteCallback="requestDelete"
+            :editCallback="onEditManufacturer"
+            :listState="listState"
+            :orderByCallback="listState.sortBy"
+            :relatedEntityData="relatedEntityData"
+        />
 
-        <template #actions>
-            <NcButton 
-                variant="tertiary" 
-                @click="cancelDelete">
-                {{ t('sfxonitam', 'Abbrechen') }}
-            </NcButton>
-            <NcButton
-                variant="error"
-                @click="confirmDelete">
-                {{ t('sfxonitam', 'Löschen') }}
-            </NcButton>
+        <SfxonPagination
+            v-model:page="listState.page"
+            :listState="listState"
+        />
+
+        <template #filter>
+            <SfxonFilterBar
+                v-model:filterSidebarOpen="filterSidebarOpen"
+                :filterFields="filterFields"
+                :filterValues="filterValues"
+                :onFilterBtn="applyFilters"
+                :relatedEntityData="relatedEntityData"
+                :relatedEntitySearchFns="relatedEntitySearchFns"
+            />
         </template>
-    </NcDialog>
+
+        <template #dialogs>
+            <SfxonConfirmDialog
+                :open="!!manufacturerToDelete"
+                :title="t('sfxonitam', 'Delete manufacturer')"
+                :message="deleteMessage"
+                :confirm-label="t('sfxonitam', 'Delete')"
+                @confirm="confirmDelete"
+                @cancel="cancelDelete"
+            />
+
+            <SfxonColumnOrderModal
+                :active-columns="orderedColumns"
+                :all-columns="columns"
+                :default-columns="defaultColumns"
+                :list-id="VIEW_ID"
+                :show="columnOrderModalOpen"
+                @close="columnOrderModalOpen = false"
+                @saved="onSaved"
+            />
+        </template>
+    </SfxonListLayout>
 </template>
-
-<style module>
-    .sfxonItamHeader {
-        align-items: center;
-        display: flex;
-        flex: 0 0;
-        font-weight: bold;
-        gap: var(--default-grid-baseline);
-        margin-block: var(--app-navigation-padding, 4px);
-        margin-inline: calc(var(--default-clickable-area) + 2*var(--app-navigation-padding, 4px)) var(--app-navigation-padding, 4px);
-        max-width: 100%;
-        min-height: 32px;
-    }
-
-    .sfxonItamContent {
-        padding-left: 12px;
-        padding-right: 12px;
-    }
-
-    .sfxonItamGeneralError {
-        padding-left: 12px;
-        padding-right: 12px;
-    }
-</style>
