@@ -33,6 +33,11 @@ trait TSfxonEntityMapper
                 continue;
             }
 
+            if (str_starts_with((string)$key, 'custom.')) {
+                $this->applyCustomFieldFilter($qb, 'custom_' . substr((string)$key, strlen('custom.')), (array)$values);
+                continue;
+            }
+
             // JOIN Filter
             if (isset(self::JOIN_FILTERS[$key])) {
                 $this->applyJoinFilter($qb, self::JOIN_FILTERS[$key], $values);
@@ -103,6 +108,27 @@ trait TSfxonEntityMapper
 
             $qb->andWhere($orX);
         }
+    }
+
+    private function applyCustomFieldFilter(IQueryBuilder $qb, string $column, array $values): void
+    {
+        $custom = $this->customColumns[$column] ?? null;
+
+        if ($custom === null) {
+            return;
+        }
+
+        $this->assertSqlIdentifier($column);
+        $qualified = self::TABLE_ALIAS . '.' . $column;
+
+        match ($custom['type']) {
+            'text', 'longtext' => $this->applyLikeFilter($qb, $qualified, $values),
+            'integer', 'decimal' => $this->applyNumericFromToFilter($qb, $qualified, $values),
+            'date' => $this->applyDateFromToFilter($qb, $qualified, $values),
+            'datetime' => $this->applyDateFromToFilter($qb, $qualified, $values, ' 23:59:59'),
+            'foreign_key' => $this->applyInFilter($qb, $qualified, $values),
+            default => null,
+        };
     }
 
     private function applyJoinFilter(IQueryBuilder $qb, array $config, mixed $values): void
@@ -177,7 +203,7 @@ trait TSfxonEntityMapper
             $this->applyFilters($qb, $filters);
         }
 
-        $customSort = $this->customSortColumns[$orderBy] ?? null;
+        $customSort = $this->customColumns[$orderBy] ?? null;
 
         if ($customSort !== null && $customSort['sort'] !== null) {
             $this->applySortDefinition($qb, $customSort['sort'], $orderBy, $orderBy, $dir);
@@ -253,7 +279,7 @@ trait TSfxonEntityMapper
         return $qb->executeQuery()->fetchAssociative() !== false;
     }
 
-    private function applyDateFromToFilter(IQueryBuilder $qb, string $column, array $values): void {
+    private function applyDateFromToFilter(IQueryBuilder $qb, string $column, array $values, string $toSuffix = ''): void {
         $from = null;
         $to = null;
 
@@ -283,7 +309,7 @@ trait TSfxonEntityMapper
 
         if ($to !== null) {
             $qb->andWhere(
-                $qb->expr()->lte($column, $qb->createNamedParameter($to)),
+                $qb->expr()->lte($column, $qb->createNamedParameter($to . $toSuffix)),
             );
         }
     }

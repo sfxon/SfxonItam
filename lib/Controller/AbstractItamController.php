@@ -128,9 +128,9 @@ abstract class AbstractItamController extends Controller
         ?array $filters = null,
     ): JSONResponse {
         $customFields = $this->getCustomFields();
-        $customSortColumns = $this->buildCustomSortColumns($customFields);
-        $this->mapper->setCustomSortColumns($customSortColumns);
-        $orderBy = $this->resolveOrderBy($orderBy, $customSortColumns);
+        $customColumns = $this->buildCustomColumns($customFields);
+        $this->mapper->setCustomColumns($customColumns);
+        $orderBy = $this->resolveOrderBy($orderBy, $customColumns);
 
         if (!in_array($limit, self::ALLOWED_LIMITS, true)) {
             $limit = self::DEFAULT_LIMIT;
@@ -236,7 +236,7 @@ abstract class AbstractItamController extends Controller
     /**
      * @return array<string, array{type: string, sort: ?array}>
      */
-    private function buildCustomSortColumns(array $customFields): array
+    private function buildCustomColumns(array $customFields): array
     {
         $columns = [];
 
@@ -275,7 +275,7 @@ abstract class AbstractItamController extends Controller
         return ['table' => $description['table'], 'columns' => $columns];
     }
 
-    private function resolveOrderBy(?string $orderBy, array $customSortColumns): string
+    private function resolveOrderBy(?string $orderBy, array $customColumns): string
     {
         $default = $this->entityDefinition->defaultOrderBy;
 
@@ -289,7 +289,7 @@ abstract class AbstractItamController extends Controller
 
         $column = 'custom_' . substr($orderBy, strlen('custom.'));
 
-        return isset($customSortColumns[$column]) ? $column : $default;
+        return isset($customColumns[$column]) ? $column : $default;
     }
 
     private function notFoundResponse(): JSONResponse

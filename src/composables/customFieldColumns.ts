@@ -7,6 +7,7 @@ export interface CustomField {
     technicalName?: string | null
     name?: string | null
     type?: string | null
+    options?: string | null
 }
 
 type UsableCustomField = CustomField & { technicalName: string }
@@ -84,4 +85,55 @@ export function customFieldColumns(
         cellMounted,
         colLinkCallback: rowUrl,
     }))
+}
+
+function foreignKeyTargetEntity(customField: CustomField): string | null {
+    if (!customField.options) {
+        return null
+    }
+
+    try {
+        const target = JSON.parse(customField.options)?.foreignKey?.targetEntity
+
+        return typeof target === 'string' && target !== '' ? target : null
+    } catch {
+        return null
+    }
+}
+
+export function customFieldFilters(customFields: CustomField[], isKnownEntity: (entity: string) => boolean) {
+    const filters: Record<string, unknown>[] = []
+
+    for (const cf of usableCustomFields(customFields)) {
+        const key = customFieldColumnKey(cf.technicalName)
+        const label = cf.name?.trim() || cf.technicalName
+        const labelFrom = t('sfxonitam', '{label} from', { label })
+        const labelTo = t('sfxonitam', '{label} to', { label })
+
+        switch (cf.type) {
+            case 'text':
+            case 'longtext':
+                filters.push({ key, label })
+                break
+            case 'integer':
+            case 'decimal':
+                filters.push({ type: 'numericFromTo', key, label, labelFrom, labelTo })
+                break
+            case 'date':
+            case 'datetime':
+                filters.push({ type: 'date', key, label, labelFrom, labelTo })
+                break
+            case 'foreign_key': {
+                const entity = foreignKeyTargetEntity(cf)
+
+                if (entity !== null && isKnownEntity(entity)) {
+                    filters.push({ type: 'relatedEntity', relatedEntityName: entity, key, label })
+                }
+
+                break
+            }
+        }
+    }
+
+    return filters
 }

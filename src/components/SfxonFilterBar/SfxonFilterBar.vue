@@ -38,7 +38,7 @@ const emit = defineEmits<{ 'update:filterSidebarOpen': [value: boolean] }>()
             <NcAppSidebarTab name="Settings" id="settings-tab">
                 <template
                     v-for="filterField in filterFields"
-                    :key="filterField.label"
+                    :key="filterField.key"
                 >
                     <template v-if="filterField.type == 'relatedEntity'">
                         <SfxonFilterFieldEntity

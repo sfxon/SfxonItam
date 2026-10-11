@@ -6,18 +6,19 @@ use OCP\AppFramework\Db\QBMapper;
  
 abstract class EntityMapperAbstract extends QBMapper
 {
-    /** @var array<string, array{type: string, sort: ?array}> column name => custom field sort info */
-    protected array $customSortColumns = [];
+    /** @var array<string, array{type: string, entityClass: ?string}> column name => custom field info (type and optional sort definition) */
+    protected array $customColumns = [];
 
     /**
-     * @param array<string, array{type: string, sort: ?array}> $columns column name => custom field sort info
+     * @param array<string, array{type: string, entityClass: ?string}> $columns column name => custom field info (type and optional sort definition)
      */
-    public function setCustomSortColumns(array $columns): void
+    public function setCustomColumns(array $columns): void
     {
-        $this->customSortColumns = $columns;
+        $this->customColumns = $columns;
     }
 
     abstract public function countAll(?array $filters = null): int;
+
     abstract public function findAllPaged(
         string $orderBy = 'name',
         string $direction = 'ASC',
@@ -25,5 +26,6 @@ abstract class EntityMapperAbstract extends QBMapper
         int $offset = 0,
         ?array $filters = null,
         ?array $include = null ): array;
+
     abstract public function findById(int $id, ?array $include = null): array;
 }
