@@ -1,6 +1,7 @@
 <script setup lang="ts">
 
 import { reactive, ref, watch } from 'vue'
+import { loadState } from '@nextcloud/initial-state'
 import SfxonEditorFormCheckbox from '@/components/SfxonEditorFormCheckbox';
 import SfxonEditorFormDatePicker from '@/components/SfxonEditorFormDatePicker'
 import SfxonEditorFormInput from '@/components/SfxonEditorFormInput'
@@ -8,6 +9,9 @@ import SfxonEditorFormTextareaLabeled from '@/components/SfxonEditorFormTextarea
 import SfxonEditorFormEntitySelect from '@/components/SfxonEditorFormEntitySelect'
 import SfxonEditorFormImageSelector from '@/components/SfxonEditorFormImageSelector'
 import { useSfxonFileUploadField } from '@/composables/useSfxonFileUploadField'
+import type { RelationMeta } from '@/composables/useRelatedEntities'
+import { fetchEntityList } from '@/services/EntityListService'
+import { fetchEntityRecord } from '@/services/EntityRecordService'
 import {
     parseLocalDateString,
     parseLocalDateTimeString,
@@ -81,62 +85,49 @@ const emit = defineEmits<{
     'update:values': [values: Record<string, unknown>]
 }>()
 
-type FindFn = (params: { filters: Record<string, string[]> }, signal: AbortSignal) => Promise<any>
+const FOREIGN_KEY_SEARCH_LIMIT = 50
 
-const entityRegistry: Record<string, {
-    load: () => Promise<FindFn>
-    loadById: () => Promise<(id: number) => Promise<any>>
-}> = {
-    user: {
-        load: async () => {
-            const mod = await import('@/services/ItamUserService')
-            return mod.findItamUsers
-        },
-        loadById: async () => {
-            const mod = await import('@/services/ItamUserService')
-            return mod.fetchItamUser
-        },
-    },
-    merchant: {
-        load: async () => {
-            const mod = await import('@/services/MerchantService')
-            return mod.findMerchants
-        },
-        loadById: async () => {
-            const mod = await import('@/services/MerchantService')
-            return mod.fetchMerchant // ggf. Namen anpassen
-        },
-    },
-    position: {
-        load: async () => {
-            const mod = await import('@/services/PositionService')
-            return mod.findPositions
-        },
-        loadById: async () => {
-            const mod = await import('@/services/PositionService')
-            return mod.fetchPosition // ggf. Namen anpassen
-        },
-    },
-}
+const entityMeta = loadState<Record<string, RelationMeta>>('sfxonitam', 'entityMeta', {})
 
-const loadedFindFns: Record<string, FindFn> = {}
-const loadedFetchByIdFns: Record<string, (id: number) => Promise<any>> = {}
+function resolveEntityMeta(entity: string): RelationMeta | null {
+    const meta = entityMeta[entity]
 
-async function getFetchByIdFn(targetEntity: string) {
-    if (loadedFetchByIdFns[targetEntity]) {
-        return loadedFetchByIdFns[targetEntity]
-    }
-
-    const registryEntry = entityRegistry[targetEntity]
-
-    if (!registryEntry) {
-        console.error(`Keine Entität "${targetEntity}" in entityRegistry registriert.`)
+    if (!meta) {
+        console.error(
+            `Entität "${entity}" ist im Backend nicht registriert. Verfügbar: ${Object.keys(entityMeta).join(', ')}`
+        )
         return null
     }
 
-    const fetchFn = await registryEntry.loadById()
-    loadedFetchByIdFns[targetEntity] = fetchFn
-    return fetchFn
+    return meta
+}
+
+async function searchEntityRecords(
+    route: string,
+    filters: Record<string, string[]>,
+    signal: AbortSignal
+): Promise<Record<string, any> | null> {
+    try {
+        const response = await fetchEntityList(route, { page: 1, limit: FOREIGN_KEY_SEARCH_LIMIT, filters }, signal)
+
+        return response?.data?.mainData ?? null
+    } catch (e) {
+        if (signal.aborted) {
+            return null
+        }
+
+        throw e
+    }
+}
+
+async function fetchRecordById(entity: string, id: number): Promise<Record<string, any> | null> {
+    const meta = resolveEntityMeta(entity)
+
+    if (!meta) {
+        return null
+    }
+
+    return fetchEntityRecord(meta.route, id)
 }
 
 const values = reactive<Record<string, unknown>>({})
@@ -301,26 +292,6 @@ watch(
     { immediate: true }
 )
 
-async function getFindFn(targetEntity: string): Promise<FindFn | null> {
-    if (loadedFindFns[targetEntity]) {
-        return loadedFindFns[targetEntity]
-    }
-
-    const registryEntry = entityRegistry[targetEntity]
-    
-    if (!registryEntry) {
-        console.error(
-            `Keine Entität "${targetEntity}" in entityRegistry registriert. `
-            + `Bitte in SfxonCustomFields.vue ergänzen.`
-        )
-        return null
-    }
-
-    const findFn = await registryEntry.load()
-    loadedFindFns[targetEntity] = findFn
-    return findFn
-}
-
 // Very kindly allow null, false, true, 0 or 1 as values,
 // but parse them all to true or false.
 // This is a reaction to the database designs -
@@ -358,9 +329,9 @@ async function searchForeignKeyOptions(
         return
     }
 
-    const findFn = await getFindFn(fk.targetEntity)
+    const meta = resolveEntityMeta(fk.targetEntity)
 
-    if (!findFn) {
+    if (!meta) {
         return
     }
 
@@ -368,19 +339,18 @@ async function searchForeignKeyOptions(
         .filter((part): part is LabelCompositionField => part.type === 'field')
         .map((part) => part.id)
 
-    const filters: Record<string, string[]> = {}
-    filterFields.forEach((f) => { filters[f] = [query] })
+    const filters: Record<string, string[]> = { _search: [query], _searchFields: filterFields }
 
     foreignKeyLoading[field.technicalName] = true
 
     try {
-        const data = await findFn({ filters }, signal)
+        const mainData = await searchEntityRecords(meta.route, filters, signal)
 
-        if (data === null || data.mainData === null) {
+        if (mainData === null) {
             return
         }
 
-        foreignKeyOptions[field.technicalName] = Object.values(data.mainData).map((record: any) => ({
+        foreignKeyOptions[field.technicalName] = Object.values(mainData).map((record: any) => ({
             id: record.id,
             label: buildOptionLabel(record, fk.labelComposition),
         }))
@@ -398,11 +368,8 @@ async function loadForeignKeySelected(field: CustomFieldDefinition, id: unknown)
     const fk = parseForeignKeyOptions(field)
     if (!fk) return
 
-    const fetchById = await getFetchByIdFn(fk.targetEntity)
-    if (!fetchById) return
-
     try {
-        const record = await fetchById(Number(id))
+        const record = await fetchRecordById(fk.targetEntity, Number(id))
 
         if (!record) return
 

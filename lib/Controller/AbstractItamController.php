@@ -80,6 +80,8 @@ abstract class AbstractItamController extends Controller
 
     protected function doDetail(): TemplateResponse
     {
+        $this->provideEntityMeta();
+
         return new TemplateResponse(
             Application::APP_ID,
             $this->entityDefinition->templateDir() . '/editor',
@@ -101,15 +103,20 @@ abstract class AbstractItamController extends Controller
             $this->listViewSettingsService->getUiState($listId)
         );
 
-        $this->initialState->provideInitialState(
-            'entityMeta',
-            $this->entityRegistry->describeAll()
-        );
+        $this->provideEntityMeta();
 
         return new TemplateResponse(
             Application::APP_ID,
             $this->entityDefinition->templateDir() . '/list',
             $this->getTemplateParameters()
+        );
+    }
+
+    private function provideEntityMeta(): void
+    {
+        $this->initialState->provideInitialState(
+            'entityMeta',
+            $this->entityRegistry->describeAll()
         );
     }
 
@@ -120,7 +127,10 @@ abstract class AbstractItamController extends Controller
         int $limit = self::DEFAULT_LIMIT,
         ?array $filters = null,
     ): JSONResponse {
-        $orderBy ??= $this->entityDefinition->defaultOrderBy;
+        $customFields = $this->getCustomFields();
+        $customSortColumns = $this->buildCustomSortColumns($customFields);
+        $this->mapper->setCustomSortColumns($customSortColumns);
+        $orderBy = $this->resolveOrderBy($orderBy, $customSortColumns);
 
         if (!in_array($limit, self::ALLOWED_LIMITS, true)) {
             $limit = self::DEFAULT_LIMIT;
@@ -136,9 +146,13 @@ abstract class AbstractItamController extends Controller
             $this->entityDefinition->listIncludes
         );
         $total = $this->mapper->countAll($filters);
-        $customFields = $this->getCustomFields();
 
         $data['mainData'] = array_map(fn ($d) => $d->jsonSerialize($customFields), $data['mainData']);
+        $data['mainData'] = $this->customFieldService->addForeignKeyLabels(
+            $customFields,
+            $data['mainData'],
+            $this->entityRegistry
+        );
 
         return new JSONResponse([
             'data' => $data,
@@ -202,7 +216,6 @@ abstract class AbstractItamController extends Controller
             return $this->validationErrorResponse($result['errors']);
         }
 
-        // Daten übernehmen und speichern
         $entityObject = $this->setDataFromRequest($entityObject, $data);
         $saved = $isUpdate
             ? $this->mapper->update($entityObject)
@@ -218,6 +231,65 @@ abstract class AbstractItamController extends Controller
             'status' => 'ok',
             'id' => $saved->getId(),
         ]);
+    }
+
+    /**
+     * @return array<string, array{type: string, sort: ?array}>
+     */
+    private function buildCustomSortColumns(array $customFields): array
+    {
+        $columns = [];
+
+        foreach ($customFields as $customField) {
+            $technicalName = $customField['technicalName'] ?? null;
+
+            if (!is_string($technicalName) || preg_match('/^[A-Za-z0-9_]+$/', $technicalName) !== 1) {
+                continue;
+            }
+
+            $type = (string)($customField['type'] ?? '');
+
+            $columns['custom_' . $technicalName] = [
+                'type' => $type,
+                'sort' => $type === 'foreign_key' ? $this->resolveForeignKeySortDefinition($customField) : null,
+            ];
+        }
+
+        return $columns;
+    }
+
+    private function resolveForeignKeySortDefinition(mixed $customField): ?array
+    {
+        $description = $this->customFieldService->describeForeignKey($customField, $this->entityRegistry);
+
+        if ($description === null) {
+            return null;
+        }
+
+        $columns = [];
+
+        foreach ($description['columns'] as $column => $isText) {
+            $columns[] = ['column' => $column, 'text' => $isText];
+        }
+
+        return ['table' => $description['table'], 'columns' => $columns];
+    }
+
+    private function resolveOrderBy(?string $orderBy, array $customSortColumns): string
+    {
+        $default = $this->entityDefinition->defaultOrderBy;
+
+        if ($orderBy === null || $orderBy === '') {
+            return $default;
+        }
+
+        if (!str_starts_with($orderBy, 'custom.')) {
+            return $orderBy;
+        }
+
+        $column = 'custom_' . substr($orderBy, strlen('custom.'));
+
+        return isset($customSortColumns[$column]) ? $column : $default;
     }
 
     private function notFoundResponse(): JSONResponse

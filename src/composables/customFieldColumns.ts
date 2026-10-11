@@ -6,6 +6,7 @@ export const CUSTOM_FIELD_COLUMN_PREFIX = 'custom.'
 export interface CustomField {
     technicalName?: string | null
     name?: string | null
+    type?: string | null
 }
 
 type UsableCustomField = CustomField & { technicalName: string }
@@ -58,9 +59,14 @@ function formatCustomFieldValue(value: unknown): string {
 export function withCustomFieldValues<T extends Record<string, any>>(row: T, customFields: CustomField[]): T {
     const result: Record<string, any> = { ...row }
     const values = row.customFields && typeof row.customFields === 'object' ? row.customFields : {}
+    const labels = row.customFieldLabels && typeof row.customFieldLabels === 'object' ? row.customFieldLabels : {}
 
     for (const cf of usableCustomFields(customFields)) {
-        result[customFieldColumnKey(cf.technicalName)] = formatCustomFieldValue(values[cf.technicalName])
+        const label = cf.type === 'foreign_key' ? labels[cf.technicalName] : undefined
+
+        result[customFieldColumnKey(cf.technicalName)] = typeof label === 'string'
+            ? label
+            : formatCustomFieldValue(values[cf.technicalName])
     }
 
     return result as T
@@ -74,7 +80,7 @@ export function customFieldColumns(
     return usableCustomFields(customFields).map((cf) => ({
         key: customFieldColumnKey(cf.technicalName),
         label: cf.name?.trim() || cf.technicalName,
-        sortable: false,
+        sortable: true,
         cellMounted,
         colLinkCallback: rowUrl,
     }))

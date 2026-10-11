@@ -177,7 +177,18 @@ trait TSfxonEntityMapper
             $this->applyFilters($qb, $filters);
         }
 
-        if (!$this->applyRelationSort($qb, $orderBy, $dir)) {
+        $customSort = $this->customSortColumns[$orderBy] ?? null;
+
+        if ($customSort !== null && $customSort['sort'] !== null) {
+            $this->applySortDefinition($qb, $customSort['sort'], $orderBy, $orderBy, $dir);
+        } elseif ($customSort !== null) {
+            $this->assertSqlIdentifier($orderBy);
+            $column = self::TABLE_ALIAS . '.' . $orderBy;
+            $orderExpr = in_array($customSort['type'], ['text', 'longtext'], true) ? $qb->func()->lower($column) : $column;
+
+            $qb->orderBy($orderExpr, $dir)
+                ->addOrderBy(self::TABLE_ALIAS . '.id', 'ASC');
+        } elseif (!$this->applyRelationSort($qb, $orderBy, $dir)) {
             $fieldMap = $this->getFilterFieldMap();
             $fieldDef = $fieldMap[$orderBy] ?? null;
             $field = $fieldDef['name'] ?? $this->getDefaultSortField();
@@ -351,15 +362,26 @@ trait TSfxonEntityMapper
             throw new \LogicException($entityClass . ' must implement ISortableEntity');
         }
 
+        $this->applySortDefinition($qb, $entityClass::getSortDefinition(), $relation['localKey'], $orderBy, $direction);
+
+        return true;
+    }
+
+    private function applySortDefinition(
+        IQueryBuilder $qb,
+        array $definition,
+        string $localKey,
+        string $aliasSeed,
+        string $direction,
+    ): void {
         // Doctrine appends the direction unvalidated, so it must be normalised explicitly.
         $direction = strtoupper($direction) === 'DESC' ? 'DESC' : 'ASC';
 
-        $definition = $entityClass::getSortDefinition();
         // Use 'srt_' prefix avoids collisions with the aliases of JOIN_FILTERS (p, dt, ...).
-        $alias = 'srt_' . preg_replace('/[^a-z0-9]/i', '', $orderBy);
+        $alias = 'srt_' . preg_replace('/[^a-z0-9]/i', '', $aliasSeed);
 
         $this->assertSqlIdentifier($alias);
-        $this->assertSqlIdentifier($relation['localKey']);
+        $this->assertSqlIdentifier($localKey);
         $this->assertSqlIdentifier($definition['table']);
 
         // LEFT JOIN, so rows without a relation stay in the list.
@@ -367,7 +389,7 @@ trait TSfxonEntityMapper
             self::TABLE_ALIAS,
             $definition['table'],
             $alias,
-            $qb->expr()->eq(self::TABLE_ALIAS . '.' . $relation['localKey'], $alias . '.id')
+            $qb->expr()->eq(self::TABLE_ALIAS . '.' . $localKey, $alias . '.id')
         );
 
         $joinAliases = [];
@@ -390,11 +412,13 @@ trait TSfxonEntityMapper
 
         foreach ($definition['columns'] as $column) {
             if (is_array($column)) {
-                if (!isset($joinAliases[$column['join']])) {
+                $joinName = $column['join'] ?? null;
+
+                if ($joinName !== null && !isset($joinAliases[$joinName])) {
                     throw new \LogicException('Unknown join in sort definition');
                 }
-                
-                $tableAlias = $joinAliases[$column['join']];
+
+                $tableAlias = $joinName !== null ? $joinAliases[$joinName] : $alias;
                 $columnName = $column['column'];
                 $isText = $column['text'] ?? true;
             } else {
@@ -414,8 +438,6 @@ trait TSfxonEntityMapper
         }
 
         $qb->addOrderBy(self::TABLE_ALIAS . '.id', 'ASC');
-
-        return true;
     }
 
     private function assertSqlIdentifier(string $identifier): void {

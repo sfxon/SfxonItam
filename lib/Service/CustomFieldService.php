@@ -17,6 +17,8 @@ use OCP\IDBConnection;
 // It's 31 degrees celcius out there and I am melting even in the semi-basement office.
 // Maybe I let that comment about this stupid design decision here. I really don't want to bother that ai again. Hmpfff.
 class CustomFieldService {
+    use TCustomFieldForeignKey;
+
     public function __construct(
         private readonly CustomFieldGroupMapper $customFieldGroupMapper,
         private readonly CustomFieldMapper $customFieldMapper,
