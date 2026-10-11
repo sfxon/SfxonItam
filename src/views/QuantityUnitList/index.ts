@@ -1,5 +1,10 @@
 import { createApp } from 'vue'
-import QuantityUnitList from './QuantityUnitList.vue'
+import App from './QuantityUnitList.vue'
 
-const app = createApp(QuantityUnitList)
+const el = document.getElementById('sfxonitam')
+const customFields = JSON.parse(el.dataset.customFields || '[]')
+
+const app = createApp(App, {
+    customFields,
+})
 app.mount('#sfxonitam')

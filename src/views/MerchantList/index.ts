@@ -1,5 +1,10 @@
 import { createApp } from 'vue'
-import MerchantList from './MerchantList.vue'
+import App from './MerchantList.vue'
 
-const app = createApp(MerchantList)
+const el = document.getElementById('sfxonitam')
+const customFields = JSON.parse(el.dataset.customFields || '[]')
+
+const app = createApp(App, {
+    customFields,
+})
 app.mount('#sfxonitam')

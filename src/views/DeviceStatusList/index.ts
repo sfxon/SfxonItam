@@ -1,5 +1,10 @@
 import { createApp } from 'vue'
-import DeviceStatusList from './DeviceStatusList.vue'
+import App from './DeviceStatusList.vue'
 
-const app = createApp(DeviceStatusList)
+const el = document.getElementById('sfxonitam')
+const customFields = JSON.parse(el.dataset.customFields || '[]')
+
+const app = createApp(App, {
+    customFields,
+})
 app.mount('#sfxonitam')

@@ -236,8 +236,9 @@ Editor:
     * Take over device loading optimization from device list view to other entities.
         - ✅ Entity: DeviceStatus
         - ✅ Entity: ItamUser
-        - Entity: Position
-        - After doing DeviceStatus, ItamUser and Position, take a comparison of these three and Device. Build an Abstract, that takes out the overlapping functionality, to reduce code duplication.
+        - ✅ Entity: Position
+        - ✅ After doing DeviceStatus, ItamUser and Position, take a comparison of these three and Device. Build an Abstract, that takes out the overlapping functionality, to reduce code duplication.
+        - Show custom fields in listings.
         - In the save method of the Controller for Device, the validation part for the custom fields is missing. Take a deeper look at it and fix this.
 
 * Einkauf/Verkauf hinzufügen

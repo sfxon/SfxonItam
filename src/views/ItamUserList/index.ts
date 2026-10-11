@@ -1,5 +1,10 @@
 import { createApp } from 'vue'
-import ItamUserList from './ItamUserList.vue'
+import App from './ItamUserList.vue'
 
-const app = createApp(ItamUserList)
+const el = document.getElementById('sfxonitam')
+const customFields = JSON.parse(el.dataset.customFields || '[]')
+
+const app = createApp(App, {
+    customFields,
+})
 app.mount('#sfxonitam')

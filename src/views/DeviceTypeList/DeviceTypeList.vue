@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { generateUrl } from '@nextcloud/router'
+import { loadState } from '@nextcloud/initial-state'
 import { translate as t } from '@nextcloud/l10n'
 import { deleteDeviceType, fetchDeviceTypes } from '@/services/DeviceTypeService'
 import type { DeviceType } from '@/services/DeviceTypeService'
@@ -24,6 +25,9 @@ const props = defineProps<{
     customFields?: CustomField[]
 }>()
 const VIEW_ID = 'device-type-list'
+const customFieldDefinitions: CustomField[] = props.customFields?.length
+    ? props.customFields
+    : loadState<CustomField[]>('sfxonitam', 'customFields', [])
 const deviceTypeUrl = (deviceType: Pick<DeviceType, 'id'>) => generateUrl(`/apps/sfxonitam/device-type/detail?deviceTypeId=${deviceType.id}`)
 const breadcrumbs = computed<BreadcrumbItem[]>(() => [{
     label: t('sfxonitam', 'Device Type'),
@@ -50,7 +54,7 @@ const {
 } = useEntityList<DeviceType>({
     fetch: fetchDeviceTypes,
     remove: deleteDeviceType,
-    mapRow: (row) => withCustomFieldValues(row, props.customFields ?? []),
+    mapRow: (row) => withCustomFieldValues(row, customFieldDefinitions),
     errorMessage: t('sfxonitam', 'Error on loading device types.'),
 })
 const deleteMessage = computed(() => t('sfxonitam', 'Delete entry „{name}"?', {
@@ -71,10 +75,10 @@ const staticColumns = [
 ]
 const columns = computed(() => [
     ...staticColumns,
-    ...customFieldColumns(props.customFields ?? [], noopCellMounted, deviceTypeUrl),
+    ...customFieldColumns(customFieldDefinitions, noopCellMounted, deviceTypeUrl),
 ])
 const defaultColumns = ['name', 'manufacturerId', '#actions']
-const { orderedColumns, showModal: columnOrderModalOpen, onSaved } = useColumnOrder(VIEW_ID, columns.value, defaultColumns)
+const { orderedColumns, showModal: columnOrderModalOpen, onSaved } = useColumnOrder(VIEW_ID, columns, defaultColumns)
 const filterFields = [
     col.textFilter('name', t('sfxonitam', 'Name')),
     col.relationFilter('manufacturerId', t('sfxonitam', 'Manufacturer')),
@@ -87,6 +91,8 @@ function addItem() {
 function onEditDeviceType(deviceType: DeviceType) {
     window.location.href = deviceTypeUrl(deviceType)
 }
+
+console.log('props.customFields: ', props.customFields)
 </script>
 
 <template>
