@@ -16,7 +16,7 @@ export function customFieldColumnKey(technicalName: string): string {
     return `${CUSTOM_FIELD_COLUMN_PREFIX}${technicalName}`
 }
 
-function usableCustomFields(customFields: unknown): UsableCustomField[] {
+export function usableCustomFields(customFields: unknown): UsableCustomField[] {
     if (!Array.isArray(customFields)) {
         return []
     }
@@ -87,18 +87,40 @@ export function customFieldColumns(
     }))
 }
 
-function foreignKeyTargetEntity(customField: CustomField): string | null {
+export type LabelCompositionPart = { type: 'field'; id: string } | { type: 'text'; value: string }
+
+export interface ForeignKeyOptions {
+    targetEntity: string
+    labelComposition: LabelCompositionPart[]
+}
+
+export function parseForeignKeyOptions(customField: CustomField): ForeignKeyOptions | null {
     if (!customField.options) {
         return null
     }
 
     try {
-        const target = JSON.parse(customField.options)?.foreignKey?.targetEntity
+        const foreignKey = JSON.parse(customField.options)?.foreignKey
 
-        return typeof target === 'string' && target !== '' ? target : null
+        if (typeof foreignKey?.targetEntity !== 'string' || foreignKey.targetEntity === '') {
+            return null
+        }
+
+        const labelComposition = (Array.isArray(foreignKey.labelComposition) ? foreignKey.labelComposition : [])
+            .filter((part: any): part is LabelCompositionPart =>
+                (part?.type === 'field' && typeof part.id === 'string')
+                || (part?.type === 'text' && typeof part.value === 'string'))
+
+        return { targetEntity: foreignKey.targetEntity, labelComposition }
     } catch {
         return null
     }
+}
+
+export function buildForeignKeyLabel(record: Record<string, any>, labelComposition: LabelCompositionPart[]): string {
+    return labelComposition
+        .map((part) => part.type === 'field' ? String(record[part.id] ?? '') : part.value)
+        .join('')
 }
 
 export function customFieldFilters(customFields: CustomField[], isKnownEntity: (entity: string) => boolean) {
@@ -124,10 +146,12 @@ export function customFieldFilters(customFields: CustomField[], isKnownEntity: (
                 filters.push({ type: 'date', key, label, labelFrom, labelTo })
                 break
             case 'foreign_key': {
-                const entity = foreignKeyTargetEntity(cf)
+                const foreignKey = parseForeignKeyOptions(cf)
 
-                if (entity !== null && isKnownEntity(entity)) {
-                    filters.push({ type: 'relatedEntity', relatedEntityName: entity, key, label })
+                if (foreignKey !== null
+                    && foreignKey.labelComposition.some((part) => part.type === 'field')
+                    && isKnownEntity(foreignKey.targetEntity)) {
+                    filters.push({ type: 'relatedEntity', relatedEntityName: key, key, label })
                 }
 
                 break

@@ -2,7 +2,7 @@
 
 namespace OCA\SfxonItam\Service;
 
-use OCA\SfxonItam\Definition\EntityRegistry;
+use OCA\SfxonItam\ForeignKey\ForeignKeyRegistry;
 use OCP\DB\QueryBuilder\IQueryBuilder;
 
 trait TCustomFieldForeignKey
@@ -10,7 +10,7 @@ trait TCustomFieldForeignKey
     /**
      * @return array{table: string, parts: list<array{text?: string, column?: string}>, columns: array<string, bool>}|null
      */
-    public function describeForeignKey(mixed $customField, EntityRegistry $entityRegistry): ?array
+    public function describeForeignKey(mixed $customField): ?array
     {
         $options = $customField['options'] ?? null;
 
@@ -25,22 +25,10 @@ trait TCustomFieldForeignKey
         }
 
         $targetEntity = $foreignKey['targetEntity'] ?? null;
+        $target = is_string($targetEntity) ? ForeignKeyRegistry::getTarget($targetEntity) : null;
 
-        if (!is_string($targetEntity) || !$entityRegistry->has($targetEntity)) {
+        if ($target === null || preg_match('/^[A-Za-z0-9_]+$/', (string)$target['table']) !== 1) {
             return null;
-        }
-
-        $target = $entityRegistry->get($targetEntity);
-
-        if (!method_exists($target->entityClass, 'getFieldDefinition')
-            || preg_match('/^[A-Za-z0-9_]+$/', $target->customFieldGroup) !== 1) {
-            return null;
-        }
-
-        $fieldsByProperty = [];
-
-        foreach ($target->entityClass::getFieldDefinition() as $field) {
-            $fieldsByProperty[$field['propertyName'] ?? $field['name']] = $field;
         }
 
         $parts = [];
@@ -60,21 +48,21 @@ trait TCustomFieldForeignKey
                 continue;
             }
 
-            $field = $fieldsByProperty[$part['id'] ?? ''] ?? null;
+            $field = $target['columns'][$part['id'] ?? ''] ?? null;
 
-            if ($field === null || preg_match('/^[A-Za-z0-9_]+$/', (string)$field['name']) !== 1) {
+            if ($field === null || preg_match('/^[A-Za-z0-9_]+$/', $field['column']) !== 1) {
                 continue;
             }
 
-            $parts[] = ['column' => $field['name']];
-            $columns[$field['name']] = in_array(strtoupper((string)($field['type'] ?? '')), ['VARCHAR', 'TEXT'], true);
+            $parts[] = ['column' => $field['column']];
+            $columns[$field['column']] = $field['text'];
         }
 
         if ($columns === []) {
             return null;
         }
 
-        return ['table' => $target->customFieldGroup, 'parts' => $parts, 'columns' => $columns];
+        return ['table' => $target['table'], 'parts' => $parts, 'columns' => $columns];
     }
 
     /**
@@ -83,7 +71,7 @@ trait TCustomFieldForeignKey
      * @param list<array<string, mixed>> $rows
      * @return list<array<string, mixed>>
      */
-    public function addForeignKeyLabels(array $customFieldDefinitions, array $rows, EntityRegistry $entityRegistry): array
+    public function addForeignKeyLabels(array $customFieldDefinitions, array $rows): array
     {
         $targets = [];
 
@@ -94,7 +82,7 @@ trait TCustomFieldForeignKey
                 continue;
             }
 
-            $description = $this->describeForeignKey($definition, $entityRegistry);
+            $description = $this->describeForeignKey($definition);
 
             if ($description !== null) {
                 $targets[$technicalName] = $description;

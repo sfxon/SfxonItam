@@ -14,8 +14,9 @@ import SfxonPagination from '@/components/SfxonPagination'
 import SfxonTable from '@/components/SfxonTable'
 import type { BreadcrumbItem } from '@/components/SfxonItamHeaderBc'
 import { createListColumns } from '@/composables/createListColumns'
-import { customFieldColumns, withCustomFieldValues } from '@/composables/customFieldColumns'
+import { customFieldColumns, customFieldFilters, withCustomFieldValues } from '@/composables/customFieldColumns'
 import type { CustomField } from '@/composables/customFieldColumns'
+import { registerCustomFieldFilterOptions } from '@/composables/useCustomFieldFilterOptions'
 import { useColumnOrder } from '@/composables/useColumnOrder'
 import { useEntityList } from '@/composables/useEntityList'
 import { useListViewUiState } from '@/composables/useListViewUiState'
@@ -97,8 +98,9 @@ const columns = computed(() => [
     ...customFieldColumns(props.customFields ?? [], defaultCellMounted, deviceUrl),
 ])
 const defaultColumns = ['imageFileId', '#qrcode', '#barcode', 'name', '#actions']
-const { orderedColumns, showModal: columnOrderModalOpen, onSaved } = useColumnOrder(VIEW_ID, columns.value, defaultColumns)
-const filterFields = [
+const { orderedColumns, showModal: columnOrderModalOpen, onSaved } = useColumnOrder(VIEW_ID, columns, defaultColumns)
+registerCustomFieldFilterOptions(props.customFields ?? [], relatedEntityData, relatedEntitySearchFns)
+const filterFields = computed(() => [
     col.textFilter('name', t('sfxonitam', 'Name')),
     col.numericRangeFilter('quantity', t('sfxonitam', 'Quantity from'), t('sfxonitam', 'Quantity to')),
     col.relationFilter('quantityUnitId', t('sfxonitam', 'QuantityUnit')),
@@ -114,7 +116,8 @@ const filterFields = [
     col.relationFilter('merchantId', t('sfxonitam', 'Merchant')),
     col.textFilter('invoiceNumber', t('sfxonitam', 'Invoice Number')),
     col.dateRangeFilter('purchaseDate', t('sfxonitam', 'Purchase Date from'), t('sfxonitam', 'Purchase Date to')),
-]
+    ...customFieldFilters(props.customFields ?? [], (entity) => entity in relatedEntityData),
+])
 
 function addItem() {
     window.location.href = generateUrl('/apps/sfxonitam/device/detail')

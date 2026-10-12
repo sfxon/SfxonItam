@@ -148,11 +148,7 @@ abstract class AbstractItamController extends Controller
         $total = $this->mapper->countAll($filters);
 
         $data['mainData'] = array_map(fn ($d) => $d->jsonSerialize($customFields), $data['mainData']);
-        $data['mainData'] = $this->customFieldService->addForeignKeyLabels(
-            $customFields,
-            $data['mainData'],
-            $this->entityRegistry
-        );
+        $data['mainData'] = $this->customFieldService->addForeignKeyLabels($customFields, $data['mainData']);
 
         return new JSONResponse([
             'data' => $data,
@@ -260,7 +256,7 @@ abstract class AbstractItamController extends Controller
 
     private function resolveForeignKeySortDefinition(mixed $customField): ?array
     {
-        $description = $this->customFieldService->describeForeignKey($customField, $this->entityRegistry);
+        $description = $this->customFieldService->describeForeignKey($customField);
 
         if ($description === null) {
             return null;

@@ -12,8 +12,9 @@ import SfxonPagination from '@/components/SfxonPagination'
 import SfxonTable from '@/components/SfxonTable'
 import type { BreadcrumbItem } from '@/components/SfxonItamHeaderBc'
 import { createListColumns } from '@/composables/createListColumns'
-import { customFieldColumns, withCustomFieldValues } from '@/composables/customFieldColumns'
+import { customFieldColumns, customFieldFilters, withCustomFieldValues } from '@/composables/customFieldColumns'
 import type { CustomField } from '@/composables/customFieldColumns'
+import { registerCustomFieldFilterOptions } from '@/composables/useCustomFieldFilterOptions'
 import { useColumnOrder } from '@/composables/useColumnOrder'
 import { useEntityList } from '@/composables/useEntityList'
 import { useListViewUiState } from '@/composables/useListViewUiState'
@@ -75,12 +76,14 @@ const columns = computed(() => [
     ...customFieldColumns(props.customFields ?? [], noopCellMounted, itamUserUrl),
 ])
 const defaultColumns = ['email', 'firstname', 'lastname', '#actions']
-const { orderedColumns, showModal: columnOrderModalOpen, onSaved } = useColumnOrder(VIEW_ID, columns.value, defaultColumns)
-const filterFields = [
+const { orderedColumns, showModal: columnOrderModalOpen, onSaved } = useColumnOrder(VIEW_ID, columns, defaultColumns)
+registerCustomFieldFilterOptions(props.customFields ?? [], relatedEntityData, relatedEntitySearchFns)
+const filterFields = computed(() => [
     col.textFilter('email', t('sfxonitam', 'Email')),
     col.textFilter('firstname', t('sfxonitam', 'Firstname')),
     col.textFilter('lastname', t('sfxonitam', 'Lastname')),
-]
+    ...customFieldFilters(props.customFields ?? [], (entity) => entity in relatedEntityData),
+])
 
 function addItem() {
     window.location.href = generateUrl('/apps/sfxonitam/itam-user/detail')

@@ -14,6 +14,7 @@ import type { BreadcrumbItem } from '@/components/SfxonItamHeaderBc'
 import { createListColumns } from '@/composables/createListColumns'
 import { customFieldColumns, customFieldFilters, withCustomFieldValues } from '@/composables/customFieldColumns'
 import type { CustomField } from '@/composables/customFieldColumns'
+import { registerCustomFieldFilterOptions } from '@/composables/useCustomFieldFilterOptions'
 import { useColumnOrder } from '@/composables/useColumnOrder'
 import { useEntityList } from '@/composables/useEntityList'
 import { useListViewUiState } from '@/composables/useListViewUiState'
@@ -75,6 +76,7 @@ const columns = computed(() => [
 ])
 const defaultColumns = ['name', 'manufacturerId', '#actions']
 const { orderedColumns, showModal: columnOrderModalOpen, onSaved } = useColumnOrder(VIEW_ID, columns, defaultColumns)
+registerCustomFieldFilterOptions(props.customFields ?? [], relatedEntityData, relatedEntitySearchFns)
 const filterFields = computed(() => [
     col.textFilter('name', t('sfxonitam', 'Name')),
     col.relationFilter('manufacturerId', t('sfxonitam', 'Manufacturer')),

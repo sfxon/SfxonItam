@@ -12,8 +12,9 @@ import SfxonPagination from '@/components/SfxonPagination'
 import SfxonTable from '@/components/SfxonTable'
 import type { BreadcrumbItem } from '@/components/SfxonItamHeaderBc'
 import { createListColumns } from '@/composables/createListColumns'
-import { customFieldColumns, withCustomFieldValues } from '@/composables/customFieldColumns'
+import { customFieldColumns, customFieldFilters, withCustomFieldValues } from '@/composables/customFieldColumns'
 import type { CustomField } from '@/composables/customFieldColumns'
+import { registerCustomFieldFilterOptions } from '@/composables/useCustomFieldFilterOptions'
 import { useColumnOrder } from '@/composables/useColumnOrder'
 import { useEntityList } from '@/composables/useEntityList'
 import { useListViewUiState } from '@/composables/useListViewUiState'
@@ -73,10 +74,12 @@ const columns = computed(() => [
     ...customFieldColumns(props.customFields ?? [], noopCellMounted, deviceStatusUrl),
 ])
 const defaultColumns = ['name', '#actions']
-const { orderedColumns, showModal: columnOrderModalOpen, onSaved } = useColumnOrder(VIEW_ID, columns.value, defaultColumns)
-const filterFields = [
+const { orderedColumns, showModal: columnOrderModalOpen, onSaved } = useColumnOrder(VIEW_ID, columns, defaultColumns)
+registerCustomFieldFilterOptions(props.customFields ?? [], relatedEntityData, relatedEntitySearchFns)
+const filterFields = computed(() => [
     col.textFilter('name', t('sfxonitam', 'Name')),
-]
+    ...customFieldFilters(props.customFields ?? [], (entity) => entity in relatedEntityData),
+])
 
 function addItem() {
     window.location.href = generateUrl('/apps/sfxonitam/device-status/detail')
