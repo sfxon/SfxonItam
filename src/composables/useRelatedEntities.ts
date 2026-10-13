@@ -76,8 +76,10 @@ export function useRelatedEntities(metaByEntity: Record<string, RelationMeta>) {
             return
         }
 
-        const filters = query
-            ? Object.fromEntries(meta.searchFields.map((field) => [field, [query]]))
+        // '_search' matches the term in at least one of `_searchFields` (OR across fields, LIKE).
+        // Separate filters per field would be combined with AND by the backend.
+        const filters: Record<string, string[]> = query
+            ? { _search: [query], _searchFields: meta.searchFields }
             : {}
 
         try {

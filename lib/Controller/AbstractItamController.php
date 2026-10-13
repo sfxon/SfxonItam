@@ -163,8 +163,8 @@ abstract class AbstractItamController extends Controller
         try {
             $include = $this->request->getParam('include');
 
-            if (!is_array($include)) {
-                $include = [];
+            if (!is_array($include) || $include === []) {
+                $include = $this->entityDefinition->listIncludes;
             }
 
             if (!isset($include['location'])) {

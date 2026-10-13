@@ -19,6 +19,7 @@ import NcContent from '@nextcloud/vue/components/NcContent'
 import { parseLocalDateString, toLocalDateString } from '@/services/DateService'
 import { mdiPlus } from '@mdi/js'
 import { generateUrl } from '@nextcloud/router'
+import { loadState } from '@nextcloud/initial-state'
 import NcNoteCard from '@nextcloud/vue/components/NcNoteCard'
 import NcIconSvgWrapper from '@nextcloud/vue/components/NcIconSvgWrapper'
 import SfxonBarcode from '@/components/SfxonBarcode'
@@ -36,6 +37,8 @@ import SfxonQrCodeView from '@/components/SfxonQrCodeView'
 import SfxonSaveBadge from '@/components/SfxonSaveBadge'
 import { translate as t } from '@nextcloud/l10n'
 import { useApiErrors } from '@/composables/useApiErrors'
+import { useRelatedEntities } from '@/composables/useRelatedEntities'
+import type { RelationMeta } from '@/composables/useRelatedEntities'
 import { useSfxonFileUploadField } from '@/composables/useSfxonFileUploadField'
 import { useSaveBadge } from '@/composables/useSaveBadge'
 
@@ -101,14 +104,13 @@ const breadcrumbs = computed<BreadcrumbItem[]>(() => [
     },
 ])
 
-// Define related entities.
-const itamUsers = ref<{ id: string; label: string }[]>([])
-const deviceStatis = ref<{ id: string; label: string}[]>([])
-const deviceTypes = ref<{ id: string; label: string}[]>([])
-const locations = ref<{ id: string; label: string }[]>([])
-const merchants = ref<{ id: string; label: string }[]>([])
-const positions = ref<{ id: string; label: string}[]>([])
-const quantityUnits = ref<{ id: string; label: string}[]>([])
+// Related entities: options and search come from the same generalized list endpoint as in the list views.
+const entityMeta = loadState<Record<string, RelationMeta>>('sfxonitam', 'entityMeta', {})
+const {
+    data: relatedEntityData,
+    applyRelations,
+    searchFns: relatedEntitySearchFns,
+} = useRelatedEntities(entityMeta)
 const deviceImage = reactive(useSfxonFileUploadField({ folder: 'ITAM-Images', accept: ['image/*'] }))
 
 function onDeviceImageLocalFileChange(event: Event) {
@@ -143,32 +145,32 @@ const customFieldInitialValues = ref<Record<string, unknown>>({})
 const entityConfig = {
     deviceStatus: {
         selectTarget: selectedDeviceStatus,
-        optionsTarget: deviceStatis,
+        optionsTarget: computed(() => relatedEntityData.deviceStatus),
         labelFields: { fields: ['name'] },
     },
     deviceType: {
         selectTarget: selectedDeviceType,
-        optionsTarget: deviceTypes,
+        optionsTarget: computed(() => relatedEntityData.deviceType),
         labelFields: { fields: ['name'] },
     },
     quantityUnit: {
         selectTarget: selectedQuantityUnit,
-        optionsTarget: quantityUnits,
+        optionsTarget: computed(() => relatedEntityData.quantityUnit),
         labelFields: { fields: ['name'] },
     },
     itamUser: {
         selectTarget: selectedItamUser,
-        optionsTarget: itamUsers,
+        optionsTarget: computed(() => relatedEntityData.itamUser),
         labelFields: { fields: ['firstname', 'lastname'], technique: 'concat', separator: ' ' },
     },
     merchant: {
         selectTarget: selectedMerchant,
-        optionsTarget: merchants,
+        optionsTarget: computed(() => relatedEntityData.merchant),
         labelFields: { fields: ['name'] },
     },
     position: {
         selectTarget: selectedPosition,
-        optionsTarget: positions,
+        optionsTarget: computed(() => relatedEntityData.position),
         labelFields: { fields: ['name'] },
     },
 }
@@ -177,41 +179,14 @@ const relations = reactive(buildRelations(props.entityDefinitions, entityConfig)
 
 const foreignEntitySearchConfig = reactive({
     location: {
-        searchFn: searchLocations,
-        optionsTarget: locations,
+        searchFn: relatedEntitySearchFns.location,
+        optionsTarget: computed(() => relatedEntityData.location),
         labelFields: { fields: ['name'] },
     },
 })
 
 function addItem() {
     window.location.href = generateUrl('/apps/sfxonitam/device/detail')
-}
-
-function addEntityData(entity, dataObject, identifierField, valueFields = null) {
-    if (dataObject == null) {
-        return
-    }
-
-    let id = dataObject[identifierField];
-    let label = '';
-    
-    if(null !== valueFields) {
-        if(valueFields.technique === 'concat') {
-            for(let fieldName of valueFields.fields) {
-                if(label.length > 0) {
-                    label += valueFields.separator;
-                }
-
-                label += dataObject[fieldName];
-            }
-        } else {
-            label = dataObject.name
-        } 
-    } else {
-        label = dataObject.name
-    }
-
-    entity.value.push({id: id, label: label})
 }
 
 function buildRelations(entityDefinitions, dropdownBindings = {}) {
@@ -287,16 +262,8 @@ async function loadDevice(id: number): Promise<void> {
         deviceLoading.value = true
         const data = await DeviceService.fetchDevice(id)
 
-        // Helper for checking, if object is set. If there was no relation set and so no relation loaded, this prevents a faulty access on the object.
-        const firstOf = (obj: any) => obj ? Object.values(obj)[0] ?? null : null 
+        applyRelations(data.relations)
 
-        addEntityData(deviceStatis, firstOf(data.relations.deviceStatus), 'id')
-        addEntityData(deviceTypes, firstOf(data.relations.deviceType), 'id')
-        addEntityData(itamUsers, firstOf(data.relations.itamUser), 'id', { fields: ['firstname', 'lastname'], technique: 'concat', separator: ' ' })
-        addEntityData(merchants, firstOf(data.relations.merchant), 'id')
-        addEntityData(positions, firstOf(data.relations.position), 'id')
-        addEntityData(quantityUnits, firstOf(data.relations.quantityUnit), 'id')
-        
         /* Load main data. */
         const d = data.mainData;
 
@@ -306,12 +273,12 @@ async function loadDevice(id: number): Promise<void> {
         name.value = d.name ?? ''
         purchaseDate.value = d.purchaseDate ? parseLocalDateString(d.purchaseDate) : null
         quantity.value = d.quantity ? String(parseFloat(d.quantity)) : ''
-        selectedDeviceStatus.value = deviceStatis.value.find(s => s.id === d.deviceStatusId) ?? null
-        selectedDeviceType.value = deviceTypes.value.find(s => s.id === d.deviceTypeId) ?? null
-        selectedItamUser.value = itamUsers.value.find(u => u.id === d.itamUserId) ?? null
-        selectedMerchant.value = merchants.value.find(u => u.id === d.merchantId) ?? null
-        selectedPosition.value = positions.value.find(s => s.id === d.positionId) ?? null
-        selectedQuantityUnit.value = quantityUnits.value.find(s => s.id === d.quantityUnitId) ?? null
+        selectedDeviceStatus.value = relatedEntityData.deviceStatus.find(s => s.id === d.deviceStatusId) ?? null
+        selectedDeviceType.value = relatedEntityData.deviceType.find(s => s.id === d.deviceTypeId) ?? null
+        selectedItamUser.value = relatedEntityData.itamUser.find(u => u.id === d.itamUserId) ?? null
+        selectedMerchant.value = relatedEntityData.merchant.find(u => u.id === d.merchantId) ?? null
+        selectedPosition.value = relatedEntityData.position.find(s => s.id === d.positionId) ?? null
+        selectedQuantityUnit.value = relatedEntityData.quantityUnit.find(s => s.id === d.quantityUnitId) ?? null
         serialNumber.value = d.serialNumber ?? ''
         serialNumber2.value = d.serialNumber2 ?? ''
         deviceImage.setFromExisting(d.imageFileId ?? null)
@@ -368,140 +335,6 @@ async function saveAndNew() {
     if (submitSuccess !== false) {
         window.location.href = generateUrl('/apps/sfxonitam/device/detail')
     }
-}
-
-async function searchDeviceStatis(query: string, signal: AbortSignal): Promise<void> {
-    let filters = {
-        name: [query]
-    };
-
-    const data = await DeviceStatusService.findDeviceStatis({ filters: filters }, signal)
-
-    if (data === null || data.mainData === null) {
-        return;
-    }
-
-    deviceStatis.value = Object.values(data.mainData).map((deviceStatus: any) => ({
-        id: deviceStatus.id,
-        label: deviceStatus.name
-    }))
-}
-
-async function searchDeviceTypes(query: string, signal: AbortSignal): Promise<void> {
-    let filters = {
-        name: [query]
-    };
-
-    const data = await DeviceTypeService.findDeviceTypes({ filters: filters }, signal)
-
-    if (data === null || data.mainData === null) {
-        return;
-    }
-
-    deviceTypes.value = Object.values(data.mainData).map((deviceType: any) => ({
-        id: deviceType.id,
-        label: deviceType.name
-    }))
-}
-
-async function searchItamUsers(query: string, signal: AbortSignal): Promise<void> {
-    let filters = {
-        firstname: [query],
-        lastname: [query],
-        email: [query]
-    };
-
-    const data = await ItamUserService.findItamUsers({ filters: filters }, signal)
-
-    if (data === null || data.mainData === null) {
-        return;
-    }
-
-    itamUsers.value = Object.values(data.mainData).map((itamUser: any) => ({
-        id: itamUser.id,
-        label: itamUser.firstname + ' ' + itamUser.lastname
-    }))
-}
-
-async function searchLocations(query: string, signal: AbortSignal): Promise<void> {
-    let filters = {
-        name: [query]
-    };
-
-    const data = await LocationService.findLocation({ filters: filters }, signal)
-
-    if (data === null || data.mainData === null) {
-        return;
-    }
-
-    locations.value = Object.values(data.mainData).map((location: any) => ({
-        id: location.id,
-        label: location.name
-    }))
-}
-
-async function searchMerchants(query: string, signal: AbortSignal): Promise<void> {
-    let filters = {
-        name: [query]
-    };
-
-    const data = await MerchantService.findMerchants({ filters: filters }, signal)
-
-    if (data === null || data.mainData === null) {
-        return;
-    }
-
-    merchants.value = Object.values(data.mainData).map((merchant: any) => ({
-        id: merchant.id,
-        label: merchant.name
-    }))
-}
-
-async function searchPositions(query: string, signal: AbortSignal): Promise<void> {
-    let filters = {
-        name: [query]
-    };
-
-    let include = {
-        location: {}
-    };
-
-    const data = await PositionService.findPositions(
-        { 
-            filters: filters,
-            include: include
-        }, signal
-    )
-
-    if (data === null || data.mainData === null) {
-        return;
-    }
-
-    positions.value = Object.values(data.mainData).map((position: any) => {
-        const location = data.relations?.location?.[position.locationId];
-        const label = location ? `${location.name} - ${position.name}` : position.name;
-        return {
-            id: position.id,
-            label
-        };
-    });
-}
-
-async function searchQuantityUnits(query: string, signal: AbortSignal): Promise<void> {
-    let filters = {
-        name: [query]
-    };
-
-    const data = await QuantityUnitService.findQuantityUnits({ filters: filters }, signal)
-
-    if (data === null || data.mainData === null) {
-        return;
-    }
-
-    quantityUnits.value = Object.values(data.mainData).map((quantityUnit: any) => ({
-        id: quantityUnit.id,
-        label: quantityUnit.name
-    }))
 }
 
 function onBackButton() {
@@ -647,8 +480,8 @@ onMounted(async () => {
                                 id="quantity-unit-select"
                                 @input="clearFieldError('quantityUnitId')"
                                 :label="t('sfxonitam', 'Quantity Unit') + ':'"
-                                :options="quantityUnits"
-                                :searchFn="searchQuantityUnits"
+                                :options="relatedEntityData.quantityUnit"
+                                :searchFn="relatedEntitySearchFns.quantityUnit"
                                 trackBy="id"
                                 v-model="selectedQuantityUnit"
                             />
@@ -660,8 +493,8 @@ onMounted(async () => {
                                 id="itam-user-select"
                                 @input="clearFieldError('itamUserId')"
                                 :label="t('sfxonitam', 'User') + ':'"
-                                :options="itamUsers"
-                                :searchFn="searchItamUsers"
+                                :options="relatedEntityData.itamUser"
+                                :searchFn="relatedEntitySearchFns.itamUser"
                                 trackBy="id"
                                 v-model="selectedItamUser"
                             />
@@ -673,8 +506,8 @@ onMounted(async () => {
                                 id="position-select"
                                 @input="clearFieldError('positionId')"
                                 :label="t('sfxonitam', 'Position') + ':'"
-                                :options="positions"
-                                :searchFn="searchPositions"
+                                :options="relatedEntityData.position"
+                                :searchFn="relatedEntitySearchFns.position"
                                 trackBy="id"
                                 v-model="selectedPosition"
                             />
@@ -717,8 +550,8 @@ onMounted(async () => {
                                 id="device-status-select"
                                 @input="clearFieldError('deviceStatusId')"
                                 :label="t('sfxonitam', 'Device Status') + ':'"
-                                :options="deviceStatis"
-                                :searchFn="searchDeviceStatis"
+                                :options="relatedEntityData.deviceStatus"
+                                :searchFn="relatedEntitySearchFns.deviceStatus"
                                 trackBy="id"
                                 v-model="selectedDeviceStatus"
                             />
@@ -730,8 +563,8 @@ onMounted(async () => {
                                 id="device-type-select"
                                 @input="clearFieldError('deviceTypeId')"
                                 :label="t('sfxonitam', 'Device Type') + ':'"
-                                :options="deviceTypes"
-                                :searchFn="searchDeviceTypes"
+                                :options="relatedEntityData.deviceType"
+                                :searchFn="relatedEntitySearchFns.deviceType"
                                 trackBy="id"
                                 v-model="selectedDeviceType"
                             />
@@ -792,8 +625,8 @@ onMounted(async () => {
                                 id="device-type-select"
                                 @input="clearFieldError('merchantId')"
                                 :label="t('sfxonitam', 'Merchant') + ':'"
-                                :options="merchants"
-                                :searchFn="searchMerchants"
+                                :options="relatedEntityData.merchant"
+                                :searchFn="relatedEntitySearchFns.merchant"
                                 trackBy="id"
                                 v-model="selectedMerchant"
                             />

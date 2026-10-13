@@ -99,7 +99,7 @@ Editor:
             - ✅ Geräte-Editor Darstellung optimieren. Mehrspaltig, wo möglich. Bild und QR-Code nach rechts. Inspiration bei Xanario holen - die haben imho den besten Editor für sowas gebaut (Übersichtlichkeit): https://www.xanario.de/naehere-informationen-software/ct-314.html.
     - ✅ Make Device Editor Page more responsive ready. It should be easy to use on mobile devices, too.
 
-    - Refactor the handling of related entities.
+    - ✅ Refactor the handling of related entities.
         - ✅ Make it possible, to give a list of related entities to the api endpoint.
         - ✅ Search given related entities by an id mapping, but after the main entity has been loaded.
         - ✅ Make it usable for lists of data from the beginning. Group foreign entities' id's and search them in a single query with "IN".
@@ -222,7 +222,7 @@ Editor:
 
     - ✅ Take over breadcrumb to device list: https://nextcloud-vue-components.netlify.app/#/Components/NcBreadcrumbs?id=ncbreadcrumb. It is used for example for Custom Fields. In that next step, I will automatically take it over for the other list views.
 
-    - Take over new functionality for detail page to all other editor pages..
+    - ✅ Take over new functionality for detail page to all other editor pages..
         - ✅ Build an editor.module.css and import it on every editor page. That way, I can use general stylings for that pages.
         - ✅ Create SfxonEditorFormInput component, to wrap common layout and logic for repeating fields. This improves code quality.
         - ✅ Create SfxonEditorFormEntitySelect component.
@@ -238,7 +238,7 @@ Editor:
         - ✅ Entity: ItamUser
         - ✅ Entity: Position
         - ✅ After doing DeviceStatus, ItamUser and Position, take a comparison of these three and Device. Build an Abstract, that takes out the overlapping functionality, to reduce code duplication.
-        - Show custom fields in listings.
+        - ✅ Show custom fields in listings.
         - In the save method of the Controller for Device, the validation part for the custom fields is missing. Take a deeper look at it and fix this.
 
 * Einkauf/Verkauf hinzufügen
@@ -328,9 +328,9 @@ Editor:
 
 * ✅ Start a devlog instead of twitch streams - because it might be more of an interest. For now I choose bluesky and short messages. Bsky: https://bsky.app/profile/eska1000.bsky.social
 
-* Create website for the project (oishii-desu.de/itam)
+* ✅ Create website for the project (OishiiAssets.com)
 
-* Create developer documentation sites for the project: oishii-desu.de/itam/docs.
+* Create developer documentation sites for the project: OishiiAssets.com/docs.
 
 * Cleanup Readme.md
     - Add "introduction" and "first steps" section, link for further usage info to project website.

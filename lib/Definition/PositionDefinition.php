@@ -30,6 +30,7 @@ final class PositionDefinition extends EntityDefinition
                     'Cannot delete. There are still devices assigned to this position.'
                 ),
             ],
+            labelParent: 'location',
         );
     }
 }

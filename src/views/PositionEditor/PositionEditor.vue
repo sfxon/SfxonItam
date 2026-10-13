@@ -10,6 +10,7 @@ import * as PositionService from '@/services/PositionService'
 import * as QuantityUnitService from '@/services/QuantityUnitService'
 import { computed, onMounted, reactive, ref } from 'vue'
 import { generateUrl } from '@nextcloud/router'
+import { loadState } from '@nextcloud/initial-state'
 import { mdiPlus } from '@mdi/js'
 import NcAppContent from '@nextcloud/vue/components/NcAppContent'
 import NcAppNavigation from '@nextcloud/vue/components/NcAppNavigation'
@@ -29,9 +30,10 @@ import SfxonEditorFormInput from '@/components/SfxonEditorFormInput'
 import SfxonEditorFormTextareaLabeled from '@/components/SfxonEditorFormTextareaLabeled'
 import SfxonEditorStyles from '@/components/SfxonEditor/SfxonEditor.module.css'
 import SfxonMainNavigation from '@/components/SfxonMainNavigation'
-import { fetchAllLocations } from '@/services/LocationService'
 import { translate as t } from '@nextcloud/l10n'
 import { useApiErrors } from '@/composables/useApiErrors'
+import { useRelatedEntities } from '@/composables/useRelatedEntities'
+import type { RelationMeta } from '@/composables/useRelatedEntities'
 import { useSaveBadge } from '@/composables/useSaveBadge'
 
 const services = {
@@ -59,7 +61,6 @@ const props = defineProps({
 })
 const selectedLocation = ref<{ id: string; label: string } | null>(null)
 const comment = ref('')
-const locationsLoading = ref(false)
 const positionLoading = ref(false)
 const isSaving = ref(false)
 const { fieldErrors, generalError, handleApiError, clearErrors, clearFieldError } = useApiErrors()
@@ -83,7 +84,12 @@ const breadcrumbs = computed<BreadcrumbItem[]>(() => [
         disableDrop: true,
     },
 ])
-const locations = ref<{ id: string; label: string}[]>([])
+const entityMeta = loadState<Record<string, RelationMeta>>('sfxonitam', 'entityMeta', {})
+const {
+    data: relatedEntityData,
+    applyRelations,
+    searchFns: relatedEntitySearchFns,
+} = useRelatedEntities(entityMeta)
 const customFieldsRef = ref<InstanceType<typeof SfxonCustomFields> | null>(null)
 const customFieldValues = ref<Record<string, unknown>>({})
 
@@ -92,53 +98,14 @@ function onCustomFieldValuesUpdate(newValues: Record<string, unknown>) {
 }
 
 const customFieldInitialValues = ref<Record<string, unknown>>({})
-
-/**
- * @deprecated
- * 
- * This is in subject to be more streamlined.
- * Since entities will be even more dynamic in the future, especially when we think of custom fields,
- * this is only a first draft, on how this could be archived.
- * Later, the fields "selectTarget, optionsTarget and labelFields" should be dynamically generated in the buildRelations method.
- * The input fields below should then only be rendered in a loop, with the given input fields.
- * For the time between, we use this as a middle solution.
- * 
- */
 const entityConfig = {
     location: {
         selectTarget: selectedLocation,
-        optionsTarget: locations,
+        optionsTarget: computed(() => relatedEntityData.location),
         labelFields: { fields: ['name'] },
     },
 }
 const relations = reactive(buildRelations(props.entityDefinitions, entityConfig))
-
-function addEntityData(entity, dataObject, identifierField, valueFields = null) {
-    if (dataObject == null) {
-        return
-    }
-
-    let id = dataObject[identifierField];
-    let label = '';
-    
-    if(null !== valueFields) {
-        if(valueFields.technique === 'concat') {
-            for(let fieldName of valueFields.fields) {
-                if(label.length > 0) {
-                    label += valueFields.separator;
-                }
-
-                label += dataObject[fieldName];
-            }
-        } else {
-            label = dataObject.name
-        } 
-    } else {
-        label = dataObject.name
-    }
-
-    entity.value.push({id: id, label: label})
-}
 
 function addItem() {
     window.location.href = generateUrl('/apps/sfxonitam/position/detail')
@@ -195,14 +162,11 @@ async function loadPosition(id: number): Promise<void> {
         positionLoading.value = true
         const data = await fetchPosition(id)
 
-        // Helper for checking, if object is set. If there was no relation set and so no relation loaded, this prevents a faulty access on the object.
-        const firstOf = (obj: any) => obj ? Object.values(obj)[0] ?? null : null 
-        addEntityData(locations, firstOf(data.relations.location), 'id')
-
+        applyRelations(data.relations)
 
         const d = data.mainData
         name.value = d.name ?? ''
-        selectedLocation.value = locations.value.find(s => s.id == d.locationId) ?? null
+        selectedLocation.value = relatedEntityData.location.find(s => s.id == d.locationId) ?? null
         comment.value = d.comment ? d.comment : ''
         customFieldInitialValues.value = d.customFields ?? {}
     } catch (e: any) {
@@ -210,22 +174,6 @@ async function loadPosition(id: number): Promise<void> {
         console.error('Error while loading Position:', e)
     } finally {
         positionLoading.value = false
-    }
-}
-
-async function loadLocations() {
-    try {
-        locationsLoading.value = true
-        const data = await fetchAllLocations({})
-
-        locations.value = Object.values(data.locations).map((location: any) => ({
-            id: location.id,
-            label: location.name
-        }))
-    } catch(e) {
-        console.error('Error on loading locations:', e)
-    } finally {
-        locationsLoading.value = false
     }
 }
 
@@ -291,23 +239,6 @@ async function saveAndNew() {
     if (submitSuccess !== false) {
         window.location.href = generateUrl('/apps/sfxonitam/position/detail')
     }
-}
-
-async function searchLocations(query: string, signal: AbortSignal): Promise<void> {
-    let filters = {
-        name: [query]
-    };
-
-    const data = await LocationService.findLocation({ filters: filters }, signal)
-
-    if (data === null || data.mainData === null) {
-        return;
-    }
-
-    locations.value = Object.values(data.mainData).map((location: any) => ({
-        id: location.id,
-        label: location.name
-    }))
 }
 
 async function submitForm() {
@@ -426,8 +357,8 @@ onMounted(async () => {
                                 id="location-select"
                                 @input="clearFieldError('locationId')"
                                 :label="t('sfxonitam', 'Location') + ':'"
-                                :options="locations"
-                                :searchFn="searchLocations"
+                                :options="relatedEntityData.location"
+                                :searchFn="relatedEntitySearchFns.location"
                                 trackBy="id"
                                 v-model="selectedLocation"
                             />

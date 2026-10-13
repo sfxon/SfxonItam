@@ -10,6 +10,7 @@ import * as PositionService from '@/services/PositionService'
 import * as QuantityUnitService from '@/services/QuantityUnitService'
 import { computed, onMounted, reactive, ref } from 'vue'
 import { generateUrl } from '@nextcloud/router'
+import { loadState } from '@nextcloud/initial-state'
 import { mdiPlus } from '@mdi/js'
 import NcAppContent from '@nextcloud/vue/components/NcAppContent'
 import NcAppNavigation from '@nextcloud/vue/components/NcAppNavigation'
@@ -29,9 +30,10 @@ import SfxonEditorFormInput from '@/components/SfxonEditorFormInput'
 import SfxonEditorFormTextareaLabeled from '@/components/SfxonEditorFormTextareaLabeled'
 import SfxonEditorStyles from '@/components/SfxonEditor/SfxonEditor.module.css'
 import SfxonMainNavigation from '@/components/SfxonMainNavigation'
-import { fetchAllManufacturers } from '@/services/ManufacturerService'
 import { translate as t } from '@nextcloud/l10n'
 import { useApiErrors } from '@/composables/useApiErrors'
+import { useRelatedEntities } from '@/composables/useRelatedEntities'
+import type { RelationMeta } from '@/composables/useRelatedEntities'
 import { useSaveBadge } from '@/composables/useSaveBadge'
 
 const services = {
@@ -59,7 +61,6 @@ const props = defineProps({
 })
 const selectedManufacturer = ref<{ id: string; label: string } | null>(null)
 const comment = ref('')
-const manufacturersLoading = ref(false)
 const deviceTypeLoading = ref(false)
 const isSaving = ref(false)
 const { fieldErrors, generalError, handleApiError, clearErrors, clearFieldError } = useApiErrors()
@@ -83,7 +84,12 @@ const breadcrumbs = computed<BreadcrumbItem[]>(() => [
         disableDrop: true,
     },
 ])
-const manufacturers = ref<{ id: string; label: string}[]>([])
+const entityMeta = loadState<Record<string, RelationMeta>>('sfxonitam', 'entityMeta', {})
+const {
+    data: relatedEntityData,
+    applyRelations,
+    searchFns: relatedEntitySearchFns,
+} = useRelatedEntities(entityMeta)
 const customFieldsRef = ref<InstanceType<typeof SfxonCustomFields> | null>(null)
 const customFieldValues = ref<Record<string, unknown>>({})
 
@@ -107,38 +113,11 @@ const customFieldInitialValues = ref<Record<string, unknown>>({})
 const entityConfig = {
     manufacturer: {
         selectTarget: selectedManufacturer,
-        optionsTarget: manufacturers,
+        optionsTarget: computed(() => relatedEntityData.manufacturer),
         labelFields: { fields: ['name'] },
     },
 }
 const relations = reactive(buildRelations(props.entityDefinitions, entityConfig))
-
-function addEntityData(entity, dataObject, identifierField, valueFields = null) {
-    if (dataObject == null) {
-        return
-    }
-
-    let id = dataObject[identifierField];
-    let label = '';
-    
-    if(null !== valueFields) {
-        if(valueFields.technique === 'concat') {
-            for(let fieldName of valueFields.fields) {
-                if(label.length > 0) {
-                    label += valueFields.separator;
-                }
-
-                label += dataObject[fieldName];
-            }
-        } else {
-            label = dataObject.name
-        } 
-    } else {
-        label = dataObject.name
-    }
-
-    entity.value.push({id: id, label: label})
-}
 
 function addItem() {
     window.location.href = generateUrl('/apps/sfxonitam/device-type/detail')
@@ -195,13 +174,11 @@ async function loadDeviceType(id: number): Promise<void> {
         deviceTypeLoading.value = true
         const data = await fetchDeviceType(id)
 
-        // Helper for checking, if object is set. If there was no relation set and so no relation loaded, this prevents a faulty access on the object.
-        const firstOf = (obj: any) => obj ? Object.values(obj)[0] ?? null : null 
-        addEntityData(manufacturers, firstOf(data.relations.manufacturer), 'id')
+        applyRelations(data.relations)
 
         const d = data.mainData
         name.value = d.name ?? ''
-        selectedManufacturer.value = manufacturers.value.find(s => s.id == d.manufacturerId) ?? null
+        selectedManufacturer.value = relatedEntityData.manufacturer.find(s => s.id == d.manufacturerId) ?? null
         comment.value = d.comment ? d.comment : ''
         customFieldInitialValues.value = d.customFields ?? {}
     } catch (e: any) {
@@ -209,22 +186,6 @@ async function loadDeviceType(id: number): Promise<void> {
         console.error('Error while loading DeviceType:', e)
     } finally {
         deviceTypeLoading.value = false
-    }
-}
-
-async function loadManufacturers() {
-    try {
-        manufacturersLoading.value = true
-        const data = await fetchAllManufacturers({})
-
-        manufacturers.value = Object.values(data.manufacturers).map((manufacturer: any) => ({
-            id: manufacturer.id,
-            label: manufacturer.name
-        }))
-    } catch(e) {
-        console.error('Error on loading manufacturers:', e)
-    } finally {
-        manufacturersLoading.value = false
     }
 }
 
@@ -290,23 +251,6 @@ async function saveAndNew() {
     if (submitSuccess !== false) {
         window.location.href = generateUrl('/apps/sfxonitam/device-type/detail')
     }
-}
-
-async function searchManufacturers(query: string, signal: AbortSignal): Promise<void> {
-    let filters = {
-        name: [query]
-    };
-
-    const data = await ManufacturerService.findManufacturer({ filters: filters }, signal)
-
-    if (data === null || data.mainData === null) {
-        return;
-    }
-
-    manufacturers.value = Object.values(data.mainData).map((merchant: any) => ({
-        id: merchant.id,
-        label: merchant.name
-    }))
 }
 
 async function submitForm() {
@@ -424,8 +368,8 @@ onMounted(async () => {
                                 id="manufacturer-select"
                                 @input="clearFieldError('manufacturerId')"
                                 :label="t('sfxonitam', 'Manufacturer') + ':'"
-                                :options="manufacturers"
-                                :searchFn="searchManufacturers"
+                                :options="relatedEntityData.manufacturer"
+                                :searchFn="relatedEntitySearchFns.manufacturer"
                                 trackBy="id"
                                 v-model="selectedManufacturer"
                             />
