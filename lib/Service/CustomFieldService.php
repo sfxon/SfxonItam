@@ -100,6 +100,7 @@ class CustomFieldService {
     }
 
     // This method filters out all fields, that are not expected, and only returns the one that we really want.
+    // Values are only normalized here. Judging whether they are valid is the job of validateCustomFieldData().
     public function getCustomFieldDataFromRequest($customFieldDefinitions, $requestArray)
     {
         $postedCustomFields = $requestArray['customFields'] ?? [];
@@ -110,57 +111,28 @@ class CustomFieldService {
 
         $validCustomFields = [];
 
-        // Enumerate all available technicalNames for the customFields.
-        foreach($customFieldDefinitions as $customFieldDefinition) {
-            // Cannot use isset here, because isset would return false, even if the array key exists, but the value of the field index is null.
-            // The array_key_exists function instead returns true, when the array key exists, even if its value is null.
-            if(array_key_exists($customFieldDefinition['technicalName'], $postedCustomFields)) {
-                $technicalName = $customFieldDefinition['technicalName'];
-                $customFieldType = $customFieldDefinition['type'];
-                $value = $postedCustomFields[$technicalName];
-                $validation = json_decode($customFieldDefinition['validation'], true);
-                $rules = $validation[$customFieldType];
+        foreach ($customFieldDefinitions as $customFieldDefinition) {
+            $technicalName = $customFieldDefinition['technicalName'];
 
-                $required = false;
-
-                if(isset($result['required'])) {
-                    $required = (bool)$rules['required'];
-                }
-
-                switch($customFieldType) {
-                    case 'boolean':
-                        $value = $this->customFieldDataParserService->getBoolean($value, $required);
-                        break;
-                    case 'date':
-                        $value = $this->customFieldDataParserService->getText($value, $required); // Warning: Does not validate the date.
-                        break;
-                    case 'datetime':
-                        $value = $this->customFieldDataParserService->getText($value, $required); // Warning: Does not validate the datetime.
-                        break;
-                    case 'decimal':
-                        $value = $this->customFieldDataParserService->getDecimal($value, $required);
-                        break;
-                    case 'file':
-                        $value = $this->customFieldDataParserService->getText($value, $required); // Warning: Does not validate the id.
-                        break;
-                    case 'foreign_key':
-                        $value = $this->customFieldDataParserService->getText($value, $required); // Warning: Does not validate the id.
-                        break;
-                    case 'integer':
-                        $value = $this->customFieldDataParserService->getInteger($value, $required);
-                        break;
-                    case 'longtext':
-                        $value = $this->customFieldDataParserService->getText($value, $required);
-                        break;
-                    case 'text':
-                        $value = $this->customFieldDataParserService->getText($value, $required);
-                        break;
-                    default:
-                        throw new \Exception('Unsupported custom field type ' . $customFieldType);
-                }
-                
-                 $validCustomFields[$technicalName] = $value;
+            // Cannot use isset here, because isset would return false, even if the array key exists, but the value is null.
+            if (!array_key_exists($technicalName, $postedCustomFields)) {
+                continue;
             }
+
+            $value = $postedCustomFields[$technicalName];
+            $type = $customFieldDefinition['type'];
+
+            $value = match ($type) {
+                'boolean' => $this->customFieldDataParserService->getBoolean($value),
+                'decimal' => $this->customFieldDataParserService->getDecimal($value),
+                'integer' => $this->customFieldDataParserService->getInteger($value),
+                // Warning: date, datetime, file and foreign_key are not validated by the parser, only by the validator.
+                'date', 'datetime', 'file', 'foreign_key', 'longtext', 'text'
+                    => $this->customFieldDataParserService->getText($value),
+                default => throw new \Exception('Unsupported custom field type ' . $type),
+            };
+
+            $validCustomFields[$technicalName] = $value;
         }
 
         return $validCustomFields;
@@ -231,16 +203,9 @@ class CustomFieldService {
 
             $customFieldType = $customFieldDefinition['type'];
 
-            if (!isset($customFieldDefinition['validation'])) {
-                throw new \Exception('Missing validation information found for custom field.');
-            }
-
-            if (!isset($customFieldDefinition['options'])) {
-                throw new \Exception('Missing options information found for custom field.');
-            }
-
-            $validation = json_decode($customFieldDefinition['validation'], true);
-            $options = json_decode($customFieldDefinition['options'], true);
+            // Validation and options are optional (createCustomField() stores null when none are given).
+            $validation = json_decode($customFieldDefinition['validation'] ?? 'null', true) ?? [];
+            $options = json_decode($customFieldDefinition['options'] ?? 'null', true) ?? [];
 
             switch ($customFieldType) {
                 case 'boolean':

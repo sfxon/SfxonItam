@@ -2,15 +2,19 @@
 
 namespace OCA\SfxonItam\Validator;
 
+use OCA\SfxonItam\Db\EntityMapperAbstract;
+use OCA\SfxonItam\Definition\EntityRegistry;
+use OCP\AppFramework\Db\DoesNotExistException;
+use OCP\AppFramework\IAppContainer;
 use OCP\IL10N;
 use OCP\Files\IRootFolder;
 use OCP\Files\NotPermittedException;
 use OCP\IUserSession;
-use OCA\SfxonItam\Service\CustomFieldEntityRegistryService;
 
 class CustomFieldDataValidator {
     public function __construct(
-        private readonly CustomFieldEntityRegistryService $customFieldEntityRegistryService,
+        private readonly EntityRegistry $entityRegistry,
+        private readonly IAppContainer $container,
         private readonly IRootFolder $rootFolder,
         private readonly IUserSession $userSession,
         private readonly IL10N $l,)
@@ -316,21 +320,47 @@ class CustomFieldDataValidator {
             $value = trim($value);
         }
 
-        // Not required: null/empty value is allowed.
         if ($required && ($value === null || $value === '')) {
             $errors['customFields.' . $fieldName] = $this->l->t('This field is required.', [$fieldName]);
             return $errors;
         }
 
-        // If validation is enabled: Entry must be an entry in the foreign table.
-        $entityName = $options['foreignKey']['targetEntity'];
-        $result = $this->customFieldEntityRegistryService->findById($entityName, $value);
+        // Not required: null/empty value is allowed.
+        if ($value === null || $value === '') {
+            return $errors;
+        }
 
-        if($result === null) {
+        // If validation is enabled: Entry must be an entry in the foreign table.
+        $id = filter_var($value, FILTER_VALIDATE_INT);
+        $entityName = $options['foreignKey']['targetEntity'] ?? null;
+
+        if (
+            $id === false
+            || $entityName === null
+            || !$this->foreignEntityExists($entityName, $id)
+        ) {
             $errors['customFields.' . $fieldName] = $this->l->t('The selected entry is no longer available. It may have been changed or removed by someone else in the meantime. Please reload the page and select again.');
         }
 
         return $errors;
+    }
+
+    /**
+     * Checks whether an entry with the given id exists in the target entity.
+     * An unknown $entityName throws an InvalidArgumentException (configuration error, intentionally not caught).
+     */
+    private function foreignEntityExists(string $entityName, int $id): bool
+    {
+        /** @var EntityMapperAbstract $mapper */
+        $mapper = $this->container->get($this->entityRegistry->get($entityName)->mapperClass);
+
+        try {
+            $mapper->findById($id);
+
+            return true;
+        } catch (DoesNotExistException) {
+            return false;
+        }
     }
 
     public function validateInteger(string $fieldName, mixed $validation, mixed $value): array

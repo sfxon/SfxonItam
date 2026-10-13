@@ -7,41 +7,51 @@ class CustomFieldDataParserService {
     {
     }
 
-    public function getBoolean(mixed $value, bool $required) : ?bool
+    public function getBoolean(mixed $value): ?bool
     {
-        if($required === false && ($value === null || $value === "")) {
+        if ($value === null || $value === '') {
             return null;
         }
 
         return (bool)$value;
     }
 
-    public function getDecimal(mixed $value, bool $required) : ?float
+    public function getDecimal(mixed $value): mixed
     {
-        if($required === false && ($value === null || $value === "")) {
+        if ($value === null || $value === '') {
             return null;
         }
 
-        $value = str_replace(',', '.', $value);
+        if (is_int($value) || is_float($value)) {
+            return (string)$value;
+        }
 
-        return (float)$value;
+        if (is_string($value)) {
+            return str_replace(',', '.', trim($value));
+        }
+
+        return $value;
     }
 
-    public function getInteger(mixed $value, bool $required) : ?float
+    public function getInteger(mixed $value): mixed
     {
-        if($required === false && ($value === null || $value === "")) {
+        if ($value === null || $value === '') {
             return null;
         }
 
-        return (int)$value;
+        if (is_string($value) && preg_match('/^-?\d+$/', trim($value)) === 1) {
+            return (int)trim($value);
+        }
+
+        return $value;
     }
 
-    public function getText(mixed $value, bool $required) : ?string
+    public function getText(mixed $value): mixed
     {
-        if($required === false && ($value === null || $value === "")) {
+        if ($value === null || $value === '') {
             return null;
         }
 
-        return (string)$value;
+        return is_scalar($value) ? (string)$value : $value;
     }
 }

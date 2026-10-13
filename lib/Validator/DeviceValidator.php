@@ -32,12 +32,14 @@ class DeviceValidator {
             }
         }
 
-        // b) purchaseDate
-        if (empty($data['purchaseDate']) && null !== $data['purchaseDate'] ) {
+        // c) purchaseDate: optional, but if given it must be a valid date that is not in the future.
+        $purchaseDate = $data['purchaseDate'] ?? null;
+
+        if ($purchaseDate === '') {
             $errors['purchaseDate'] = $this->l->t('The field purchaseDate is required.');
-        } else if(null !== $data['purchaseDate']) {
-            $date = \DateTimeImmutable::createFromFormat('Y-m-d', $data['purchaseDate']);
-            $isValidFormat = $date && $date->format('Y-m-d') === $data['purchaseDate'];
+        } elseif ($purchaseDate !== null) {
+            $date = is_string($purchaseDate) ? \DateTimeImmutable::createFromFormat('Y-m-d', $purchaseDate) : false;
+            $isValidFormat = $date && $date->format('Y-m-d') === $purchaseDate;
 
             if (!$isValidFormat) {
                 $errors['purchaseDate'] = $this->l->t('The date must be in the format YYYY-MM-DD.');
