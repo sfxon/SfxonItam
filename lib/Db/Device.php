@@ -290,7 +290,7 @@ class Device extends Entity implements \JsonSerializable {
                 'index' => true,
                 'label' => 'Serial Number 2',
                 'length' => 300,
-                'name' => 'serial_number_2',
+                'name' => 'serial_number2',
                 'propertyName' => 'serialNumber2',
                 'type' => 'VARCHAR',
                 'requiredOnCreate' => false,
