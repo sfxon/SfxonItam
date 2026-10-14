@@ -401,53 +401,66 @@ class CustomFieldDataValidator {
         return $errors;
     }
 
-    public function validateLongtext(string $fieldName, mixed $validation, mixed $value): array
+    public function validateLongtext(string $fieldName, mixed $validation, mixed $value, mixed $options = null): array
     {
-        $errors = [];
-
-        if (
-            $validation === null ||
-            !isset($validation['longtext']) ||
-            $validation['longtext']['enabled'] === false
-        ) {
-            return [];
-        }
-
-        $rules = $validation['longtext'];
-
-        if(isset($rules['minLength']) && is_numeric($rules['minLength'])) {
-            $minLength = (int)$rules['minLength'];
-
-            if (empty($value) || mb_strlen(trim($value)) < $minLength) {
-                $errors['customFields.' . $fieldName] = $this->l->t('You should enter at least %d signs.', [$minLength]);
-            }
-        }
-
-        return $errors;
+        return $this->validateTextLength($fieldName, 'longtext', $options, $validation, $value);
     }
 
-    public function validateText(string $fieldName, mixed $validation, mixed $value): array
+    public function validateText(string $fieldName, mixed $validation, mixed $value, mixed $options = null): array
     {
-        $errors = [];
+        return $this->validateTextLength($fieldName, 'text', $options, $validation, $value);
+    }
+
+    /**
+     * Shared validation for "text" and "longtext":
+     * 1) Hard limit (options.<type>.maxLength = column length): always checked,
+     *    independent of the "validate" switch, because the database rejects longer values.
+     * 2) Min length (validation.<type>.minLength): only checked if validation is enabled.
+     */
+    private function validateTextLength(string $fieldName, string $type, mixed $options, mixed $validation, mixed $value): array
+    {
+        $key = 'customFields.' . $fieldName;
+
+        if (is_int($value) || is_float($value)) {
+            $value = (string)$value;
+        }
+
+        if ($value !== null && !is_string($value)) {
+            return [$key => $this->l->t('Must be a text.')];
+        }
+
+        // 1) Hard limit from the field options. Measured on the untrimmed value, as that is what gets stored.
+        $maxLength = $options[$type]['maxLength'] ?? null;
+
+        // Text columns without a configured max length are created with the default length (see CustomFieldMapper).
+        if ($type === 'text' && (!is_numeric($maxLength) || (int)$maxLength <= 0)) {
+            $maxLength = CustomFieldMapper::VARCHAR_DEFAULT_LENGTH;
+        }
 
         if (
-            $validation === null ||
-            !isset($validation['text']) ||
-            $validation['text']['enabled'] === false
+            is_numeric($maxLength)
+            && (int)$maxLength > 0
+            && $value !== null
+            && mb_strlen($value) > (int)$maxLength
+        ) {
+            return [$key => $this->l->t('The text must not be longer than %d characters.', [(int)$maxLength])];
+        }
+
+        // 2) Optional validation rules.
+        if (
+            $validation === null
+            || !isset($validation[$type])
+            || ($validation[$type]['enabled'] ?? null) === false
         ) {
             return [];
         }
 
-        $rules = $validation['text'];
+        $minLength = $validation[$type]['minLength'] ?? null;
 
-        if(isset($rules['minLength']) && is_numeric($rules['minLength'])) {
-            $minLength = (int)$rules['minLength'];
-
-            if (empty($value) || mb_strlen(trim($value)) < $minLength) {
-                $errors['customFields.' . $fieldName] = $this->l->t('You should enter at least %d signs.', [$minLength]);
-            }
+        if (is_numeric($minLength) && mb_strlen(trim($value ?? '')) < (int)$minLength) {
+            return [$key => $this->l->t('You should enter at least %d signs.', [(int)$minLength])];
         }
 
-        return $errors;
+        return [];
     }
 }

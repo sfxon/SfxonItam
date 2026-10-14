@@ -11,7 +11,7 @@ use OCP\IDBConnection;
  * @template-extends QBMapper<CustomField>
  */
 class CustomFieldMapper extends QBMapper {
-    private const VARCHAR_DEFAULT_LENGTH = 512;
+    public const VARCHAR_DEFAULT_LENGTH = 512;
     private string $tableNameAlias = 'cuf';
 
     public function __construct(
@@ -53,7 +53,10 @@ class CustomFieldMapper extends QBMapper {
             ];
 
             if ($columnType === 'string') {
-                $columnOptions['length'] = (int)($options['text']['maxLength'] ?? self::VARCHAR_DEFAULT_LENGTH);
+                $maxLength = $options['text']['maxLength'] ?? null;
+                $columnOptions['length'] = (is_numeric($maxLength) && (int)$maxLength > 0)
+                    ? (int)$maxLength
+                    : self::VARCHAR_DEFAULT_LENGTH;
             }
 
             if ($columnType === 'decimal') {

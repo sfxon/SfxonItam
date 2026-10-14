@@ -239,7 +239,11 @@ Editor:
         - ✅ Entity: Position
         - ✅ After doing DeviceStatus, ItamUser and Position, take a comparison of these three and Device. Build an Abstract, that takes out the overlapping functionality, to reduce code duplication.
         - ✅ Show custom fields in listings.
-        - In the save method of the Controller for Device, the validation part for the custom fields is missing. Take a deeper look at it and fix this.
+        - ✅ In the save method of the Controller for Device, the validation part for the custom fields is missing. Take a deeper look at it and fix this.
+        - Enhance the validation logic for all fields.
+            - ✅ Device
+            - Other entities.
+        - When a custom field has been added and some of the options are edited, the changes cannot be saved, because the validator says, that this custom field already exists.
 
 * Einkauf/Verkauf hinzufügen
     - Einzelne Geräte oder Lizenzen können über einen Einkauf/Verkauf gekauft oder verkauft werden.

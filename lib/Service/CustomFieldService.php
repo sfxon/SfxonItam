@@ -56,6 +56,13 @@ class CustomFieldService {
         $type = $data['type'];
         $options = $data['options'] ?? null;
 
+        if ($type === 'text') {
+            $maxLength = $options['text']['maxLength'] ?? null;
+
+            $options['text']['maxLength'] = (is_numeric($maxLength) && (int)$maxLength > 0)
+                ? (int)$maxLength
+                : CustomFieldMapper::VARCHAR_DEFAULT_LENGTH;
+        }
         $customField = new CustomField();
         $customField->setCustomFieldGroupId((int)$data['customFieldGroupId']);
         $customField->setTechnicalName($data['technicalName']);
@@ -230,10 +237,10 @@ class CustomFieldService {
                     $fieldErrors = $this->customFieldDataValidator->validateInteger($customFieldName, $validation, $customFieldValue);
                     break;
                 case 'longtext':
-                    $fieldErrors = $this->customFieldDataValidator->validateLongtext($customFieldName, $validation, $customFieldValue);
+                    $fieldErrors = $this->customFieldDataValidator->validateLongtext($customFieldName, $validation, $customFieldValue, $options);
                     break;
                 case 'text':
-                    $fieldErrors = $this->customFieldDataValidator->validateText($customFieldName, $validation, $customFieldValue);
+                    $fieldErrors = $this->customFieldDataValidator->validateText($customFieldName, $validation, $customFieldValue, $options);
                     break;
                 default:
                     throw new \Exception('No validator found for custom field type ' . $customFieldType);
