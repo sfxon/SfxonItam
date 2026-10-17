@@ -21,19 +21,19 @@ class CustomFieldDataValidator {
     {
     }
 
-    public function validateBoolean(string $fieldName, mixed $validation, mixed $value): array
+    public function validateBool(string $fieldName, mixed $validation, mixed $value): array
     {
         $errors = [];
 
         if (
             $validation === null ||
-            !isset($validation['boolean']) ||
-            $validation['boolean']['enabled'] === false
+            !isset($validation['bool']) ||
+            $validation['bool']['enabled'] === false
         ) {
             return [];
         }
 
-        $rules = $validation['boolean'];
+        $rules = $validation['bool'];
         $required = $rules['required'] ?? false;
 
         if (is_string($value)) {
@@ -243,19 +243,19 @@ class CustomFieldDataValidator {
         return $errors;
     }
 
-    public function validateFile(string $fieldName, mixed $options, mixed $validation, mixed $value): array
+    public function validateImageFile(string $fieldName, mixed $options, mixed $validation, mixed $value): array
     {
         $errors = [];
 
         if (
             $validation === null ||
-            !isset($validation['file']) ||
-            $validation['file']['enabled'] === false
+            !isset($validation['imageFile']) ||
+            $validation['imageFile']['enabled'] === false
         ) {
             return [];
         }
 
-        $rules = $validation['file'];
+        $rules = $validation['imageFile'];
         $required = $rules['required'] ?? false;
 
         if (is_string($value)) {
@@ -363,19 +363,19 @@ class CustomFieldDataValidator {
         }
     }
 
-    public function validateInteger(string $fieldName, mixed $validation, mixed $value): array
+    public function validateInt(string $fieldName, mixed $validation, mixed $value): array
     {
         $errors = [];
 
         if (
             $validation === null ||
-            !isset($validation['integer']) ||
-            $validation['integer']['enabled'] === false
+            !isset($validation['int']) ||
+            $validation['int']['enabled'] === false
         ) {
             return [];
         }
 
-        $rules = $validation['integer'];
+        $rules = $validation['int'];
         $required = $rules['required'] ?? false;
 
         if (is_string($value)) {
@@ -401,18 +401,18 @@ class CustomFieldDataValidator {
         return $errors;
     }
 
-    public function validateLongtext(string $fieldName, mixed $validation, mixed $value, mixed $options = null): array
-    {
-        return $this->validateTextLength($fieldName, 'longtext', $options, $validation, $value);
-    }
-
     public function validateText(string $fieldName, mixed $validation, mixed $value, mixed $options = null): array
     {
         return $this->validateTextLength($fieldName, 'text', $options, $validation, $value);
     }
 
+    public function validateString(string $fieldName, mixed $validation, mixed $value, mixed $options = null): array
+    {
+        return $this->validateTextLength($fieldName, 'string', $options, $validation, $value);
+    }
+
     /**
-     * Shared validation for "text" and "longtext":
+     * Shared validation for "string" and "text":
      * 1) Hard limit (options.<type>.maxLength = column length): always checked,
      *    independent of the "validate" switch, because the database rejects longer values.
      * 2) Min length (validation.<type>.minLength): only checked if validation is enabled.
@@ -433,7 +433,7 @@ class CustomFieldDataValidator {
         $maxLength = $options[$type]['maxLength'] ?? null;
 
         // Text columns without a configured max length are created with the default length (see CustomFieldMapper).
-        if ($type === 'text' && (!is_numeric($maxLength) || (int)$maxLength <= 0)) {
+        if ($type === 'string' && (!is_numeric($maxLength) || (int)$maxLength <= 0)) {
             $maxLength = CustomFieldMapper::VARCHAR_DEFAULT_LENGTH;
         }
 

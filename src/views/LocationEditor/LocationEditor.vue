@@ -1,4 +1,14 @@
 <script setup lang="ts">
+
+import * as DeviceService from '@/services/DeviceService'
+import * as DeviceStatusService from '@/services/DeviceStatusService'
+import * as DeviceTypeService from '@/services/DeviceTypeService'
+import * as ItamUserService from '@/services/ItamUserService'
+import * as LocationService from '@/services/LocationService'
+import * as ManufacturerService from '@/services/ManufacturerService'
+import * as MerchantService from '@/services/MerchantService'
+import * as PositionService from '@/services/PositionService'
+import * as QuantityUnitService from '@/services/QuantityUnitService'
 import { ref, computed, onMounted } from 'vue'
 import { generateUrl } from '@nextcloud/router'
 import { mdiPlus } from '@mdi/js'
@@ -22,8 +32,23 @@ import { translate as t } from '@nextcloud/l10n'
 import { useApiErrors } from '@/composables/useApiErrors'
 import { useSaveBadge } from '@/composables/useSaveBadge'
 
+const services = {
+    DeviceService,
+    DeviceStatusService,
+    DeviceTypeService,
+    ItamUserService,
+    ManufacturerService,
+    MerchantService,
+    LocationService,
+    PositionService,
+    QuantityUnitService
+}
 const name = ref('')
 const props = defineProps({
+    entityDefinitions: {
+        type: Object,
+        required: true,
+    },
     customFields: {
         type: Array,
         default: () => [],
@@ -229,6 +254,9 @@ onMounted(async () => {
                                 :customFields="customFields"
                                 :field-errors="fieldErrors"
                                 :initial-values="customFieldInitialValues"
+                                 :entity-definitions="entityDefinitions"
+                                :services="services"
+                                @record-added="triggerSaveSuccess"
                                 @update:values="onCustomFieldValuesUpdate"
                                 @input="(technicalName) => clearFieldError(`customFields.${technicalName}`)"
                             />

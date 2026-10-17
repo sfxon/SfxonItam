@@ -56,10 +56,10 @@ class CustomFieldService {
         $type = $data['type'];
         $options = $data['options'] ?? null;
 
-        if ($type === 'text') {
-            $maxLength = $options['text']['maxLength'] ?? null;
+        if ($type === 'string') {
+            $maxLength = $options['string']['maxLength'] ?? null;
 
-            $options['text']['maxLength'] = (is_numeric($maxLength) && (int)$maxLength > 0)
+            $options['string']['maxLength'] = (is_numeric($maxLength) && (int)$maxLength > 0)
                 ? (int)$maxLength
                 : CustomFieldMapper::VARCHAR_DEFAULT_LENGTH;
         }
@@ -130,11 +130,11 @@ class CustomFieldService {
             $type = $customFieldDefinition['type'];
 
             $value = match ($type) {
-                'boolean' => $this->customFieldDataParserService->getBoolean($value),
+                'bool' => $this->customFieldDataParserService->getBoolean($value),
                 'decimal' => $this->customFieldDataParserService->getDecimal($value),
-                'integer' => $this->customFieldDataParserService->getInteger($value),
-                // Warning: date, datetime, file and foreign_key are not validated by the parser, only by the validator.
-                'date', 'datetime', 'file', 'foreign_key', 'longtext', 'text'
+                'int' => $this->customFieldDataParserService->getInteger($value),
+                // Warning: date, datetime, imageFile and foreignKey are not validated by the parser, only by the validator.
+                'date', 'datetime', 'imageFile', 'foreignKey', 'string', 'text'
                     => $this->customFieldDataParserService->getText($value),
                 default => throw new \Exception('Unsupported custom field type ' . $type),
             };
@@ -215,8 +215,8 @@ class CustomFieldService {
             $options = json_decode($customFieldDefinition['options'] ?? 'null', true) ?? [];
 
             switch ($customFieldType) {
-                case 'boolean':
-                    $fieldErrors = $this->customFieldDataValidator->validateBoolean($customFieldName, $validation, $customFieldValue);
+                case 'bool':
+                    $fieldErrors = $this->customFieldDataValidator->validateBool($customFieldName, $validation, $customFieldValue);
                     break;
                 case 'date':
                     $fieldErrors = $this->customFieldDataValidator->validateDate($customFieldName, $validation, $customFieldValue);
@@ -227,17 +227,17 @@ class CustomFieldService {
                 case 'decimal':
                     $fieldErrors = $this->customFieldDataValidator->validateDecimal($customFieldName, $options, $validation, $customFieldValue);
                     break;
-                case 'file':
-                    $fieldErrors = $this->customFieldDataValidator->validateFile($customFieldName, $options, $validation, $customFieldValue);
+                case 'imageFile':
+                    $fieldErrors = $this->customFieldDataValidator->validateImageFile($customFieldName, $options, $validation, $customFieldValue);
                     break;
-                case 'foreign_key':
+                case 'foreignKey':
                     $fieldErrors = $this->customFieldDataValidator->validateForeignKey($customFieldName, $options, $validation, $customFieldValue);
                     break;
-                case 'integer':
-                    $fieldErrors = $this->customFieldDataValidator->validateInteger($customFieldName, $validation, $customFieldValue);
+                case 'int':
+                    $fieldErrors = $this->customFieldDataValidator->validateInt($customFieldName, $validation, $customFieldValue);
                     break;
-                case 'longtext':
-                    $fieldErrors = $this->customFieldDataValidator->validateLongtext($customFieldName, $validation, $customFieldValue, $options);
+                case 'string':
+                    $fieldErrors = $this->customFieldDataValidator->validateString($customFieldName, $validation, $customFieldValue, $options);
                     break;
                 case 'text':
                     $fieldErrors = $this->customFieldDataValidator->validateText($customFieldName, $validation, $customFieldValue, $options);

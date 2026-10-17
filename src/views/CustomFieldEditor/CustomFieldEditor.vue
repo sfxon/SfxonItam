@@ -52,15 +52,15 @@ const savedSuccessfully = ref(false)
 const selectedType = ref<{ id: string; label: string } | null>(null)
 const technicalName = ref('')
 const types = [
-    { id: 'text', label: 'Text' },
-    { id: 'integer', label: 'Integer' },
+    { id: 'string', label: 'String' },
+    { id: 'int', label: 'Int' },
     { id: 'decimal', label: 'Decimal' },
-    { id: 'boolean', label: 'Boolean' },
-    { id: 'file', label: 'File' },
-    { id: 'longtext', label: 'Long text' },
+    { id: 'bool', label: 'Boolean' },
+    { id: 'imageFile', label: 'Image File' },
+    { id: 'text', label: 'Text' },
     { id: 'date', label: 'Date' },
     { id: 'datetime', label: 'Date & Time' },
-    { id: 'foreign_key', label: 'Foreign Key' }
+    { id: 'foreignKey', label: 'Foreign Key' }
 ]
 const validation = reactive<Record<string, any>>({})
 
@@ -211,7 +211,7 @@ async function loadCustomField(id: number): Promise<void> {
             ? types.find(t => t.id === d.type) ?? null
             : null
 
-        if (selectedType.value?.id === 'foreign_key' && options.foreignKey?.targetEntity) {
+        if (selectedType.value?.id === 'foreignKey' && options.foreignKey?.targetEntity) {
             selectedForeignKeyTarget.value = props.foreignKeyTargets.find(
                 (t: any) => t.id === options.foreignKey.targetEntity
             ) ?? null
@@ -278,24 +278,24 @@ async function submitForm() {
 }
 
 watch(() => selectedType.value?.id, (newType) => {
-    // text
-    if (newType === 'text' && !options.text) {
-        options.text = {
+    // string
+    if (newType === 'string' && !options.string) {
+        options.string = {
             maxLength: '',
         }
     }
     
-    if (newType === 'text' && !validation.text) {
-        validation.text = {
+    if (newType === 'string' && !validation.string) {
+        validation.string = {
             enabled: false,
             minLength: '',
             required: false,
         }
     }
 
-    // integer
-    if (newType === 'integer' && !validation.integer) {
-        validation.integer = {
+    // int
+    if (newType === 'int' && !validation.int) {
+        validation.int = {
             enabled: false,
             required: false
         }
@@ -316,25 +316,31 @@ watch(() => selectedType.value?.id, (newType) => {
         }
     }
 
-    // boolean
-    if (newType === 'boolean' && !validation.boolean) {
-        validation.boolean = {
+    // bool
+    if (newType === 'bool' && !validation.bool) {
+        validation.bool = {
             enabled: false,
             required: false
         }
     }
 
     // file
-    if (newType === 'file' && !validation.file) {
-        validation.file = {
+    if (newType === 'imageFile' && !validation.imageFile) {
+        validation.imageFile = {
             enabled: false,
             required: false
         }
     }
 
-    // longtext
-    if (newType === 'longtext' && !validation.longtext) {
-        validation.longtext = {
+    // text
+    if (newType === 'text' && !options.text) {
+        options.text = {
+            maxLength: '',
+        }
+    }
+
+    if (newType === 'text' && !validation.text) {
+        validation.text = {
             enabled: false,
             minLength: '',
         }
@@ -356,15 +362,15 @@ watch(() => selectedType.value?.id, (newType) => {
         }
      }
 
-     // foreign_key
-     if (newType === 'foreign_key' && !options.foreignKey) {
+     // foreignKey
+     if (newType === 'foreignKey' && !options.foreignKey) {
          options.foreignKey = {
              targetEntity: '',
              labelComposition: [],
          }
      }
 
-     if (newType === 'foreign_key' && !validation.foreignKey) {
+     if (newType === 'foreignKey' && !validation.foreignKey) {
          validation.foreignKey = {
              enabled: false,
              required: false,
@@ -514,7 +520,7 @@ onMounted(async () => {
                     />
 
                     <template v-if="selectedType !== null">
-                        <template v-if="selectedType.id === 'text'">
+                        <template v-if="selectedType.id === 'string' || selectedType.id === 'text'">
                             <div :class="$style.field">
                                 <NcTextField
                                     :disabled="isEditMode"
@@ -522,7 +528,7 @@ onMounted(async () => {
                                     @input="clearFieldError('optionsMaxLength')"
                                     :label="t('sfxonitam', 'Max length')"
                                     :readonly="isEditMode"
-                                    v-model="options.text.maxLength"
+                                    v-model="options[selectedType.id].maxLength"
                                 />
                                 <span v-if="fieldErrors.optionsMaxLength" :class="$style.errorText">
                                     {{ fieldErrors.optionsMaxLength }}
@@ -561,7 +567,7 @@ onMounted(async () => {
                             </div>
                         </template>
 
-                        <template v-if="selectedType.id === 'foreign_key'">
+                        <template v-if="selectedType.id === 'foreignKey'">
                             <div :class="$style.field">
                                 <SfxonEditorFormEntitySelect
                                     :disabled="isEditMode"
@@ -749,16 +755,16 @@ onMounted(async () => {
 
                     <!-- Add validation options here -->
                     <template v-if="selectedType !== null">
-                        <template v-if="selectedType.id === 'text' && validation.text">
-                            <NcCheckboxRadioSwitch v-model="validation.text.enabled">
+                        <template v-if="selectedType.id === 'string' && validation.string">
+                            <NcCheckboxRadioSwitch v-model="validation.string.enabled">
                                 {{ t('sfxonitam', 'Validate') }}
                             </NcCheckboxRadioSwitch>
-                            <template v-if="validation.text.enabled">
-                                <NcCheckboxRadioSwitch v-model="validation.text.required">
+                            <template v-if="validation.string.enabled">
+                                <NcCheckboxRadioSwitch v-model="validation.string.required">
                                     {{ t('sfxonitam', 'Required') }}
                                 </NcCheckboxRadioSwitch>
                                 <NcTextField
-                                    v-model="validation.text.minLength"
+                                    v-model="validation.string.minLength"
                                     :label="t('sfxonitam', 'Min length')"
                                     :class="fieldErrors.validationMinLength ? $style.fieldError : ''"
                                     @input="clearFieldError('validationMinLength')"
@@ -769,12 +775,12 @@ onMounted(async () => {
                             </template>
                         </template>
 
-                        <template v-if="selectedType.id === 'integer' && validation.integer">
-                            <NcCheckboxRadioSwitch v-model="validation.integer.enabled">
+                        <template v-if="selectedType.id === 'int' && validation.int">
+                            <NcCheckboxRadioSwitch v-model="validation.int.enabled">
                                 {{ t('sfxonitam', 'Validate') }}
                             </NcCheckboxRadioSwitch>
-                            <template v-if="validation.integer.enabled">
-                                <NcCheckboxRadioSwitch v-model="validation.integer.required">
+                            <template v-if="validation.int.enabled">
+                                <NcCheckboxRadioSwitch v-model="validation.int.required">
                                     {{ t('sfxonitam', 'Required') }}
                                 </NcCheckboxRadioSwitch>
                             </template>
@@ -791,35 +797,35 @@ onMounted(async () => {
                             </template>
                         </template>
 
-                        <template v-if="selectedType.id === 'boolean' && validation.boolean">
-                            <NcCheckboxRadioSwitch v-model="validation.boolean.enabled">
+                        <template v-if="selectedType.id === 'bool' && validation.bool">
+                            <NcCheckboxRadioSwitch v-model="validation.bool.enabled">
                                 {{ t('sfxonitam', 'Validate') }}
                             </NcCheckboxRadioSwitch>
-                            <template v-if="validation.boolean.enabled">
-                                <NcCheckboxRadioSwitch v-model="validation.boolean.required">
+                            <template v-if="validation.bool.enabled">
+                                <NcCheckboxRadioSwitch v-model="validation.bool.required">
                                     {{ t('sfxonitam', 'Required') }}
                                 </NcCheckboxRadioSwitch>
                             </template>
                         </template>
 
-                        <template v-if="selectedType.id === 'file' && validation.file">
-                            <NcCheckboxRadioSwitch v-model="validation.file.enabled">
+                        <template v-if="selectedType.id === 'imageFile' && validation.imageFile">
+                            <NcCheckboxRadioSwitch v-model="validation.imageFile.enabled">
                                 {{ t('sfxonitam', 'Validate') }}
                             </NcCheckboxRadioSwitch>
-                            <template v-if="validation.file.enabled">
-                                <NcCheckboxRadioSwitch v-model="validation.file.required">
+                            <template v-if="validation.imageFile.enabled">
+                                <NcCheckboxRadioSwitch v-model="validation.imageFile.required">
                                     {{ t('sfxonitam', 'Required') }}
                                 </NcCheckboxRadioSwitch>
                             </template>
                         </template>
 
-                        <template v-if="selectedType.id === 'longtext' && validation.longtext">
-                            <NcCheckboxRadioSwitch v-model="validation.longtext.enabled">
+                        <template v-if="selectedType.id === 'text' && validation.text">
+                            <NcCheckboxRadioSwitch v-model="validation.text.enabled">
                                 {{ t('sfxonitam', 'Validate') }}
                             </NcCheckboxRadioSwitch>
-                            <template v-if="validation.longtext.enabled">
+                            <template v-if="validation.text.enabled">
                                 <NcTextField
-                                    v-model="validation.longtext.minLength"
+                                    v-model="validation.text.minLength"
                                     :label="t('sfxonitam', 'Min length')"
                                     :class="fieldErrors.validationMinLength ? $style.fieldError : ''"
                                     @input="clearFieldError('validationMinLength')"
@@ -852,7 +858,7 @@ onMounted(async () => {
                             </template>
                         </template>
 
-                        <template v-if="selectedType.id === 'foreign_key' && validation.foreignKey">
+                        <template v-if="selectedType.id === 'foreignKey' && validation.foreignKey">
                             <NcCheckboxRadioSwitch v-model="validation.foreignKey.enabled">
                                 {{ t('sfxonitam', 'Validate') }}
                             </NcCheckboxRadioSwitch>

@@ -61,7 +61,7 @@ async function onSave() {
     const payload: Record<string, unknown> = {}
 
     for (const field of addRecordModal.fields) {
-        payload[field.fieldName] = field.sfxonType === 'SfxonEditorFormEntitySelect'
+        payload[field.fieldName] = field.sfxonType === 'foreignKey'
             ? (field.value?.id ?? null)
             : field.value
     }
@@ -79,7 +79,7 @@ async function onSave() {
         const newOption = { id: String(result.id), label }
 
         for (const field of addRecordModal.fields) {
-            field.value = field.sfxonType === 'SfxonEditorFormEntitySelect' ? null : ''
+            field.value = field.sfxonType === 'foreignKey' ? null : ''
         }
 
         emit('saved', { entityName, newOption })

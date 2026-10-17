@@ -1,4 +1,5 @@
 <script setup lang="ts">
+
 import * as DeviceService from '@/services/DeviceService'
 import * as DeviceStatusService from '@/services/DeviceStatusService'
 import * as DeviceTypeService from '@/services/DeviceTypeService'
@@ -360,6 +361,9 @@ onMounted(async () => {
                                 :customFields="customFields"
                                 :field-errors="fieldErrors"
                                 :initial-values="customFieldInitialValues"
+                                :entity-definitions="entityDefinitions"
+                                :services="services"
+                                @record-added="triggerSaveSuccess"
                                 @update:values="onCustomFieldValuesUpdate"
                                 @input="(technicalName) => clearFieldError(`customFields.${technicalName}`)"
                             />

@@ -28,18 +28,17 @@ class CustomFieldMapper extends QBMapper {
         ?array $options = null): void
     {
         // Convert types to Nextcloud types.
-        $columnType = match(strtoupper($type)) {
-            'TEXT' => 'string',
-            'LONGTEXT' => 'text',
-            'INTEGER' => 'integer',
-            'BOOLEAN' => 'boolean',
-            'DECIMAL' => 'decimal',
-            'FLOAT' => 'decimal',
-            'DATE' => 'date',
-            'DATETIME' => 'datetime',
-            'FILE' => 'bigint',
-            'FOREIGN_KEY' => 'bigint',
-            default => 'string',
+        $columnType = match($type) {
+            'string' => 'string',
+            'text' => 'text',
+            'int' => 'integer',
+            'bool' => 'boolean',
+            'decimal' => 'decimal',
+            'date' => 'date',
+            'datetime' => 'datetime',
+            'imageFile' => 'bigint',
+            'foreignKey' => 'bigint',
+            default => throw new \InvalidArgumentException('Unsupported custom field type ' . $type),
         };
 
         $schema = $this->db->createSchema();
@@ -52,24 +51,35 @@ class CustomFieldMapper extends QBMapper {
                 'default' => null,
             ];
 
-            if ($columnType === 'string') {
-                $maxLength = $options['text']['maxLength'] ?? null;
+            if ($type === 'string') {
+                $maxLength = $options['string']['maxLength'] ?? null;
                 $columnOptions['length'] = (is_numeric($maxLength) && (int)$maxLength > 0)
                     ? (int)$maxLength
                     : self::VARCHAR_DEFAULT_LENGTH;
             }
 
-            if ($columnType === 'decimal') {
+            if ($type === 'text') {
+                // Only MySQL/MariaDB uses the length: DBAL picks TINYTEXT/TEXT/MEDIUMTEXT/LONGTEXT by it, measured in bytes.
+                // PostgreSQL (TEXT) and SQLite (CLOB) ignore it, there the limit is only enforced by the data validator.
+                // utf8mb4 needs up to 4 bytes per character, so the byte length is maxLength * 4.
+                $maxLength = $options['text']['maxLength'] ?? null;
+
+                if (is_numeric($maxLength) && (int)$maxLength > 0) {
+                    $columnOptions['length'] = (int)$maxLength * 4;
+                }
+            }
+
+            if ($type === 'decimal') {
                 $columnOptions['precision'] = (int)($options['decimal']['integerDigitsLength'] ?? 0)
                     + (int)($options['decimal']['fractionDigitsLength'] ?? 0);
                 $columnOptions['scale'] = (int)($options['decimal']['fractionDigitsLength'] ?? 0);
             }
 
-            if ($columnType === 'boolean') {
+            if ($type === 'bool') {
                 $columnOptions['default'] = false;
             }
 
-            if ($columnType === 'bigint') {
+            if ($type === 'foreignKey' || $type === 'imageFile') {
                 $columnOptions['unsigned'] = true;
             }
 

@@ -553,6 +553,9 @@ onMounted(async () => {
                                 :customFields="customFields"
                                 :field-errors="fieldErrors"
                                 :initial-values="customFieldInitialValues"
+                                :entity-definitions="entityDefinitions"
+                                :services="services"
+                                @record-added="triggerSaveSuccess"
                                 @update:values="onCustomFieldValuesUpdate"
                                 @input="(technicalName) => clearFieldError(`customFields.${technicalName}`)"
                             />

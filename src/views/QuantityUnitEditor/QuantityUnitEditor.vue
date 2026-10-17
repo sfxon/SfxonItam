@@ -1,4 +1,14 @@
 <script setup lang="ts">
+
+import * as DeviceService from '@/services/DeviceService'
+import * as DeviceStatusService from '@/services/DeviceStatusService'
+import * as DeviceTypeService from '@/services/DeviceTypeService'
+import * as ItamUserService from '@/services/ItamUserService'
+import * as LocationService from '@/services/LocationService'
+import * as ManufacturerService from '@/services/ManufacturerService'
+import * as MerchantService from '@/services/MerchantService'
+import * as PositionService from '@/services/PositionService'
+import * as QuantityUnitService from '@/services/QuantityUnitService'
 import { ref, computed, onMounted } from 'vue'
 import { generateUrl } from '@nextcloud/router'
 import { mdiPlus } from '@mdi/js'
@@ -10,8 +20,6 @@ import NcAppNavigationNew from '@nextcloud/vue/components/NcAppNavigationNew'
 import NcContent from '@nextcloud/vue/components/NcContent'
 import NcButton from '@nextcloud/vue/components/NcButton'
 import NcIconSvgWrapper from '@nextcloud/vue/components/NcIconSvgWrapper'
-import NcTextArea from '@nextcloud/vue/components/NcTextArea'
-import NcTextField from '@nextcloud/vue/components/NcTextField'
 import NcNoteCard from '@nextcloud/vue/components/NcNoteCard'
 import SfxonCustomFields from '@/components/SfxonCustomFields'
 import SfxonItamHeaderBc, { type BreadcrumbItem } from '@/components/SfxonItamHeaderBc'
@@ -24,8 +32,23 @@ import { translate as t } from '@nextcloud/l10n'
 import { useApiErrors } from '@/composables/useApiErrors'
 import { useSaveBadge } from '@/composables/useSaveBadge'
 
+const services = {
+    DeviceService,
+    DeviceStatusService,
+    DeviceTypeService,
+    ItamUserService,
+    ManufacturerService,
+    MerchantService,
+    LocationService,
+    PositionService,
+    QuantityUnitService
+}
 const name = ref('')
 const props = defineProps({
+    entityDefinitions: {
+        type: Object,
+        required: true,
+    },
     customFields: {
         type: Array,
         default: () => [],
@@ -231,6 +254,9 @@ onMounted(async () => {
                                 :customFields="customFields"
                                 :field-errors="fieldErrors"
                                 :initial-values="customFieldInitialValues"
+                                :entity-definitions="entityDefinitions"
+                                :services="services"
+                                @record-added="triggerSaveSuccess"
                                 @update:values="onCustomFieldValuesUpdate"
                                 @input="(technicalName) => clearFieldError(`customFields.${technicalName}`)"
                             />

@@ -1,13 +1,16 @@
 <script setup lang="ts">
 
-import { reactive, ref, watch } from 'vue'
+import { computed, reactive, ref, watch } from 'vue'
 import { loadState } from '@nextcloud/initial-state'
+import { translate as t } from '@nextcloud/l10n'
 import SfxonEditorFormCheckbox from '@/components/SfxonEditorFormCheckbox';
 import SfxonEditorFormDatePicker from '@/components/SfxonEditorFormDatePicker'
 import SfxonEditorFormInput from '@/components/SfxonEditorFormInput'
 import SfxonEditorFormTextareaLabeled from '@/components/SfxonEditorFormTextareaLabeled'
 import SfxonEditorFormEntitySelect from '@/components/SfxonEditorFormEntitySelect'
 import SfxonEditorFormImageSelector from '@/components/SfxonEditorFormImageSelector'
+import SfxonEntityDialog from '@/components/SfxonEntityDialog'
+import { useRelatedEntities } from '@/composables/useRelatedEntities'
 import { useSfxonFileUploadField } from '@/composables/useSfxonFileUploadField'
 import type { RelationMeta } from '@/composables/useRelatedEntities'
 import { fetchEntityList } from '@/services/EntityListService'
@@ -75,14 +78,27 @@ const props = withDefaults(defineProps<{
      * "load once, then edit" scenario.
      */
     initialValues?: Record<string, unknown>
+    /**
+     * Field definitions of the entities (same as in the editors), keyed by entity name.
+     * Needed to build the "add new record" dialog for foreign key fields.
+     */
+    entityDefinitions?: Record<string, any[]>
+    /**
+     * Service modules (e.g. { DeviceStatusService }) that provide create<Entity>() for the "add new record" dialog.
+     * Foreign key fields whose target entity has no service or definition get no plus button.
+     */
+    services?: Record<string, any>
 }>(), {
     fieldErrors: () => ({}),
     initialValues: () => ({}),
+    entityDefinitions: () => ({}),
+    services: () => ({}),
 })
 
 const emit = defineEmits<{
     'input': [technicalName: string]
     'update:values': [values: Record<string, unknown>]
+    'record-added': []
 }>()
 
 const FOREIGN_KEY_SEARCH_LIMIT = 50
@@ -157,7 +173,7 @@ function parseFileOptions(field: CustomFieldDefinition): FileFieldOptions | null
 
     try {
         const parsed = JSON.parse(field.options)
-        return parsed.file ?? null
+        return parsed.imageFile ?? null
     } catch (e) {
         console.error(`Ungültiges options-JSON für Custom Field "${field.technicalName}":`, e)
         return null
@@ -202,15 +218,106 @@ function serializeCustomFieldValue(field: CustomFieldDefinition, value: unknown)
     return field.type === 'datetime' ? toLocalDateTimeString(value) : toLocalDateString(value)
 }
 
+const { data: relatedEntityData, searchFns: relatedEntitySearchFns } = useRelatedEntities(entityMeta)
+const addRelations = reactive<Record<string, any>>({})
+const addDialogForeignEntityConfig = reactive<Record<string, any>>({})
+const addDialogEntityName = ref('')
+const addDialogField = ref<CustomFieldDefinition | null>(null)
+
+function buildAddRelation(entityName: string): void {
+    const entityDefinition = props.entityDefinitions[entityName]
+    const capitalizedEntityName = entityName.charAt(0).toUpperCase() + entityName.slice(1)
+    const saveFunction = props.services[`${capitalizedEntityName}Service`]?.[`create${capitalizedEntityName}`]
+
+    if (!entityDefinition || !saveFunction) {
+        return
+    }
+
+    const fields = []
+
+    for (const fieldDefinition of entityDefinition) {
+        if (!fieldDefinition.requiredOnCreate && !fieldDefinition.foreignEntity) {
+            continue
+        }
+
+        fields.push({
+            fieldName: fieldDefinition.propertyName,
+            label: t('sfxonitam', fieldDefinition.label) + ':',
+            sfxonType: fieldDefinition.type,
+            type: fieldDefinition.foreignEntity ? null : fieldDefinition.type,
+            value: fieldDefinition.foreignEntity ? null : '',
+            foreignEntity: fieldDefinition.foreignEntity || null,
+        })
+
+        // Selects inside of the dialog need their options and search function, too.
+        const foreignEntity = fieldDefinition.foreignEntity
+
+        if (foreignEntity && !addDialogForeignEntityConfig[foreignEntity]) {
+            addDialogForeignEntityConfig[foreignEntity] = {
+                searchFn: relatedEntitySearchFns[foreignEntity],
+                optionsTarget: computed(() => relatedEntityData[foreignEntity]),
+                labelFields: { fields: ['name'] },
+            }
+        }
+    }
+
+    addRelations[entityName] = {
+        addRecordModal: {
+            heading: t('sfxonitam', 'Add ' + entityName),
+            fields,
+            saveFunction,
+        },
+    }
+}
+
 props.customFields.forEach((field) => {
-    if (field.type === 'foreign_key') {
+    const entityName = field.type === 'foreignKey' ? parseForeignKeyOptions(field)?.targetEntity : null
+
+    if (entityName && !addRelations[entityName]) {
+        buildAddRelation(entityName)
+    }
+})
+
+function canAddRecord(field: CustomFieldDefinition): boolean {
+    const entityName = parseForeignKeyOptions(field)?.targetEntity
+
+    return !!entityName && !!addRelations[entityName]
+}
+
+function openAddDialog(field: CustomFieldDefinition): void {
+    addDialogField.value = field
+    addDialogEntityName.value = parseForeignKeyOptions(field)?.targetEntity ?? ''
+}
+
+function closeAddDialog(): void {
+    addDialogEntityName.value = ''
+    addDialogField.value = null
+}
+
+// The dialog closes itself right after "saved", so the field has to be read before the first await.
+// The label is built from the label composition of the custom field, not from the dialog's fields.
+async function onRecordAdded(payload: { entityName: string; newOption: { id: string; label: string } }): Promise<void> {
+    const field = addDialogField.value
+
+    if (!field) {
+        return
+    }
+
+    await loadForeignKeySelected(field, payload.newOption.id)
+    values[field.technicalName] = Number(payload.newOption.id)
+    onFieldInput(field.technicalName)
+    emit('record-added')
+}
+
+props.customFields.forEach((field) => {
+    if (field.type === 'foreignKey') {
         foreignKeyOptions[field.technicalName] = []
         foreignKeySelected[field.technicalName] = null
         values[field.technicalName] = null
         return
     }
 
-    if (field.type === 'file') {
+    if (field.type === 'imageFile') {
         const fileOptions = parseFileOptions(field)
         fileFields[field.technicalName] = reactive(useSfxonFileUploadField({
             folder: fileOptions?.folder ?? 'ITAM-CustomFiles',
@@ -225,7 +332,7 @@ props.customFields.forEach((field) => {
         return
     }
 
-    if (field.type === 'boolean') {
+    if (field.type === 'bool') {
         values[field.technicalName] = false
         return
     }
@@ -258,14 +365,14 @@ watch(
 
             const incoming = newValues[field.technicalName]
 
-            if (field.type === 'file') {
+            if (field.type === 'imageFile') {
                 fileLoads.push(
                     fileFields[field.technicalName].setFromExisting((incoming as number) ?? null)
                 )
                 continue
             }
 
-            if (field.type === 'foreign_key') {
+            if (field.type === 'foreignKey') {
                 values[field.technicalName] = incoming ?? null
                 fileLoads.push(loadForeignKeySelected(field, incoming))
                 continue
@@ -276,7 +383,7 @@ watch(
                 continue
             }
 
-            if (field.type === 'boolean') {
+            if (field.type === 'bool') {
                 values[field.technicalName] = normalizeBooleanValue(incoming)
                 continue
             }
@@ -438,7 +545,7 @@ watch(values, (v) => {
                 v-model="values[customField.technicalName]"
                 :field-error="errorFor(customField.technicalName)"
                 @input="onFieldInput(customField.technicalName)"
-                v-if="customField.type === 'longtext'"
+                v-if="customField.type === 'text'"
             />
 
             <SfxonEditorFormInput
@@ -450,7 +557,7 @@ watch(values, (v) => {
                 type="text"
                 :field-error="errorFor(customField.technicalName)"
                 @input="onFieldInput(customField.technicalName)"
-                v-else-if="customField.type === 'integer'"
+                v-else-if="customField.type === 'int'"
             />
 
             <SfxonEditorFormInput
@@ -473,10 +580,11 @@ watch(values, (v) => {
                 :options="foreignKeyOptions[customField.technicalName]"
                 track-by="id"
                 :search-fn="(query, signal) => searchForeignKeyOptions(customField, query, signal)"
+                :addRecordFn="canAddRecord(customField) ? () => openAddDialog(customField) : undefined"
                 @update:model-value="(val) => onForeignKeyInput(customField, val)"
                 :field-error="errorFor(customField.technicalName)"
                 @input="onFieldInput(customField.technicalName)"
-                v-else-if="customField.type === 'foreign_key'"
+                v-else-if="customField.type === 'foreignKey'"
             />
 
             <SfxonEditorFormCheckbox
@@ -486,7 +594,7 @@ watch(values, (v) => {
                 v-model="values[customField.technicalName]"
                 :field-error="errorFor(customField.technicalName)"
                 @input="onFieldInput(customField.technicalName)"
-                v-else-if="customField.type === 'boolean'"
+                v-else-if="customField.type === 'bool'"
             />
 
             <SfxonEditorFormDatePicker
@@ -516,7 +624,7 @@ watch(values, (v) => {
                 :show-label="true"
                 :style="'sfxonImageSelectorCompact'"
                 @input="onFieldInput(customField.technicalName)"
-                v-else-if="customField.type === 'file'"
+                v-else-if="customField.type === 'imageFile'"
             />
 
             <SfxonEditorFormInput
@@ -530,6 +638,14 @@ watch(values, (v) => {
                 v-else
             />
         </template>
+
+        <SfxonEntityDialog
+            :relations="addRelations"
+            :entity-name="addDialogEntityName"
+            :foreign-entity-config="addDialogForeignEntityConfig"
+            @close="closeAddDialog"
+            @saved="onRecordAdded"
+        />
     </div>
 </template>
 

@@ -10,8 +10,10 @@ use OCP\IL10N;
 class CustomFieldValidator {
     private const DECIMAL_MAX_PRECISION = 65;
     private const DECIMAL_MAX_SCALE = 30;
+    private const STRING_MIN_LENGTH = 1;
+    private const STRING_MAX_LENGTH = 4096;
     private const TEXT_MIN_LENGTH = 1;
-    private const TEXT_MAX_LENGTH = 4096;
+    private const TEXT_MAX_LENGTH = 65535;
     
 
     public function __construct(
@@ -56,23 +58,23 @@ class CustomFieldValidator {
         if(trim($type) === '') {
             $errors['type'] = $this->l->t('A type must be selected.');
         } else if(
-            $type !== 'text' &&
-            $type !== 'integer' &&
+            $type !== 'string' &&
+            $type !== 'int' &&
             $type !== 'decimal' &&
-            $type !== 'boolean' &&
-            $type !== 'file' &&
-            $type !== 'longtext' &&
+            $type !== 'bool' &&
+            $type !== 'imageFile' &&
+            $type !== 'text' &&
             $type !== 'date' &&
             $type !== 'datetime' &&
-            $type !== 'foreign_key'
+            $type !== 'foreignKey'
         ) {
             $errors['type'] = $this->l->t('This type is not supported.');
         }
 
-        // g) Check text.
-        if ($type === 'text') {
-            $errors = $this->validateTextOptions($data, $errors);
-            $errors = $this->validateTextValidation($data, $errors);
+        // g) Check string.
+        if ($type === 'string') {
+            $errors = $this->validateMaxLengthOptions($data, $errors, 'string', self::STRING_MIN_LENGTH, self::STRING_MAX_LENGTH);
+            $errors = $this->validateMinLengthValidation($data, $errors, 'string', self::STRING_MIN_LENGTH, self::STRING_MAX_LENGTH);
         }
 
         // h) Check decimal options
@@ -80,13 +82,14 @@ class CustomFieldValidator {
             $errors = $this->validateDecimalOptions($data, $errors);
         }
 
-        // i) Validate long text.
-        if ($type === 'longtext') {
-            $errors = $this->validateLongtext($data, $errors);
+        // i) Validate text.
+        if ($type === 'text') {
+            $errors = $this->validateMaxLengthOptions($data, $errors, 'text', self::TEXT_MIN_LENGTH, self::TEXT_MAX_LENGTH);
+            $errors = $this->validateMinLengthValidation($data, $errors, 'text', self::TEXT_MIN_LENGTH, self::TEXT_MAX_LENGTH);
         }
 
         // j) Validate foreign key options.
-        if ($type === 'foreign_key') {
+        if ($type === 'foreignKey') {
             $errors = $this->validateForeignKeyOptions($data, $errors);
         }
 
@@ -225,68 +228,46 @@ class CustomFieldValidator {
         return $errors;
     }
 
-    private function validateLongtext(array $data, array $errors): array
+    private function validateMaxLengthOptions(array $data, array $errors, string $type, int $min, int $max): array
     {
-        $validation = $data['validation']['longtext'] ?? null;
-
-        if (!is_array($validation) || empty($validation['enabled'])) {
-            return $errors;
-        }
-
-        $minRaw = $validation['minLength'] ?? '';
-        $minValid = (int) $minRaw > 0;
-
-        if (!$minValid) {
-            $errors['validationMinLength'] = $this->l->t(
-                'Min length must be a whole positive number.'
-            );
-        }
-
-        return $errors;
-    }
-
-    private function validateTextOptions(array $data, array $errors): array
-    {
-        $options = $data['options']['text'] ?? null;
+        $options = $data['options'][$type] ?? null;
 
         if (!is_array($options)) {
             $errors['optionsMaxLength'] = $this->l->t(
                 'A number between %s and %s must be defined.',
-                [self::TEXT_MIN_LENGTH, self::TEXT_MAX_LENGTH]
+                [$min, $max]
             );
 
             return $errors;
         }
 
         $maxRaw = $options['maxLength'] ?? '';
-        $maxValid = $this->isValidDigitLength($maxRaw, self::TEXT_MIN_LENGTH, self::TEXT_MAX_LENGTH);
 
-        if (!$maxValid) {
+        if (!$this->isValidDigitLength($maxRaw, $min, $max)) {
             $errors['optionsMaxLength'] = $this->l->t(
                 'Max length must be a whole number between %s and %s.',
-                [self::TEXT_MIN_LENGTH, self::TEXT_MAX_LENGTH]
+                [$min, $max]
             );
         }
 
         return $errors;
     }
 
-    private function validateTextValidation(array $data, array $errors): array
+    private function validateMinLengthValidation(array $data, array $errors, string $type, int $min, int $max): array
     {
-        $validation = $data['validation']['text'] ?? null;
+        $validation = $data['validation'][$type] ?? null;
 
         if (!is_array($validation) || empty($validation['enabled'])) {
             return $errors;
         }
 
-        $optionsMaxLength = (int)($data['options']['text']['maxLength'] ?? self::TEXT_MAX_LENGTH);
+        $optionsMaxLength = (int)($data['options'][$type]['maxLength'] ?? $max);
         $minRaw = $validation['minLength'] ?? '';
-        $minValid = $this->isValidDigitLength($minRaw, self::TEXT_MIN_LENGTH, $optionsMaxLength);
 
-        if (!$minValid) {
+        if (!$this->isValidDigitLength($minRaw, $min, $optionsMaxLength)) {
             $errors['validationMinLength'] = $this->l->t(
                 'Min length must be a whole number between %s and %s.',
-                [self::TEXT_MIN_LENGTH, $optionsMaxLength]
+                [$min, $optionsMaxLength]
             );
         }
 
