@@ -125,8 +125,8 @@ function buildRelations(entityDefinitions, dropdownBindings = {}) {
             const field = {
                 fieldName: fieldDefinition.name,
                 label: t('sfxonitam', fieldDefinition.label) + ':',
-                sfxonType: mapFrontendBackendFieldType(fieldDefinition.type),
-                type: mapFrontendBackendFieldSubtype(fieldDefinition.type),
+                sfxonType: fieldDefinition.type,
+                type: fieldDefinition.type,
                 value: ''
             }
 
@@ -175,24 +175,6 @@ async function loadPosition(id: number): Promise<void> {
     } finally {
         positionLoading.value = false
     }
-}
-
-function mapFrontendBackendFieldType(backendType) {
-    switch(backendType) {
-        case 'VARCHAR':
-            return 'SfxonEditorFormInput';
-    }
-
-    throw new Error('Unknown field type ' + backendType);
-}
-
-function mapFrontendBackendFieldSubtype(backendType) {
-    switch(backendType) {
-        case 'VARCHAR':
-            return 'text';
-    }
-
-    throw new Error('Unknown field type ' + backendType);
 }
 
 function onEntitySaved(payload: { entityName: string; newOption: { id: string; label: string } }) {

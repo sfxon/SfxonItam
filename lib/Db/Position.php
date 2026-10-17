@@ -31,6 +31,7 @@ class Position extends Entity implements \JsonSerializable, ISortableEntity
     public static function getFieldDefinition() {
         return [
             [
+                'dbType' => 'BIGINT',
                 'defaultValue' => NULL,
                 'filterType' => 'none',
                 'foreignEntity' => false,
@@ -45,6 +46,7 @@ class Position extends Entity implements \JsonSerializable, ISortableEntity
                 'unique' => true,
             ],
             [
+                'dbType' => 'VARCHAR',
                 'defaultValue' => NULL,
                 'filterType' => 'like',
                 'foreignEntity' => false,
@@ -53,12 +55,13 @@ class Position extends Entity implements \JsonSerializable, ISortableEntity
                 'length' => 300,
                 'name' => 'name',
                 'propertyName' => 'name',
-                'type' => 'VARCHAR',
+                'type' => 'string',
                 'requiredOnCreate' => true,
                 'requiredOnUpdate' => true,
                 'unique' => true,
             ],
             [
+                'dbType' => 'BIGINT',
                 'defaultValue' => NULL,
                 'filterType' => 'in',
                 'foreignEntity' => 'location',
@@ -67,12 +70,13 @@ class Position extends Entity implements \JsonSerializable, ISortableEntity
                 'length' => null,
                 'name' => 'location_id',
                 'propertyName' => 'locationId',
-                'type' => 'BIGINT',
+                'type' => 'foreignKey',
                 'requiredOnCreate' => false,
                 'requiredOnUpdate' => false,
                 'unique' => false,
             ],
             [
+                'dbType' => 'TEXT',
                 'defaultValue' => NULL,
                 'filterType' => 'none',
                 'foreignEntity' => false,
@@ -81,7 +85,7 @@ class Position extends Entity implements \JsonSerializable, ISortableEntity
                 'length' => null,
                 'name' => 'comment',
                 'propertyName' => 'comment',
-                'type' => 'TEXT',
+                'type' => 'text',
                 'requiredOnCreate' => false,
                 'requiredOnUpdate' => false,
                 'unique' => false,

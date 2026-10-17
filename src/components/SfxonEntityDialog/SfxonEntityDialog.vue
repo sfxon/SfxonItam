@@ -129,7 +129,7 @@ async function onSave() {
                     v-for="field in relation.addRecordModal.fields"
                     :key="relEntityName + '--' + field.fieldName"
                 >
-                    <template v-if="field.sfxonType === 'SfxonEditorFormInput'">
+                    <template v-if="field.sfxonType === 'string'">
                         <SfxonEditorFormInput
                             :field="'addRecordModal' + field.fieldName"
                             :fieldError="fieldErrors[relEntityName]?.[field.fieldName] ?? ''"
@@ -139,7 +139,7 @@ async function onSave() {
                             :type="field.type"
                         />
                     </template>
-                    <template v-else-if="field.sfxonType === 'SfxonEditorFormEntitySelect'">
+                    <template v-else-if="field.sfxonType === 'foreignKey'">
                         <SfxonEditorFormEntitySelect
                             :field="'addRecordModal' + field.fieldName"
                             :fieldError="fieldErrors[relEntityName]?.[field.fieldName] ?? ''"

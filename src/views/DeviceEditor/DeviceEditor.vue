@@ -203,8 +203,8 @@ function buildRelations(entityDefinitions, dropdownBindings = {}) {
             const field = {
                 fieldName: fieldDefinition.propertyName,
                 label: t('sfxonitam', fieldDefinition.label) + ':',
-                sfxonType: mapFrontendBackendFieldType(fieldDefinition),
-                type: fieldDefinition.foreignEntity ? null : mapFrontendBackendFieldSubtype(fieldDefinition.type),
+                sfxonType: fieldDefinition.type,
+                type: fieldDefinition.foreignEntity ? null : fieldDefinition.type,
                 value: fieldDefinition.foreignEntity ? null : '',
                 foreignEntity: fieldDefinition.foreignEntity || null,
             }
@@ -234,27 +234,6 @@ function buildRelations(entityDefinitions, dropdownBindings = {}) {
     }
 
     return retval;
-}
-
-function mapFrontendBackendFieldType(fieldDefinition) {
-    if (fieldDefinition.foreignEntity) {
-        return 'SfxonEditorFormEntitySelect';
-    }
-
-    switch(fieldDefinition.type) {
-        case 'VARCHAR':
-            return 'SfxonEditorFormInput';
-    }
-    throw new Error('Unknown field type ' + fieldDefinition.type);
-}
-
-function mapFrontendBackendFieldSubtype(backendType) {
-    switch(backendType) {
-        case 'VARCHAR':
-            return 'text';
-    }
-
-    throw new Error('Unknown field type ' + backendType);
 }
 
 async function loadDevice(id: number): Promise<void> {

@@ -27,6 +27,7 @@ class DeviceStatus extends Entity implements \JsonSerializable, ISortableEntity 
     public static function getFieldDefinition() {
         return [
             [
+                'dbType' => 'BIGINT',
                 'defaultValue' => NULL,
                 'filterType' => 'none',
                 'foreignEntity' => false,
@@ -41,6 +42,7 @@ class DeviceStatus extends Entity implements \JsonSerializable, ISortableEntity 
                 'unique' => true,
             ],
             [
+                'dbType' => 'VARCHAR',
                 'defaultValue' => NULL,
                 'filterType' => 'like',
                 'foreignEntity' => false,
@@ -49,12 +51,13 @@ class DeviceStatus extends Entity implements \JsonSerializable, ISortableEntity 
                 'length' => 300,
                 'name' => 'name',
                 'propertyName' => 'name',
-                'type' => 'VARCHAR',
+                'type' => 'string',
                 'requiredOnCreate' => true,
                 'requiredOnUpdate' => true,
                 'unique' => true,
             ],
             [
+                'dbType' => 'TEXT',
                 'defaultValue' => NULL,
                 'filterType' => 'none',
                 'foreignEntity' => false,
@@ -63,7 +66,7 @@ class DeviceStatus extends Entity implements \JsonSerializable, ISortableEntity 
                 'length' => null,
                 'name' => 'comment',
                 'propertyName' => 'comment',
-                'type' => 'TEXT',
+                'type' => 'text',
                 'requiredOnCreate' => false,
                 'requiredOnUpdate' => false,
                 'unique' => false,
