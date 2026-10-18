@@ -59,10 +59,10 @@ const manufacturerLoading = ref(false)
 const isSaving = ref(false)
 const { fieldErrors, generalError, handleApiError, clearErrors, clearFieldError } = useApiErrors()
 const { visible: saveVisible, isReflash: saveIsReflash, flashKey: saveFlashKey, trigger: triggerSaveSuccess } = useSaveBadge()
-const manufacturerId = computed(() => {
-    const param = new URLSearchParams(window.location.search).get('manufacturerId')
-    return param ? parseInt(param, 10) : undefined
-})
+const initialManufacturerId = new URLSearchParams(window.location.search).get('manufacturerId')
+const manufacturerId = ref<number | undefined>(
+    initialManufacturerId ? parseInt(initialManufacturerId, 10) : undefined
+)
 const isEditMode = computed(() => !!manufacturerId.value)
 const breadcrumbs = computed<BreadcrumbItem[]>(() => [
     {
@@ -109,10 +109,14 @@ async function loadManufacturer(id: number): Promise<void> {
 }
 
 async function save() {
-    const submitSuccess = await submitForm()
+    const id = await submitForm()
 
-    if(submitSuccess !== false && typeof manufacturerId.value === 'undefined') {
-        window.location.href = generateUrl('apps/sfxonitam/manufacturer/detail?manufacturerId=' + submitSuccess)
+    if (id !== false && !isEditMode.value) {
+        manufacturerId.value = id
+
+        const url = new URL(window.location.href)
+        url.searchParams.set('manufacturerId', String(id))
+        window.history.replaceState(window.history.state, '', url)
     }
 }
 

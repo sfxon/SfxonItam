@@ -59,10 +59,10 @@ const quantityUnitLoading = ref(false)
 const isSaving = ref(false)
 const { fieldErrors, generalError, handleApiError, clearErrors, clearFieldError } = useApiErrors()
 const { visible: saveVisible, isReflash: saveIsReflash, flashKey: saveFlashKey, trigger: triggerSaveSuccess } = useSaveBadge()
-const quantityUnitId = computed(() => {
-    const param = new URLSearchParams(window.location.search).get('quantityUnitId')
-    return param ? parseInt(param, 10) : undefined
-})
+const initialQuantityUnitId = new URLSearchParams(window.location.search).get('quantityUnitId')
+const quantityUnitId = ref<number | undefined>(
+    initialQuantityUnitId ? parseInt(initialQuantityUnitId, 10) : undefined
+)
 const isEditMode = computed(() => !!quantityUnitId.value)
 const breadcrumbs = computed<BreadcrumbItem[]>(() => [
     {
@@ -109,10 +109,14 @@ async function loadQuantityUnit(id: number): Promise<void> {
 }
 
 async function save() {
-    const submitSuccess = await submitForm()
+    const id = await submitForm()
 
-    if(submitSuccess !== false && typeof quantityUnitId.value === 'undefined') {
-        window.location.href = generateUrl('apps/sfxonitam/quantity-unit/detail?quantityUnitId=' + submitSuccess)
+    if (id !== false && !isEditMode.value) {
+        quantityUnitId.value = id
+
+        const url = new URL(window.location.href)
+        url.searchParams.set('quantityUnitId', String(id))
+        window.history.replaceState(window.history.state, '', url)
     }
 }
 

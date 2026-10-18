@@ -66,10 +66,10 @@ const positionLoading = ref(false)
 const isSaving = ref(false)
 const { fieldErrors, generalError, handleApiError, clearErrors, clearFieldError } = useApiErrors()
 const { visible: saveVisible, isReflash: saveIsReflash, flashKey: saveFlashKey, trigger: triggerSaveSuccess } = useSaveBadge()
-const positionId = computed(() => {
-    const param = new URLSearchParams(window.location.search).get('positionId')
-    return param ? parseInt(param, 10) : undefined
-})
+const initialPositionId = new URLSearchParams(window.location.search).get('positionId')
+const positionId = ref<number | undefined>(
+    initialPositionId ? parseInt(initialPositionId, 10) : undefined
+)
 const isEditMode = computed(() => !!positionId.value)
 const breadcrumbs = computed<BreadcrumbItem[]>(() => [
     {
@@ -201,10 +201,14 @@ async function openAddEntityDialog(payload: any) {
 }
 
 async function save() {
-    const submitSuccess = await submitForm()
+    const id = await submitForm()
 
-    if(submitSuccess !== false && typeof positionId.value === 'undefined') {
-        window.location.href = generateUrl('apps/sfxonitam/position/detail?positionId=' + submitSuccess)
+    if (id !== false && !isEditMode.value) {
+        positionId.value = id
+
+        const url = new URL(window.location.href)
+        url.searchParams.set('positionId', String(id))
+        window.history.replaceState(window.history.state, '', url)
     }
 }
 

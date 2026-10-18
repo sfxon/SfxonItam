@@ -59,10 +59,10 @@ const deviceStatusLoading = ref(false)
 const isSaving = ref(false)
 const { fieldErrors, generalError, handleApiError, clearErrors, clearFieldError } = useApiErrors()
 const { visible: saveVisible, isReflash: saveIsReflash, flashKey: saveFlashKey, trigger: triggerSaveSuccess } = useSaveBadge()
-const deviceStatusId = computed(() => {
-    const param = new URLSearchParams(window.location.search).get('deviceStatusId')
-    return param ? parseInt(param, 10) : undefined
-})
+const initialDeviceStatusId = new URLSearchParams(window.location.search).get('deviceStatusId')
+const deviceStatusId = ref<number | undefined>(
+    initialDeviceStatusId ? parseInt(initialDeviceStatusId, 10) : undefined
+)
 const isEditMode = computed(() => !!deviceStatusId.value)
 const breadcrumbs = computed<BreadcrumbItem[]>(() => [
     {
@@ -109,10 +109,14 @@ async function loadDeviceStatus(id: number): Promise<void> {
 }
 
 async function save() {
-    const submitSuccess = await submitForm()
+    const id = await submitForm()
 
-    if(submitSuccess !== false && typeof deviceStatusId.value === 'undefined') {
-        window.location.href = generateUrl('apps/sfxonitam/device-status/detail?deviceStatusId=' + submitSuccess)
+    if (id !== false && !isEditMode.value) {
+        deviceStatusId.value = id
+
+        const url = new URL(window.location.href)
+        url.searchParams.set('deviceStatusId', String(id))
+        window.history.replaceState(window.history.state, '', url)
     }
 }
 

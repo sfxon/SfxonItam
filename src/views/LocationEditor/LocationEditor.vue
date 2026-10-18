@@ -59,10 +59,10 @@ const locationLoading = ref(false)
 const isSaving = ref(false)
 const { fieldErrors, generalError, handleApiError, clearErrors, clearFieldError } = useApiErrors()
 const { visible: saveVisible, isReflash: saveIsReflash, flashKey: saveFlashKey, trigger: triggerSaveSuccess } = useSaveBadge()
-const locationId = computed(() => {
-    const param = new URLSearchParams(window.location.search).get('locationId')
-    return param ? parseInt(param, 10) : undefined
-})
+const initialLocationId = new URLSearchParams(window.location.search).get('locationId')
+const locationId = ref<number | undefined>(
+    initialLocationId ? parseInt(initialLocationId, 10) : undefined
+)
 const isEditMode = computed(() => !!locationId.value)
 const breadcrumbs = computed<BreadcrumbItem[]>(() => [
     {
@@ -109,10 +109,14 @@ async function loadLocation(id: number): Promise<void> {
 }
 
 async function save() {
-    const submitSuccess = await submitForm()
+    const id = await submitForm()
 
-    if(submitSuccess !== false && typeof locationId.value === 'undefined') {
-        window.location.href = generateUrl('apps/sfxonitam/location/detail?locationId=' + submitSuccess)
+    if (id !== false && !isEditMode.value) {
+        locationId.value = id
+
+        const url = new URL(window.location.href)
+        url.searchParams.set('locationId', String(id))
+        window.history.replaceState(window.history.state, '', url)
     }
 }
 

@@ -62,10 +62,10 @@ const itamUserLoading = ref(false)
 const isSaving = ref(false)
 const { fieldErrors, generalError, handleApiError, clearErrors, clearFieldError } = useApiErrors()
 const { visible: saveVisible, isReflash: saveIsReflash, flashKey: saveFlashKey, trigger: triggerSaveSuccess } = useSaveBadge()
-const itamUserId = computed(() => {
-    const param = new URLSearchParams(window.location.search).get('itamUserId')
-    return param ? parseInt(param, 10) : undefined
-})
+const initialItamUserId = new URLSearchParams(window.location.search).get('itamUserId')
+const itamUserId = ref<number | undefined>(
+    initialItamUserId ? parseInt(initialItamUserId, 10) : undefined
+)
 const isEditMode = computed(() => !!itamUserId.value)
 const breadcrumbs = computed<BreadcrumbItem[]>(() => [
     {
@@ -115,10 +115,14 @@ async function loadItamUser(id: number): Promise<void> {
 }
 
 async function save() {
-    const submitSuccess = await submitForm()
+    const id = await submitForm()
 
-    if(submitSuccess !== false && typeof itamUserId.value === 'undefined') {
-        window.location.href = generateUrl('apps/sfxonitam/itam-user/detail?itamUserId=' + submitSuccess)
+    if (id !== false && !isEditMode.value) {
+        itamUserId.value = id
+
+        const url = new URL(window.location.href)
+        url.searchParams.set('itamUserId', String(id))
+        window.history.replaceState(window.history.state, '', url)
     }
 }
 

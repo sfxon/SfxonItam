@@ -83,11 +83,10 @@ const isSaving = ref(false)
 const { fieldErrors, generalError, handleApiError, clearErrors, clearFieldError } = useApiErrors()
 const { visible: saveVisible, isReflash: saveIsReflash, flashKey: saveFlashKey, trigger: triggerSaveSuccess } = useSaveBadge()
 
-// Id und Modus laden.
-const deviceId = computed(() => {
-    const param = new URLSearchParams(window.location.search).get('deviceId')
-    return param ? parseInt(param, 10) : undefined
-})
+const initialDeviceId = new URLSearchParams(window.location.search).get('deviceId')
+const deviceId = ref<number | undefined>(
+    initialDeviceId ? parseInt(initialDeviceId, 10) : undefined
+)
 const isEditMode = computed(() => !!deviceId.value)
 const breadcrumbs = computed<BreadcrumbItem[]>(() => [
     {
@@ -293,10 +292,14 @@ async function openAddEntityDialog(payload: any) {
 }
 
 async function save() {
-    const submitSuccess = await submitForm()
+    const id = await submitForm()
 
-    if(submitSuccess !== false && typeof deviceId.value === 'undefined') {
-        window.location.href = generateUrl('apps/sfxonitam/device/detail?deviceId=' + submitSuccess)
+    if (id !== false && !isEditMode.value) {
+        deviceId.value = id
+
+        const url = new URL(window.location.href)
+        url.searchParams.set('deviceId', String(id))
+        window.history.replaceState(window.history.state, '', url)
     }
 }
 

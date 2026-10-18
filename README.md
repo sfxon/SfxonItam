@@ -244,17 +244,17 @@ Editor:
             - ✅ Device
             - ✅ Other entities.
         - ✅ When a custom field has been added and some of the options are edited, the changes cannot be saved, because the validator says, that this custom field already exists.
-        - Do not redirect, when data is created over the different entities.
+        - ✅ Do not redirect, when data is created over the different entities.
 
-* Einkauf/Verkauf hinzufügen
-    - Einzelne Geräte oder Lizenzen können über einen Einkauf/Verkauf gekauft oder verkauft werden.
-    - Angebote sind einzeln stehend, und enthalten Vor-Ab-Informationen.
-    - Im Grunde wird damit der gesamte Produkt-Lebenszyklus abgebildet.
-    - Bei beiden Typen können die benötigten Dokumente angehangen werden: Angebot, Rechnung, Lieferschein, weitere Dokumente (bspw. Gutschrift, Storno, Lizenzinfos, Vertrag, etc).
-    - Das Konzept dahinter ist, dass man selten nur einen Einkauf tätigt, sondern stattdessen chargenmäßig einkauft.
-    - Dadurch soll es weniger umständlich sein, einen Einkauf vielen Geräte zuzuordenen. Alle Geräte dieses Einkaufs oder Verkaufs verweisen bereits auf die passenden Dokumente. Es müssen keine Dokumente mehrfach gepflegt werden.
-    - Dieses Konzept ist eleganter, als jedem Dokument diese Eigenschaften manuell zuweisen zu müssen.
-    - PurchaseDate und Merchant müssen ausgegliedert, und in diese Entitäten extrahiert werden. InvoiceNumber gehört an das Rechnungs-Dokument, usw.
+* Add purchase/sale
+    - Individual devices or licenses can be purchased or sold through a purchase/sale transaction.
+    - Offers stand on their own and contain pre-order information.
+    - Essentially, this models the entire product lifecycle.
+    - For both types, the required documents can be attached: quotation, invoice, delivery note, additional documents (e.g. credit note, cancellation, license information, contract, etc.).
+    - The underlying concept is that purchases are rarely made individually; instead, they are typically made in batches.
+    - This should make it easier to assign a single purchase to multiple devices. All devices associated with a purchase or sale already reference the relevant documents. There is no need to maintain the same documents multiple times.
+    - This concept is more elegant than having to manually assign these properties to every individual document.
+    - PurchaseDate and Merchant need to be extracted and moved into these entities. InvoiceNumber belongs to the invoice document, etc.
 
 * Icons für Gerätetypen integrieren
     - Sie sollen dann auch im ListView der Geräte angezeigt werden können, bzw. standardmäßig statt der Gerätebilder angezeigt werden.

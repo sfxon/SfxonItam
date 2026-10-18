@@ -59,10 +59,10 @@ const merchantLoading = ref(false)
 const isSaving = ref(false)
 const { fieldErrors, generalError, handleApiError, clearErrors, clearFieldError } = useApiErrors()
 const { visible: saveVisible, isReflash: saveIsReflash, flashKey: saveFlashKey, trigger: triggerSaveSuccess } = useSaveBadge()
-const merchantId = computed(() => {
-    const param = new URLSearchParams(window.location.search).get('merchantId')
-    return param ? parseInt(param, 10) : undefined
-})
+const initialMerchantId = new URLSearchParams(window.location.search).get('merchantId')
+const merchantId = ref<number | undefined>(
+    initialMerchantId ? parseInt(initialMerchantId, 10) : undefined
+)
 const isEditMode = computed(() => !!merchantId.value)
 const breadcrumbs = computed<BreadcrumbItem[]>(() => [
     {
@@ -109,10 +109,14 @@ async function loadMerchant(id: number): Promise<void> {
 }
 
 async function save() {
-    const submitSuccess = await submitForm()
+    const id = await submitForm()
 
-    if(submitSuccess !== false && typeof merchantId.value === 'undefined') {
-        window.location.href = generateUrl('apps/sfxonitam/merchant/detail?merchantId=' + submitSuccess)
+    if (id !== false && !isEditMode.value) {
+        merchantId.value = id
+
+        const url = new URL(window.location.href)
+        url.searchParams.set('merchantId', String(id))
+        window.history.replaceState(window.history.state, '', url)
     }
 }
 
