@@ -422,6 +422,14 @@ Es werden 2 Export-Formate unterstützt: druckbare HTML-Seiten und CSV-Dateien.
 
 * ✅ Mengen-Angaben (bspw. bei Kabeln und Displays) (Chlorophylllius - Twitch)
 
+* Add device category.
+    - We got deviceType, which is meant as a concrete implementation of a kind of device and combined with a manufacturer.
+    - DeviceCategory should be a more general information.
+    - Example: DeviceCategory: Laptop; DeviceType: Think Pad X11; Manufacturer: Lenovo
+    - For clarity: Keep in mind that merchant is a seller, which is completely separated and attached to a purchase and independent from this.
+    - The deviceCategory should be attached to the deviceType. One can then filter for the category laptops and will see laptops from different manufacturers and of different types. Alternatively he can filter for devices from a certain manufacturer, laptops from a certain manufacturer, or a specialised version of a laptop.
+    - Category should be optional too. I would advice, that if one wants to keep it simple, he could mis-use this a little bit on this level, and just use "type" and ignore merchant and or category.
+
 * When opening an entry in a list, while being for example on page 2, after going back from the entry, you land on page 1.
   A user asks if it is possible, to come back to the original page one where on before, to not having to go to page 2 again.
   (Middle mouse button, or maybe some other improvement?)
