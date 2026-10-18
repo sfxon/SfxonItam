@@ -242,8 +242,9 @@ Editor:
         - ✅ In the save method of the Controller for Device, the validation part for the custom fields is missing. Take a deeper look at it and fix this.
         - Enhance the validation logic for all fields.
             - ✅ Device
-            - Other entities.
-        - When a custom field has been added and some of the options are edited, the changes cannot be saved, because the validator says, that this custom field already exists.
+            - ✅ Other entities.
+        - ✅ When a custom field has been added and some of the options are edited, the changes cannot be saved, because the validator says, that this custom field already exists.
+        - Do not redirect, when data is created over the different entities.
 
 * Einkauf/Verkauf hinzufügen
     - Einzelne Geräte oder Lizenzen können über einen Einkauf/Verkauf gekauft oder verkauft werden.

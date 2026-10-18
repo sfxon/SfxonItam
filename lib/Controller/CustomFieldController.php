@@ -168,25 +168,7 @@ class CustomFieldController extends Controller {
     #[FrontpageRoute(verb: 'POST', url: '/custom-field/save')]
     public function save(): DataResponse
     {
-        $data = $this->customFieldService->getDataFromRequest($this->request->getParams(), $this->expectedFields);
-        $result = $this->customFieldService->validateData($data);
-
-        if ($result['valid'] === false) {
-            return $this->validationError($result['errors']);
-        }
-
-        try {
-            $customField = $this->customFieldService->createCustomField($data);
-        } catch (\InvalidArgumentException $e) {
-            return $this->dataError($e->getMessage(), Http::STATUS_BAD_REQUEST);
-        } catch (\Exception $e) {
-            return $this->dataError('Unexpected error: ' . $e->getMessage(), Http::STATUS_INTERNAL_SERVER_ERROR);
-        }
-
-        return new DataResponse([
-            'status' => 'ok',
-            'id'     => $customField->getId(),
-        ]);
+        return $this->persist();
     }
 
     #[NoCSRFRequired]
@@ -207,31 +189,67 @@ class CustomFieldController extends Controller {
     #[FrontpageRoute(verb: 'PUT', url: '/custom-field/{id}')]
     public function update(int $id): DataResponse
     {
+        return $this->persist($id);
+    }
+
+    private function jsonError(string $message, int $status): JSONResponse
+    {
+        return new JSONResponse(['status' => 'error', 'message' => $message], $status);
+    }
+
+    private function dataError(string $message, int $status): DataResponse
+    {
+        return new DataResponse(['status' => 'error', 'message' => $message], $status);
+    }
+
+    private function persist(?int $id = null): DataResponse
+    {
+        $isUpdate = $id !== null;
+
         try {
-            $customField = $this->customFieldMapper->findById($id);
+            $customField = $isUpdate ? $this->customFieldMapper->findById($id) : null;
+
+            $data = $this->customFieldService->getDataFromRequest(
+                $this->request->getParams(),
+                $isUpdate ? $this->expectedUpdateFields : $this->expectedFields
+            );
+
+            $result = $isUpdate
+                ? $this->customFieldService->validateUpdateData($data, $id)
+                : $this->customFieldService->validateData($data);
+
+            if ($result['valid'] === false) {
+                return $this->validationError($result['errors']);
+            }
+
+            if ($isUpdate) {
+                $customField->setName($data['name']);
+                $customField->setPosition((int)$data['position']);
+                $customField->setComment($data['comment'] ?? '');
+                $customField->setEditable(filter_var($data['editable'], FILTER_VALIDATE_BOOLEAN));
+                $customField->setValidation(json_encode($data['validation']));
+
+                if (array_key_exists('options', $data) && $data['options'] !== null) {
+                    $customField->setOptions(
+                        is_string($data['options']) ? $data['options'] : json_encode($data['options'])
+                    );
+                }
+
+                $customField = $this->customFieldMapper->update($customField);
+            } else {
+                $customField = $this->customFieldService->createCustomField($data);
+            }
         } catch (DoesNotExistException) {
             return $this->dataError('Custom field not found', Http::STATUS_NOT_FOUND);
+        } catch (\InvalidArgumentException $e) {
+            return $this->dataError($e->getMessage(), Http::STATUS_BAD_REQUEST);
+        } catch (\Exception $e) {
+            return $this->dataError('Unexpected error: ' . $e->getMessage(), Http::STATUS_INTERNAL_SERVER_ERROR);
         }
-
-        $data = $this->customFieldService->getDataFromRequest($this->request->getParams(), $this->expectedUpdateFields);
-        $result = $this->customFieldService->validateUpdateData($data, $id);
-
-        if ($result['valid'] === false) {
-            return $this->validationError($result['errors']);
-        }
-
-        $customField->setComment($this->request->getParam('comment') ?? '');
-        $customField->setEditable(
-            filter_var($this->request->getParam('editable'), FILTER_VALIDATE_BOOLEAN)
-        );
-        $customField->setPosition((int)$this->request->getParam('position'));
-        $customField->setName($this->request->getParam('name'));
-        $customField->setValidation(json_encode($this->request->getParam('validation')));
-        $updated = $this->customFieldMapper->update($customField);
 
         return new DataResponse([
             'status' => 'ok',
-            'id' => $updated->getId(),
+            'id' => $customField->getId(),
         ]);
     }
 
@@ -247,16 +265,6 @@ class CustomFieldController extends Controller {
         }
 
         return $customFieldGroup;
-    }
-
-    private function jsonError(string $message, int $status): JSONResponse
-    {
-        return new JSONResponse(['status' => 'error', 'message' => $message], $status);
-    }
-
-    private function dataError(string $message, int $status): DataResponse
-    {
-        return new DataResponse(['status' => 'error', 'message' => $message], $status);
     }
 
     private function validationError(array $errors): DataResponse

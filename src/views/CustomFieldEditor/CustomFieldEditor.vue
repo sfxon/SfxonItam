@@ -5,8 +5,6 @@ import NcAppContent from '@nextcloud/vue/components/NcAppContent'
 import NcAppNavigation from '@nextcloud/vue/components/NcAppNavigation'
 import NcAppNavigationList from '@nextcloud/vue/components/NcAppNavigationList'
 import NcAppNavigationNew from '@nextcloud/vue/components/NcAppNavigationNew'
-import NcBreadcrumbs from '@nextcloud/vue/components/NcBreadcrumbs'
-import NcBreadcrumb from '@nextcloud/vue/components/NcBreadcrumb'
 import NcCheckboxRadioSwitch from '@nextcloud/vue/components/NcCheckboxRadioSwitch'
 import NcContent from '@nextcloud/vue/components/NcContent'
 import NcButton from '@nextcloud/vue/components/NcButton'
@@ -17,18 +15,22 @@ import NcTextField from '@nextcloud/vue/components/NcTextField'
 import { translate as t } from '@nextcloud/l10n'
 import { generateUrl } from '@nextcloud/router'
 import { useApiErrors } from '@/composables/useApiErrors'
+import { useSaveBadge } from '@/composables/useSaveBadge'
 import { fetchCustomField, createCustomField, updateCustomField } from '@/services/CustomFieldService'
 import SfxonEditorFormEntitySelect from '@/components/SfxonEditorFormEntitySelect'
+import SfxonItamHeaderBc, { type BreadcrumbItem } from '@/components/SfxonItamHeaderBc'
 import SfxonMainNavigation from '@/components/SfxonMainNavigation'
+import SfxonSaveBadge from '@/components/SfxonSaveBadge'
 
 const comment = ref('')
-const customFieldId = computed(() => {
-    const param = new URLSearchParams(window.location.search).get('customFieldId')
-    return param ? parseInt(param, 10) : undefined
-})
+const initialCustomFieldId = new URLSearchParams(window.location.search).get('customFieldId')
+const customFieldId = ref<number | undefined>(
+    initialCustomFieldId ? parseInt(initialCustomFieldId, 10) : undefined
+)
 const customFieldLoading = ref(false)
 const editable = ref(true)
 const { fieldErrors, generalError, handleApiError, clearErrors, clearFieldError } = useApiErrors()
+const { visible: saveVisible, isReflash: saveIsReflash, flashKey: saveFlashKey, trigger: triggerSaveSuccess } = useSaveBadge()
 const isEditMode = computed(() => !!customFieldId.value)
 const isSaving = ref(false)
 const name = ref('')
@@ -48,7 +50,26 @@ const props = defineProps({
         default: () => ([])
     }
 })
-const savedSuccessfully = ref(false)
+const breadcrumbs = computed<BreadcrumbItem[]>(() => [
+    {
+        label: t('sfxonitam', 'Custom Field Sets'),
+        link: generateUrl('/apps/sfxonitam/custom-field-group/'),
+        forceIconText: true,
+        disableDrop: true,
+    },
+    {
+        label: t('sfxonitam', 'Custom Fields for {name}', { name: props.customFieldGroup.name }),
+        link: generateUrl('/apps/sfxonitam/custom-field/?customFieldGroupId=' + props.customFieldGroupId),
+        forceIconText: true,
+        disableDrop: true,
+    },
+    {
+        label: isEditMode.value ? t('sfxonitam', 'Edit') : t('sfxonitam', 'Create'),
+        clickable: false,
+        forceIconText: true,
+        disableDrop: true,
+    },
+])
 const selectedType = ref<{ id: string; label: string } | null>(null)
 const technicalName = ref('')
 const types = [
@@ -224,14 +245,37 @@ async function loadCustomField(id: number): Promise<void> {
     }
 }
 
-async function submitForm() {
+async function save() {
+    const id = await submitForm()
+
+    if (id !== false && !isEditMode.value) {
+        customFieldId.value = id
+
+        const url = new URL(window.location.href)
+        url.searchParams.set('customFieldId', String(id))
+        window.history.replaceState(window.history.state, '', url)
+    }
+}
+
+async function saveAndBack() {
+    if (await submitForm() !== false) {
+        window.location.href = generateUrl('/apps/sfxonitam/custom-field/?customFieldGroupId=' + props.customFieldGroupId)
+    }
+}
+
+async function saveAndNew() {
+    if (await submitForm() !== false) {
+        addItem()
+    }
+}
+
+async function submitForm(): Promise<number | false> {
     clearErrors()
-    savedSuccessfully.value = false;
     isSaving.value = true
     let payload = {}
 
-    if(isEditMode.value) {
-         payload = {
+    if (isEditMode.value) {
+        payload = {
             comment: comment.value,
             editable: editable.value,
             name: name.value,
@@ -261,10 +305,11 @@ async function submitForm() {
         // On error the backend returns HTTP Status 200.
         if (data?.status === 'error') {
             handleApiError(data, t('sfxonitam', 'Please check your input.'))
-            return
+            return false
         }
 
-        savedSuccessfully.value = true;
+        triggerSaveSuccess()
+        return data.id
     } catch (error: any) {
         // HTTP error (4xx/5xx) – Backend still might return json with more information.
         const data = error?.response?.data
@@ -274,7 +319,11 @@ async function submitForm() {
         } else {
             generalError.value = t('sfxonitam', 'Could not save the changes.')
         }
+    } finally {
+        isSaving.value = false
     }
+
+    return false
 }
 
 watch(() => selectedType.value?.id, (newType) => {
@@ -418,28 +467,10 @@ onMounted(async () => {
         </NcAppNavigation>
 
         <NcAppContent>
-            <div :class="$style.sfxonItamHeader">
-                <NcBreadcrumbs root-icon="">
-                    <NcBreadcrumb
-                        :disable-drop="true"
-                        :force-icon-text="true"
-                        :href="generateUrl('/apps/sfxonitam/custom-field-group/')"
-                        name="Custom Field Sets"
-                        title="Custom Field Sets" />
-                    <NcBreadcrumb
-                        :disable-drop="true"
-                        :force-icon-text="true"
-                        :href="generateUrl('/apps/sfxonitam/custom-field/?customFieldGroupId=' + customFieldGroup.id)"
-                        :name="'Custom Fields for ' + props.customFieldGroup.name"
-                        :title="'Custom Fields for ' + props.customFieldGroup.name" />
-                    <NcBreadcrumb
-                        :disable-drop="true"
-                        :force-icon-text="true"
-                        href="#"
-                        :name="isEditMode ? 'Edit' : 'Create'"
-                        :title="isEditMode ? 'Edit' : 'Create'" />
-                </NcBreadcrumbs>
-            </div>
+            <SfxonItamHeaderBc
+                :titleLabel="''"
+                :breadcrumbs="breadcrumbs">
+            </SfxonItamHeaderBc>
 
             <div :class="$style.content">
                 <div :class="$style.form">
@@ -455,12 +486,12 @@ onMounted(async () => {
                     >
                         {{ generalError }}
                     </NcNoteCard>
-                    <NcNoteCard
-                        v-if="savedSuccessfully"
-                        type="success"
-                    >
-                        {{ t('sfxonitam', 'Changes have been saved') }}
-                    </NcNoteCard>
+
+                    <SfxonSaveBadge
+                        :visible="saveVisible"
+                        :is-reflash="saveIsReflash"
+                        :flash-key="saveFlashKey"
+                    />
 
                     <div :class="$style.field">
                         <NcTextField
@@ -885,7 +916,27 @@ onMounted(async () => {
 
 
                     <div :class="$style.actions">
-                        <NcButton variant="primary" @click="submitForm">
+                        <NcButton
+                            :disabled="isSaving"
+                            variant="secondary"
+                            @click="saveAndBack"
+                        >
+                            {{ t('sfxonitam', 'Save & Back') }}
+                        </NcButton>
+
+                        <NcButton
+                            :disabled="isSaving"
+                            variant="secondary"
+                            @click="saveAndNew"
+                        >
+                            {{ t('sfxonitam', 'Save & New') }}
+                        </NcButton>
+
+                        <NcButton
+                            :disabled="isSaving"
+                            variant="primary"
+                            @click="save"
+                        >
                             {{ t('sfxonitam', 'Save') }}
                         </NcButton>
                     </div>
@@ -896,22 +947,6 @@ onMounted(async () => {
 </template>
 
 <style module>
-.sfxonItamHeader {
-    align-items: start;
-    display: flex;
-    flex: 0 0;
-    font-weight: bold;
-    gap: var(--default-grid-baseline);
-    margin-block: var(--app-navigation-padding, 4px);
-    margin-inline: calc(var(--default-clickable-area) + 2*var(--app-navigation-padding, 4px)) var(--app-navigation-padding, 4px);
-    max-width: 100%;
-    min-height: 32px;
-}
-
-.sfxonItamHeader :global(.breadcrumb) {
-    align-items: start!important;
-}
-
 .content {
     display: flex;
     justify-content: center;
@@ -940,6 +975,7 @@ onMounted(async () => {
 
 .actions {
     display: flex;
+    gap: 8px;
     justify-content: flex-end;
     margin-top: 8px;
 }
