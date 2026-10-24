@@ -102,23 +102,14 @@ class Version010100Date20260411092800 extends SimpleMigrationStep {
                 'length' => 300,
             ]);
 
-            $table->addColumn('merchant_id', Types::BIGINT, [
+            $table->addColumn('description', Types::TEXT, [
+                'notnull' => false,
+            ]);
+
+            $table->addColumn('purchase_id', Types::BIGINT, [
                 'notnull' => false,
                 'default' => null,
                 'unsigned' => true,
-            ]);
-
-            $table->addColumn('invoice_number', Types::STRING, [
-                'notnull' => false,
-                'length' => 300,
-            ]);
-
-            $table->addColumn('purchase_date', Types::DATE_IMMUTABLE, [
-                'notnull' => false,
-            ]);
-
-            $table->addColumn('description', Types::TEXT, [
-                'notnull' => false,
             ]);
 
             $table->setPrimaryKey(['id']);
